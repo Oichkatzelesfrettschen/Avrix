@@ -53,8 +53,12 @@ static uint8_t nk_stacks[NK_MAX_TASKS][NK_STACK_SIZE]
     __attribute__((section(".noinit")));
 #endif
 
-/* Hand-rolled context switch (isr.S) -----------------------------*/
+/* Hand-rolled context switch (ASM) ------------------------------*/
 extern void _nk_switch_context(nk_sp_t *save_sp, nk_sp_t load_sp);
+extern void _nk_switch_task(nk_sp_t *save_sp,
+                            nk_sp_t  load_sp,
+                            uint8_t *current_ptr,
+                            uint8_t  next_tid);
 
 /*───────────────────── 2. Helper routines ───────────────────────*/
 
@@ -128,9 +132,8 @@ static void switch_to(uint8_t next)
     if (from->state == NK_RUNNING)
         from->state = NK_READY;
     to->state       = NK_RUNNING;
-    nk_sched.current = next;
 
-    _nk_switch_context(&from->sp, to->sp);
+    _nk_switch_task(&from->sp, to->sp, &nk_sched.current, next);
 }
 
 static inline void atomic_schedule(void)
