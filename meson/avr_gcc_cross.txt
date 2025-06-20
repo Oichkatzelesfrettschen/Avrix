@@ -17,3 +17,6 @@ c_args = [
   '-ffunction-sections', '-fdata-sections', '-mcall-prologues'
 ]
 link_args = ['-mmcu=atmega328p', '-Wl,--gc-sections', '-flto']
+
+[built-in options]
+b_staticpic = false

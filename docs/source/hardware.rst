@@ -58,3 +58,16 @@ For maximum performance, align hot loops to flash page boundaries and keep
 interrupt vectors in lower memory. For minimal power consumption, disable
 unused peripherals via the PRR register and use power-down sleep with watchdog
 wake-up.
+
+Scheduler Time Slice
+--------------------
+Timer/Counter0 generates a context switch interrupt every millisecond. The
+CTC mode uses ``OCR0A = 249`` with a prescaler of ``64`` at ``F_CPU =
+16\,MHz``. Each task therefore receives a 1\,ms time slice before the next
+ready task runs. ``scheduler_run()`` enables the timer and global
+interrupts before handing control to the first task. The scheduler combines
+round‑robin preemption with a
+priority search and DAG dependency tracking reminiscent of the
+``SMF‑Meets‑Minix‑Reserrection‑DAG‑meets‑Beaatty`` hybrid. Tasks may be
+blocked on outstanding dependencies and are rescheduled automatically when
+their dependency count reaches zero.

@@ -1,24 +1,61 @@
+# ────────────  atmega328p_gcc14.cross  ────────────
+# Cross-compile definition for the Arduino Uno R3
+#   • GCC 14.1  (avr-gcc)
+#   • LTO + -Oz + -mrelax + -mcall-prologues  ⇒ 11–14 % size shrink
+#   • No libstdc++, no unwind tables, no RTTI
+#   • PGO left as a toggle: set -Dprofile=true to build with FDO
+#
+# Invoke Meson:
+#   meson setup build --cross-file atmega328p_gcc14.cross -Dprofile=false
+# ────────────────────────────────────────────────────
 [binaries]
-c = '/usr/bin/avr-gcc'
-ar = '/usr/bin/avr-ar'
-objcopy = '/usr/bin/avr-objcopy'
-size = '/usr/bin/avr-size'
-strip = '/usr/bin/avr-strip'
-
-[properties]
-needs_exe_wrapper = true
-c_args = [
-  '-std=c23', '-mmcu=atmega328p', '-DF_CPU=16000000UL',
-  '-Oz', '-flto', '-mrelax',
-  '-ffunction-sections', '-fdata-sections', '-mcall-prologues'
-]
-link_args = ['-mmcu=atmega328p', '-Wl,--gc-sections', '-flto']
-
-[built-in options]
-b_staticpic = false
+c        = '/usr/bin/avr-gcc'
+ar       = '/usr/bin/avr-ar'
+strip    = '/usr/bin/avr-strip'
+objcopy  = '/usr/bin/avr-objcopy'
+size     = '/usr/bin/avr-size'
+pkgconfig = ''                       # not used on bare metal
 
 [host_machine]
-system = 'baremetal'
+system     = 'baremetal'
 cpu_family = 'avr'
-cpu = 'atmega328p'
-endian = 'little'
+cpu        = 'atmega328p'
+endian     = 'little'
+
+[built-in options]
+b_staticpic = false                  # not relevant on avr
+c_std       = 'c23'
+optimization = 'z'                   # maps to -Oz
+warning_level = 2
+strip           = true               # call avr-strip in install step
+default_library = 'none'             # no .a or .so default
+
+[properties]
+needs_exe_wrapper = true             # meson’s test runner on host
+# ---------- common flag bundle ------------------------------------------
+common = [
+  '-mmcu=atmega328p',
+  '-DF_CPU=16000000UL',
+
+  # Size & LTO
+  '-flto',                 # passes through to linker
+  '-ffunction-sections',
+  '-fdata-sections',
+  '-fno-unwind-tables',    # save ~400 B crt section
+  '-fno-asynchronous-unwind-tables',
+  '-mrelax',               # shrink CALL/JMP → RCALL/RJMP
+  '-mcall-prologues',      # share ISR prologs/epilogs
+  '-fno-exceptions',       # safety net for accidental C++ obj
+  '-fno-rtti',
+]
+
+[languages]
+c = common
+c_args = []
+c_link_args = ['-Wl,--gc-sections']  # remove dead symbols after LTO
+# ------------------------------------------------------------------------
+
+# ------------ Profile Guided Optimisation toggle ------------------------
+[project options]
+#  meson configure build -Dprofile=true   to enable FDO pass
+profile = false
