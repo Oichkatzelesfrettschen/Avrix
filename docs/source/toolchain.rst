@@ -1,67 +1,60 @@
 .. _toolchain-setup:
 
-=========================================
-AVR Tool-chain Setup (Ubuntu 22.04 / 24.04)
-=========================================
+========================================================
+AVR Tool-chain Setup (Ubuntu 22.04 / 24.04 «Noble Numbat»)
+========================================================
 
-This repository builds a **C23 µ-UNIX** that boots on an Arduino Uno R3
-(**ATmega328P + ATmega16U2**) or in QEMU.
+µ-UNIX targets the **Arduino Uno R3**  
+:- ATmega328P (32 k flash / 2 k SRAM)  
+:- ATmega16U2 USB bridge (LUFA CDC-ACM)  
 
-Only **two** tool-chain paths are CI-tested; every Meson cross-file,
-script and example in the repo assumes that *one* of them is active.
-
-*If you just need it to work run either mode:*
+Two **fully-CI-tested** tool-chain paths are supported.  
+Every Meson cross-file, script and example in the repo assumes **one** of
+them. If you only care about “it just works”, run:
 
 .. code-block:: bash
 
-   sudo ./setup.sh --modern      # Debian GCC‑14 + QEMU demo
+   sudo ./setup.sh --modern      # Debian gcc-avr 14 + QEMU demo
    sudo ./setup.sh --legacy      # Ubuntu gcc-avr 7.3 only
 
-----------------------------------------------------------------------
-Quick-start
-----------------------------------------------------------------------
-
-``setup.sh`` provides two modes
-
-* ``--modern`` pins the **Debian-sid** packages for ``gcc-avr-14`` (gracefully
-  falling back to Ubuntu’s ``gcc-avr``).  It installs QEMU, Meson, Doxygen,
-  Sphinx, graphviz and Prettier, compiles a demo ELF, boots it in QEMU and prints
-  **C23** flags for your Makefile.
-* ``--legacy`` uses Ubuntu’s ``gcc-avr`` package only, skipping the QEMU build
-  and Meson demo.  The suggested flags instead target **C11**.
+``setup.sh`` in *modern* mode will pin the Debian-sid packages, install
+QEMU ≥ 8.2, Meson, Doxygen, Sphinx … compile a demo ELF, boot it in
+QEMU and finally print copy-&-paste **C23** flags.  
+*Legacy* mode installs only the Ubuntu packages and prints **C11**
+flags — no QEMU build, no demo.
 
 ----------------------------------------------------------------------
-1 · Choose a compiler source
+1 · Select a compiler source
 ----------------------------------------------------------------------
 
-================  ==========  Where it lives                        Pros / Cons
-Mode
-================  ==========  ====================================  ======================================
-**Modern**        14.2 (2025) Debian-sid cross pkgs **or**           + Full C23, `-mrelax`, tiny code  
-                               xPack tarball                          − Needs a *pin* **or** PATH edit
-**Legacy**        7.3 (2018)  Ubuntu *universe*                      + Already in archive, zero effort  
-                                                                     − C11 only, ≈ 8 % larger binaries
-================  ==========  ====================================  ======================================
++----------------+-----------+--------------------------------------+---------------------------------------------+
+| Mode           | GCC ver.  | Where it lives                       | Pros / Cons                                 |
++================+===========+======================================+=============================================+
+| **Modern**     | 14.2 (2025)| Debian-sid cross pkgs **or** xPack   | ✔ Full C23, `-mrelax`, smallest flash       |  
+|                |           |                                      | ✘ Needs *pin* **or** PATH edit              |
++----------------+-----------+--------------------------------------+---------------------------------------------+
+| **Legacy**     | 7.3 (2018)| Ubuntu *universe*                    | ✔ Already in archive, zero effort           |  
+|                |           |                                      | ✘ C11 only, ≈ 8 % bigger binaries           |
++----------------+-----------+--------------------------------------+---------------------------------------------+
 
 .. admonition:: No Launchpad PPA
 
-   As of **June 2025** *no* Launchpad PPA publishes an AVR cross
-   GCC ≥ 10.  Old guides that suggest
-   ``ppa:team-gcc-arm-embedded/avr`` or
-   ``ppa:ubuntu-toolchain-r/test`` for **AVR** are obsolete.
+   As of **June 2025** *no* Launchpad PPA provides AVR gcc ≥ 10.  
+   Ignore guides that reference ``ppa:team-gcc-arm-embedded/avr`` or
+   ``ppa:ubuntu-toolchain-r/test`` for AVR work.
 
 ----------------------------------------------------------------------
-2 A · Modern via Debian-sid pin
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2 A · Modern path via Debian-sid pin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
-   # Add sid repo (signed) and pin only 3 packages.
+   # Add sid repo (signed) and pin exactly three packages
    echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] \
-        http://deb.debian.org/debian sid main' | \
-        sudo tee /etc/apt/sources.list.d/debian-sid-avr.list
+        http://deb.debian.org/debian sid main' \
+        | sudo tee /etc/apt/sources.list.d/debian-sid-avr.list
 
-   sudo tee /etc/apt/preferences.d/90avr <<'EOF'
+   sudo tee /etc/apt/preferences.d/90-avr <<'EOF'
    Package: gcc-avr avr-libc binutils-avr
    Pin: release o=Debian,a=sid
    Pin-Priority: 100
@@ -71,24 +64,26 @@ Mode
    sudo apt install -y gcc-avr avr-libc binutils-avr \
                        avrdude gdb-avr qemu-system-misc
 
-*Current sid*: **gcc-avr 14.2.0-2** · **avr-libc 2.2**
+*Current sid*: **gcc-avr 14.2.0-2**, **avr-libc 2.2**
 
-2 B · Modern via xPack tarball (no root)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------------------------------------------
+2 B · Modern path via xPack tarball (no root)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
    curl -L -o /tmp/avr.tgz \
         https://github.com/xpack-dev-tools/avr-gcc-xpack/releases/download/\
 v13.2.0-1/xpack-avr-gcc-13.2.0-1-linux-x64.tar.gz
-   mkdir -p $HOME/opt/avr
-   tar -C $HOME/opt/avr --strip-components=1 -xf /tmp/avr.tgz
+   mkdir -p "$HOME/opt/avr"
+   tar -C "$HOME/opt/avr" --strip-components=1 -xf /tmp/avr.tgz
    echo 'export PATH=$HOME/opt/avr/bin:$PATH' >> ~/.profile && source ~/.profile
 
-Provides **GCC 13.2** (full C23 + LTO) without touching APT.
+Gives **GCC 13.2** (full C23 + ThinLTO) without touching APT.
 
-2 C · Legacy (Ubuntu archive)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------------------------------------------
+2 C · Legacy path (Ubuntu archive)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: bash
 
@@ -97,16 +92,16 @@ Provides **GCC 13.2** (full C23 + LTO) without touching APT.
                        avrdude gdb-avr qemu-system-misc   # gcc 7.3
 
 ----------------------------------------------------------------------
-3 · Development helpers
+3 · Developer helpers
 ----------------------------------------------------------------------
 
 .. code-block:: bash
 
-   sudo apt install -y meson ninja-build doxygen python3-sphinx \
+   sudo apt install -y meson ninja-build doxygen python3-sphinx simavr \
                       python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
                       nodejs npm
    pip3 install --user breathe exhale sphinx-rtd-theme
-   npm  install  -g    prettier
+   npm  install  -g   prettier
 
 ----------------------------------------------------------------------
 4 · Sanity-check the install
@@ -119,21 +114,22 @@ Provides **GCC 13.2** (full C23 + LTO) without touching APT.
    qemu-system-avr --version | head -1
 
 ----------------------------------------------------------------------
-5 · Optimisation flags (Uno R3)
+5 · Optimisation flags (Arduino Uno R3)
 ----------------------------------------------------------------------
 
 .. code-block:: bash
 
    MCU=atmega328p
    CFLAGS="-std=c23 -mmcu=$MCU -DF_CPU=16000000UL -Oz -flto -mrelax \
-           -ffunction-sections -fdata-sections -mcall-prologues"
+           -ffunction-sections -fdata-sections -mcall-prologues \
+           --icf=safe -fipa-pta"
    LDFLAGS="-mmcu=$MCU -Wl,--gc-sections -flto"
 
-   # GCC 14 bonus
-   CFLAGS="$CFLAGS --icf=safe -fipa-pta"
+For a *legacy* build drop ``--icf`` / ``-fipa-pta`` and switch
+``-std=c23`` → ``-std=c11``.
 
 ----------------------------------------------------------------------
-6 · Building with Meson
+6 · Building with Meson + QEMU
 ----------------------------------------------------------------------
 
 .. code-block:: bash
@@ -143,19 +139,22 @@ Provides **GCC 13.2** (full C23 + LTO) without touching APT.
    meson compile -C build
    qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 
-Documentation targets:
+----------------------------------------------------------------------
+7 · Documentation targets
+----------------------------------------------------------------------
 
 .. code-block:: bash
 
-   meson compile -C build doc-doxygen
-   meson compile -C build doc-sphinx
+   meson compile -C build doc-doxygen   # API reference
+   meson compile -C build doc-sphinx    # user manual
+   meson compile -C build doc           # both of the above
 
 ----------------------------------------------------------------------
-7 · Handy APT queries
+8 · APT cheat-sheet
 ----------------------------------------------------------------------
 
 .. code-block:: bash
 
    apt-cache search  gcc-avr
    apt-cache show    gcc-avr-14 | grep ^Version
-   apt-cache policy  gcc-avr               # see repo priorities
+   apt-cache policy  gcc-avr        # show repo priorities

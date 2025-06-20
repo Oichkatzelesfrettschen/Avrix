@@ -150,27 +150,70 @@ int fs_read(file_t *f, void *buf, uint16_t len) {
 }
 
 /**
- * Copy the names of all valid inodes into ``out``.
+ * Write a newline-separated list of valid filenames into ``buf``.
  *
- * The directory is flat so at most ``FS_NUM_INODES`` entries exist. The caller
- * must provide storage for that many strings of length ``FS_MAX_NAME`` + 1.
+ * The resulting string is always NUL terminated.  No more than
+ * ``FS_NUM_INODES`` entries are emitted.  Output truncates if
+ * ``len`` is insufficient.
  *
- * \param[out] out  Destination array of strings.
- * \return          Number of entries copied.
+ * \param[out] buf  Destination buffer.
+ * \param len       Buffer capacity in bytes.
+ * \return          Number of filenames written.
  */
-int fs_list(char (*out)[FS_MAX_NAME + 1]) {
-    if (out == NULL) {
+int fs_list(char *buf, size_t len) {
+    if (buf == NULL || len == 0) {
         return 0;
     }
 
+    size_t pos = 0;
     int count = 0;
+
     for (uint8_t i = 0; i < FS_NUM_INODES; ++i) {
-        if (inodes[i].type != 0) {
-            strncpy(out[count], dir_name[i], FS_MAX_NAME);
-            out[count][FS_MAX_NAME] = '\0';
-            ++count;
+        if (inodes[i].type == 0)
+            continue;
+
+        const char *name = dir_name[i];
+        size_t nlen = strnlen(name, FS_MAX_NAME);
+
+        if (count > 0) {
+            if (pos + 1 >= len)
+                break;
+            buf[pos++] = '\n';
         }
+
+        if (pos + nlen + 1 > len)
+            break;
+
+        memcpy(&buf[pos], name, nlen);
+        pos += nlen;
+        buf[pos] = '\0';
+        ++count;
     }
 
     return count;
+}
+
+int fs_unlink(const char *name) {
+    if (name == NULL) {
+        return -1;
+    }
+
+    for (uint8_t i = 0; i < FS_NUM_INODES; ++i) {
+        if (inodes[i].type && strncmp(dir_name[i], name, FS_MAX_NAME) == 0) {
+            dinode_t *d = &inodes[i];
+
+            for (size_t j = 0; j < sizeof d->addrs / sizeof d->addrs[0]; ++j) {
+                if (d->addrs[j]) {
+                    bfree(d->addrs[j]);
+                    d->addrs[j] = 0;
+                }
+            }
+
+            memset(d, 0, sizeof *d);
+            dir_name[i][0] = '\0';
+            return 0;
+        }
+    }
+
+    return -1;
 }

@@ -140,7 +140,9 @@ bool nk_fs_get(uint16_t key, uint16_t *val) {
     uint8_t i = nk_idx;
     do {
         if (i == 0) {
-            r = (r == 0) ? (NK_ROWS - 1) : (r - 1);
+            r = (r == 0)
+                ? (uint8_t)(NK_ROWS - 1)
+                : (uint8_t)(r - 1);
             i = 15;
         } else {
             i--;
