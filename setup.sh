@@ -48,6 +48,19 @@ case "${1:-}" in
 esac
 apt-get update
 
+
+# Determine the best available compiler package.
+# Determine the newest gcc-<version>-avr package, if any.
+best_pkg=$(apt-cache search '^gcc-[0-9][0-9]*-avr' 2>/dev/null | awk '{print $1}' | sort -V | tail -n 1)
+if [ -z "$best_pkg" ]; then
+    best_pkg=gcc-avr
+    echo "No versioned cross compiler found; using $best_pkg" >&2
+else
+    echo "Using $best_pkg" >&2
+fi
+
+
+
 # Determine the best available compiler package.
 best_pkg=$(apt-cache search gcc | grep -E '^gcc-[0-9]+-avr' | awk '{print $1}' | sort -V | tail -n 1)
 if [ -z "$best_pkg" ]; then
@@ -59,7 +72,7 @@ apt-get install -y "$best_pkg" avr-libc binutils-avr avrdude gdb-avr
 
 # Display compiler and library versions for verification.
 avr-gcc --version | head -n 1
-avr-libc-config --version
+dpkg-query -W -f 'avr-libc ${Version}\n' avr-libc
 
 # Suggest optimised flags tuned for the selected MCU.
 MCU=${MCU:-atmega328p}

@@ -13,11 +13,13 @@ sudo ./setup.sh            # installs the newest toolchain it can find
 Pass `--stock` to force the script to use only Ubuntu's packages.
 Use `--old` to try the deprecated pmjdebruijn PPA on older systems.
 
-After installation, verify the toolchain versions:
+
+After installation, verify the tool versions:
 
 ```bash
 avr-gcc --version
-avr-libc-config --version
+dpkg-query -W -f 'avr-libc ${Version}\n' avr-libc
+
 ```
 
 Optimised flags for an Arduino Uno (ATmega328P):
