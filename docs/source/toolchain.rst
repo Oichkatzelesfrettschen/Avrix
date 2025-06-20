@@ -15,5 +15,20 @@ contains the AVR C library and headers. ``binutils-avr`` supplies the
 assembler and linker, ``avrdude`` programs flash memory, ``gdb-avr``
 enables debugging and ``simavr`` offers a lightweight simulator.
 
+Additional utilities useful for development and static analysis can be
+installed with:
+
+.. code-block:: bash
+
+   sudo apt-get install meson ninja-build doxygen python3-sphinx \
+        cloc cscope exuberant-ctags cppcheck graphviz
+
+The documentation requires the ``breathe`` and ``exhale`` extensions
+available on PyPI:
+
+.. code-block:: bash
+
+   pip3 install --user breathe exhale
+
 Running the ``setup.sh`` script found in the project root installs these
 packages automatically when executed with ``sudo``.

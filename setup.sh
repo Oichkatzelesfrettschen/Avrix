@@ -42,8 +42,12 @@ case "${1:-}" in
 esac
 apt-get update
 
-# Install AVR GCC, avr-libc, binutils, avrdude, gdb, and simavr.
-apt-get install -y "$best_pkg" avr-libc binutils-avr avrdude gdb-avr simavr
+# Install AVR GCC, avr-libc, binutils, avrdude, gdb, simavr and tooling.
+apt-get install -y "$best_pkg" avr-libc binutils-avr avrdude gdb-avr simavr \
+    meson ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck
+
+# Python packages for Sphinx integration
+pip3 install --break-system-packages --upgrade breathe exhale
 
 # Display compiler and library versions for verification.
 avr-gcc --version | head -n 1

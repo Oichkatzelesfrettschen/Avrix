@@ -39,6 +39,20 @@ sudo apt-get install gcc-avr-14 avr-libc binutils-avr avrdude gdb-avr simavr
 Legacy systems can instead install the stock `gcc-avr` (version 7.3.0) from the
 Ubuntu archives.
 
+Additional developer utilities are recommended for code analysis and
+documentation generation.  Install them with:
+
+```bash
+sudo apt-get install meson ninja-build doxygen python3-sphinx \
+     cloc cscope exuberant-ctags cppcheck graphviz
+```
+
+The Sphinx extensions `breathe` and `exhale` are distributed on PyPI:
+
+```bash
+pip3 install --user breathe exhale
+```
+
 
 Pass `--legacy` to `setup.sh` to use Ubuntu's packages instead of the modern
 PPA.  Using `--modern` (the default) selects GCC 14 from
