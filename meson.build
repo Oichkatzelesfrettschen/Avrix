@@ -3,6 +3,9 @@ project('avrix', 'c', version: '0.1', license: 'MIT')
 inc = include_directories('include')
 subdir('src')
 
+# Add unit and integration tests
+subdir('tests')
+
 # Documentation targets
 doxygen = find_program('doxygen', required: false)
 if doxygen.found()
