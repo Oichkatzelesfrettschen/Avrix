@@ -18,6 +18,8 @@
   #define pgm_read_byte(p) (*(const uint8_t *)(p))
 #endif
 
+static door_t   door_vec[NK_MAX_TASKS][DOOR_SLOTS]
+                                  __attribute__((section(".noinit")));
 /*───────────────── 0. Compile-time sanity checks ───────────────────*/
 _Static_assert(DOOR_SLAB_SIZE % 8 == 0,  "slab must be multiple of 8 bytes");
 _Static_assert(DOOR_SLOTS      <= 15,   "descriptor index fits in 4 bits");

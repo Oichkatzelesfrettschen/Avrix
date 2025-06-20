@@ -22,7 +22,11 @@ project(
   ]
 )
 
-inc = include_directories('include')
+if host_machine.cpu_family() != 'avr'
+  inc = include_directories('include', 'compat')
+else
+  inc = include_directories('include')
+endif
 
 subdir('src')
 subdir('lib')
