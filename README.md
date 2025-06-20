@@ -1,17 +1,18 @@
 # AVR Toolchain Setup
 
 Run the script below to install the AVR-GCC toolchain on Ubuntu 24.04.
-The script attempts to install the latest cross compiler available by
-enabling the *ubuntu-toolchain-r/test* PPA and searching for
-\`gcc-<version>-avr\` packages using `apt-cache search`. If none are found it
-falls back to the stock \`gcc-avr\` from the \`universe\` repository. Recent
-versions of the toolchain are also available from the `team-gcc-arm-embedded`
-PPA which provides packages such as `gcc-avr-14`.
+It enables the *ubuntu-toolchain-r/test* PPA and searches for
+the newest \`gcc-<version>-avr\` package with ``apt-cache``.  If no modern
+package is discovered it falls back to the stock \`gcc-avr\` from the
+\`universe\` repository.  Recent versions are also supplied by the
+`team-gcc-arm-embedded` PPA which includes ``gcc-avr-14``.
 
 ```bash
 sudo ./setup.sh            # installs the newest toolchain it can find
 ```
-This script installs the following packages:
+This script installs all required packages using ``apt`` and ``pip``.  It pulls
+the toolchain from Ubuntu and PyPI automatically.  The following key packages
+are installed:
 
 - `gcc-avr` – GNU C cross compiler
 - `avr-libc` – Standard C library for AVR development
@@ -34,7 +35,8 @@ Then install the desired tools:
 ```bash
 sudo add-apt-repository ppa:team-gcc-arm-embedded/avr
 sudo apt-get update
-sudo apt-get install gcc-avr-14 avr-libc binutils-avr avrdude gdb-avr simavr
+sudo apt-get install apt-transport-https software-properties-common \
+     gcc-avr-14 avr-libc binutils-avr avrdude gdb-avr simavr
 ```
 Legacy systems can instead install the stock `gcc-avr` (version 7.3.0) from the
 Ubuntu archives.
@@ -43,14 +45,14 @@ Additional developer utilities are recommended for code analysis and
 documentation generation.  Install them with:
 
 ```bash
-sudo apt-get install meson ninja-build doxygen python3-sphinx \
-     cloc cscope exuberant-ctags cppcheck graphviz
+sudo apt-get install ninja-build doxygen python3-sphinx \
+     cloc cscope exuberant-ctags cppcheck graphviz python3-pip
 ```
 
-The Sphinx extensions `breathe` and `exhale` are distributed on PyPI:
+Install the latest Meson release and the Sphinx extensions from PyPI:
 
 ```bash
-pip3 install --user breathe exhale
+pip3 install --user meson breathe exhale
 ```
 
 
@@ -100,10 +102,11 @@ this repository target these specific constraints.
 ## Building the Library
 
 The project uses **Meson** in combination with a cross file to build
-the AVR binaries.  Two examples are supplied:
+the AVR binaries.  A detailed configuration is provided:
 
-- `meson/avr_gcc_cross.txt` – minimal flags
-- `cross/avr_m328p.txt` – full example with absolute tool paths
+- `cross/avr_m328p.txt` – absolute tool paths and optimized flags.
+  It defines ``F_CPU=16 MHz`` and enables link-time optimisation for
+  smaller binaries.
 
 ```bash
 meson setup build --cross-file cross/avr_m328p.txt

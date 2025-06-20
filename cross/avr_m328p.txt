@@ -1,3 +1,8 @@
+# Meson cross compilation file for the ATmega328P.
+# Absolute paths point to the AVR-GCC toolchain binaries
+# installed by `setup.sh`.  The flags are tuned for space
+# constrained 16 MHz Arduino Uno boards.
+
 [binaries]
 c = '/usr/bin/avr-gcc'
 ar = '/usr/bin/avr-ar'
@@ -7,11 +12,14 @@ strip = '/usr/bin/avr-strip'
 
 [properties]
 needs_exe_wrapper = true
-c_args = ['-mmcu=atmega328p']
-link_args = ['-mmcu=atmega328p']
 
 [built-in options]
+# AVR firmware is not position independent
 b_staticpic = false
+## Optimization flags for minimal flash usage with LTO enabled
+c_args = ['-mmcu=atmega328p', '-DF_CPU=16000000UL', '-Os', '-flto',
+         '-ffunction-sections', '-fdata-sections']
+c_link_args = ['-mmcu=atmega328p', '-Wl,--gc-sections', '-flto']
 
 [host_machine]
 system = 'baremetal'

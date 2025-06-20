@@ -44,10 +44,11 @@ apt-get update
 
 # Install AVR GCC, avr-libc, binutils, avrdude, gdb, simavr and tooling.
 apt-get install -y "$best_pkg" avr-libc binutils-avr avrdude gdb-avr simavr \
-    meson ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck
+    python3-pip ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags \
+    cppcheck
 
-# Python packages for Sphinx integration
-pip3 install --break-system-packages --upgrade breathe exhale
+# Install the Meson build system and Sphinx extensions from PyPI
+pip3 install --break-system-packages --upgrade meson breathe exhale
 
 # Display compiler and library versions for verification.
 avr-gcc --version | head -n 1
