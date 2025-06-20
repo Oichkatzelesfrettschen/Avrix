@@ -41,11 +41,13 @@ Descriptor-Based RPC
 
 The current revision introduces a "door" mechanism inspired by Solaris
 Doors and Cap'n Proto. Each task owns four door descriptors mapped to a
-128‑byte shared message slab. A single ``door_call()`` copies only the
-pointer to the payload, switches to the callee and returns in about fourteen
-cycles. The slab lives in ``.noinit`` so soft resets preserve in‑flight
-messages. This zero-copy design keeps latency below one microsecond while
-consuming just 1 kB of flash and 200 B of SRAM.
+128‑byte shared message slab. The client issues a call via ``door_call()``
+which copies the request into the slab, switches to the callee and waits.
+Servers obtain the message pointer through ``door_handle(NULL)`` then
+respond by passing a reply buffer back to ``door_handle()``. The slab lives
+in ``.noinit`` so soft resets preserve in‑flight messages. This design keeps
+latency under a microsecond while consuming only 1 kB of flash and 200 B of
+SRAM.
 
 Copy-on-Write Flash
 -------------------

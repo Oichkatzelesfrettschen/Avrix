@@ -21,11 +21,29 @@ typedef struct {
 /** Maximum number of doors per task. */
 #define DOOR_SLOTS 4
 
-/** Shared message slab (defined in door.c). */
-extern uint8_t door_slab[128];
+/** Size in bytes of the shared message slab. */
+#define DOOR_SLAB_SIZE 128
 
-/** Call a door by index with a pointer to the message payload. */
+/** Shared message slab (defined in door.c). */
+extern uint8_t door_slab[DOOR_SLAB_SIZE];
+
+/**
+ * @brief Call a door by index with a pointer to the message payload.
+ *
+ * The request is copied into a shared slab before switching to the
+ * callee task. Upon return the reply is written back into the caller's
+ * buffer.
+ */
 void door_call(uint8_t idx, const void *msg);
+
+/**
+ * @brief Handle a door request and optionally send the reply.
+ *
+ * Pass \c NULL to obtain a pointer to the received message. After
+ * processing the request invoke it again with a pointer to the reply
+ * buffer to resume the caller.
+ */
+const void *door_handle(const void *reply);
 
 #ifdef __cplusplus
 }
