@@ -7,8 +7,10 @@ strip = '/usr/bin/avr-strip'
 
 [properties]
 needs_exe_wrapper = true
+
 c_args = ['-std=c23', '-mmcu=atmega328p', '-DF_CPU=16000000UL', '-Oz',
-          '-flto', '-ffunction-sections', '-fdata-sections', '-pgo', '-ld']
+          '-flto', '-ffunction-sections', '-fdata-sections', -'fno-unwind-tables',
+          '-pgo', '-ld']
 
 link_args = ['-mmcu=atmega328p', '-Wl,--gc-sections', '-flto']
 

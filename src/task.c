@@ -8,6 +8,7 @@
   ─────────────────────────────────────────────────────────────*/
 #include "nk_task.h"
 #include "door.h"
+#include "kalloc.h"
 #include <string.h>
 #include <avr/interrupt.h>
 
@@ -26,12 +27,14 @@ extern void nk_switch_to(uint8_t tid);    /* pre-empt / directed switch */
 /*──────── API impl ──────────────────────*/
 uint8_t nk_cur_tid(void) { return nk_cur; }
 
+    
 /*------------ scheduler init ------------*/
 void nk_sched_init(void)
 {
     nk_task_cnt = 0;
     nk_cur      = 0;
     memset(door_vec, 0, sizeof door_vec);   /* .noinit needs cold-init */
+    kalloc_init();
 }
 
 /*------------ add task ------------------*/
