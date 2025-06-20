@@ -77,7 +77,7 @@ fi
 
 #──────────────── 2. install packages ─────────────────────────────────────
 BASE_PKGS=(
-  "$TOOLCHAIN_PKG" avr-libc binutils-avr avrdude gdb-avr
+  "$TOOLCHAIN_PKG" avr-libc binutils-avr avrdude gdb-avr simavr
   qemu-system-misc meson ninja-build doxygen python3-sphinx python3-pip
   ccache cloc cscope exuberant-ctags cppcheck graphviz nodejs npm
 )

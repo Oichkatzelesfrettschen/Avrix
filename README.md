@@ -81,12 +81,14 @@ sudo apt install -y gcc-avr avr-libc binutils-avr \
 ## 2 · Dev helpers
 
 ```bash
-sudo apt install -y meson ninja-build doxygen python3-sphinx \
+sudo apt install -y meson ninja-build doxygen python3-sphinx simavr \
                     python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
                     nodejs npm
 pip3 install --user breathe exhale sphinx-rtd-theme
 npm  install  -g   prettier
 ```
+simavr provides a lightweight AVR simulator. `cloc`, `cscope`, `exuberant-ctags` and `cppcheck` supply additional source analysis helpers.
+
 
 ---
 
