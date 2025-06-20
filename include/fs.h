@@ -15,10 +15,10 @@ extern "C" {
  */
 
 /** Size of a filesystem block in bytes. Chosen small to conserve memory. */
-#define FS_BLOCK_SIZE 64
+#define FS_BLOCK_SIZE 32
 
 /** Number of blocks in the in-memory filesystem. */
-#define FS_NUM_BLOCKS 128
+#define FS_NUM_BLOCKS 16
 
 /** Maximum number of inodes supported. */
 #define FS_NUM_INODES 16
@@ -45,6 +45,13 @@ int  fs_create(const char *name, uint8_t type);
 int  fs_open(const char *name, file_t *f);
 int  fs_write(file_t *f, const void *buf, uint16_t len);
 int  fs_read(file_t *f, void *buf, uint16_t len);
+/**
+ * List all valid filenames in the flat directory.
+ *
+ * \param[out] out  Array with ``FS_NUM_INODES`` elements for storing names.
+ * \return          Number of entries copied into ``out``.
+ */
+int  fs_list(char (*out)[FS_MAX_NAME + 1]);
 
 #ifdef __cplusplus
 }

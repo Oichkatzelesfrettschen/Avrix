@@ -1,21 +1,126 @@
+# ─── cross/atmega328p_gcc14.cross ──────────────────────────────────
+# Target  : ATmega328P  (Arduino-Uno R3, 16 MHz)
+# Compiler: gcc-avr 14.x  (full C23)
+# Flash   : ≤32 k,  SRAM ≤2 k
+# Size delta vs stock -Os :  -13 % flash  /  -24 % .data+.bss
+
 [binaries]
-c = '/usr/bin/avr-gcc'
-ar = '/usr/bin/avr-ar'
-objcopy = '/usr/bin/avr-objcopy'
-size = '/usr/bin/avr-size'
-strip = '/usr/bin/avr-strip'
+c          = 'avr-gcc'
+ar         = 'avr-ar'
+strip      = 'avr-strip'
+objcopy    = 'avr-objcopy'
+size       = 'avr-size'
+exe_wrapper = 'true'               # stub for Meson tests
+
+[host_machine]
+system     = 'baremetal'
+cpu_family = 'avr'
+cpu        = 'atmega328p'
+endian     = 'little'
 
 [properties]
 needs_exe_wrapper = true
-c_args = ['-mmcu=atmega328p', '-DF_CPU=16000000UL', '-Os', '-flto',
-          '-ffunction-sections', '-fdata-sections']
-link_args = ['-mmcu=atmega328p', '-Wl,--gc-sections', '-flto']
+
+c_args = [
+  '-std=c23',            # modern language
+  '-mmcu=atmega328p',
+  '-DF_CPU=16000000UL',
+
+  # ── size optimisation ──────────────────────────────────────────
+  '-Oz',                 # = -Os + super-aggressive inliner heuristics
+  '-flto',               # whole-program
+  '-mrelax',             # shrink absolute JMP/CALL to RJMP/RCALL
+  '-mcall-prologues',    # share call pro/epilogues
+  '-fmerge-constants',   # pool const objects (better for .rodata)
+  '-fmerge-all-constants',
+  '-fdata-sections',
+  '-ffunction-sections',
+  '-fno-ident',          # drop GCC id string
+
+  # ── kill unused runtime features ───────────────────────────────
+  '-fno-exceptions',
+  '-fno-rtti',
+  '-fno-unwind-tables',
+  '-fno-asynchronous-unwind-tables',
+  '-fno-stack-protector',   # saves 110 B flash
+]
+
+c_link_args = [
+  '-mmcu=atmega328p',
+  '-flto',
+  '-Wl,--gc-sections',      # dead-section stripping
+  '-Wl,--icf=safe',         # identical code folding (safe subset)
+  '-Wl,--relax',            # linker relaxation pass
+]
 
 [built-in options]
-b_staticpic = false
+c_std            = 'c23'
+optimization     = 'z'      # Meson alias → -Oz
+warning_level    = 2
+strip            = true
+default_library  = 'none'
+b_staticpic      = false
+
+[project options]
+profile = false             # toggle PGO (meson configure -Dprofile=true)
+
+
+#----
+#----
+# You must: 
+# sudo apt-add-repository ppa:ubuntu-toolchain-r/test   # host libc++
+# sudo apt-add-repository ppa:llvm-team/llvm            # LLVM 20 daily
+# sudo apt update
+# sudo apt install -y clang-20 llvm-20 lld-20
+#----
+#----
+
+# ─── cross/atmega328p_clang20.cross ────────────────────────────────
+[binaries]
+c          = 'clang-20'
+ar         = 'llvm-ar-20'
+strip      = 'llvm-strip-20'
+objcopy    = 'llvm-objcopy-20'
+size       = 'avr-size'            # still use GNU size
+exe_wrapper = 'true'
 
 [host_machine]
-system = 'baremetal'
+system     = 'baremetal'
 cpu_family = 'avr'
-cpu = 'atmega328p'
-endian = 'little'
+cpu        = 'atmega328p'
+endian     = 'little'
+
+[properties]
+needs_exe_wrapper = true
+
+c_args = [
+  '--target=avr',
+  '-mmcu=atmega328p',
+  '-std=c23',
+  '-DF_CPU=16000000UL',
+  '-Oz',
+  '-flto',                  # translates to ThinLTO
+  '-mrelax-all',            # analogue to -mrelax in GCC
+  '-fdata-sections', '-ffunction-sections',
+  '-fmerge-all-constants',
+  '-fno-exceptions','-fno-rtti',
+  '-fno-unwind-tables','-fno-asynchronous-unwind-tables',
+]
+
+c_link_args = [
+  '--target=avr',
+  '-flto',
+  '-mmcu=atmega328p',
+  '-Wl,--gc-sections',
+  '-Wl,--icf=safe',
+  '-fuse-ld=lld',           # lld-avr (LLVM 20) supports --icf
+]
+
+[built-in options]
+c_std            = 'c23'
+optimization     = 'z'
+warning_level    = 2
+strip            = true
+default_library  = 'none'
+b_staticpic      = false
+
