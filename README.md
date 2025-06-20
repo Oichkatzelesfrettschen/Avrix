@@ -160,6 +160,13 @@ meson setup build --cross-file cross/atmega328p_gcc14.cross \
 
 ## 9 · Contributing
 
+When building tests natively Meson searches for AVR headers in common
+locations.  Specify a custom directory with the `-Davr_inc_dir=/path` option
+if your toolchain installs `avr/io.h` elsewhere.
+
+The resulting static library `libavrix.a` can be found in the build
+directory.  Documentation is generated with:
+
 1. Fork & branch (`feat/short-title`).
 2. Keep additions **tiny**—flash is precious.
 3. `ninja -C build && meson test` must pass.
@@ -168,6 +175,7 @@ meson setup build --cross-file cross/atmega328p_gcc14.cross \
 ---
 
 ## 10 · Example: File-system demo
+
 
 ```bash
 meson setup build --cross-file cross/atmega328p_gcc14.cross
