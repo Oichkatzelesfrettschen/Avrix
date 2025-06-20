@@ -52,6 +52,17 @@ void scheduler_add_task(tcb_t *tcb, void (*entry)(void), void *stack);
  */
 void scheduler_run(void);
 
+/** Get the identifier of the currently running task. */
+uint8_t task_current_id(void);
+
+/**
+ * @brief Switch context to the specified task immediately.
+ *
+ * The scheduler state is updated so that the new task becomes the current
+ * one. If \p tid is out of range the call is ignored.
+ */
+void task_switch_to(uint8_t tid);
+
 #ifdef __cplusplus
 }
 #endif

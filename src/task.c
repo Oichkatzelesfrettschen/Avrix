@@ -1,13 +1,18 @@
 #include "task.h"
 #include "door.h"
 #include <avr/interrupt.h>
+#include <string.h>
 
 static tcb_t *task_list[MAX_TASKS];
 static uint8_t task_count;
 static uint8_t current_task;
 
-/* Door descriptors for the current task. Placed in .noinit. */
-door_t door_vec[DOOR_SLOTS] __attribute__((section(".noinit")));
+/*
+ * Door descriptors for every task. Each task owns DOOR_SLOTS entries
+ * in this table which resides in .noinit so door mappings survive
+ * soft resets.
+ */
+door_t door_vec[MAX_TASKS][DOOR_SLOTS] __attribute__((section(".noinit")));
 
 /**
  * Simple round-robin scheduler with fixed time slice.
@@ -15,6 +20,10 @@ door_t door_vec[DOOR_SLOTS] __attribute__((section(".noinit")));
 void scheduler_init(void) {
     task_count = 0;
     current_task = 0;
+    /* Clear door descriptors so stale mappings do not persist across
+     * cold resets. The table resides in .noinit therefore explicit
+     * initialisation is required. */
+    memset(door_vec, 0, sizeof door_vec);
 }
 
 void scheduler_add_task(tcb_t *tcb, void (*entry)(void), void *stack) {
@@ -63,5 +72,26 @@ void scheduler_run(void) {
         }
         current_task = (current_task + 1) % task_count;
     }
+}
+
+uint8_t task_current_id(void) {
+    return current_task;
+}
+
+void task_switch_to(uint8_t tid) {
+    if (tid >= task_count || tid == current_task) {
+        return;
+    }
+
+    tcb_t *from = task_list[current_task];
+    tcb_t *to   = task_list[tid];
+    if (!to) {
+        return;
+    }
+
+    to->state = TASK_RUNNING;
+    context_switch(from, to);
+    from->state = TASK_READY;
+    current_task = tid;
 }
 

@@ -39,13 +39,16 @@ statically partitioned: 640 B kernel, 640 B shell, 512 B stacks, 256 B heap.
 Descriptor-Based RPC
 --------------------
 
-The current revision introduces a "door" mechanism inspired by Solaris
-Doors and Cap'n Proto. Each task owns four door descriptors mapped to a
-128‑byte shared message slab. A single ``door_call()`` copies only the
-pointer to the payload, switches to the callee and returns in about fourteen
-cycles. The slab lives in ``.noinit`` so soft resets preserve in‑flight
-messages. This zero-copy design keeps latency below one microsecond while
-consuming just 1 kB of flash and 200 B of SRAM.
+The current revision introduces a ``door`` mechanism inspired by Solaris
+Doors and Cap'n Proto. Every task owns four door descriptors stored in a
+global table residing in ``.noinit``. Calls place a pointer to the payload in
+the shared 128‑byte slab. ``door_call()`` records the caller, switches to the
+target task and waits until the callee invokes ``door_return()``. The callee
+retrieves the pointer, length and flags using ``door_message()``,
+``door_words()`` and ``door_flags()``. Door slots are initialised with
+``door_register(idx, target, words, flags)``. This design keeps the total door
+overhead under one microsecond while consuming just 1 kB of flash and 200 B of
+SRAM.
 
 Copy-on-Write Flash
 -------------------
