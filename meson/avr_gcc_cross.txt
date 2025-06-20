@@ -11,7 +11,11 @@ cpu = 'atmega328p'
 endian = 'little'
 
 [properties]
-c_args = ['-mmcu=atmega328p', '-DF_CPU=16000000UL', '-Os', '-flto', '-ffunction-sections', '-fdata-sections']
+c_args = [
+  '-std=c23', '-mmcu=atmega328p', '-DF_CPU=16000000UL',
+  '-Oz', '-flto', '-mrelax',
+  '-ffunction-sections', '-fdata-sections', '-mcall-prologues'
+]
 link_args = ['-mmcu=atmega328p', '-Wl,--gc-sections', '-flto']
 
 [built-in options]

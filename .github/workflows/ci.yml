@@ -1,0 +1,46 @@
+# Continuous integration workflow for Avrix
+# Uses the setup script to install the AVR toolchain and
+# builds the project using Meson. Documentation is exported
+# as an artifact for each run.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the repository sources
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Install AVR GCC toolchain and required build utilities
+      - name: Install AVR toolchain
+        run: sudo ./setup.sh --legacy
+
+      # Configure the Meson build directory for the AVR target
+      - name: Configure build
+        run: meson setup build --cross-file cross/avr_m328p.txt
+
+      # Compile all targets using ninja via Meson
+      - name: Compile
+        run: meson compile -C build
+
+      # Execute any unit tests defined in the project
+      - name: Run tests
+        run: meson test -C build --print-errorlogs
+
+      # Generate Doxygen and Sphinx documentation
+      - name: Build documentation
+        run: meson compile -C build doc-doxygen doc-sphinx
+
+      # Archive the built documentation for inspection
+      - name: Upload docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: build/docs
+          if-no-files-found: warn
