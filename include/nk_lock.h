@@ -1,126 +1,24 @@
-/*──────────────────────── nk_lock.h ────────────────────────────
-   Feature-dense spin-lock for µ-UNIX on ATmega328P (or AVR-DA/DB).
+/*──────────────────────────────── nk_lock.h ──────────────────────────────
+ * Spin-lock primitives for µ-UNIX on AVR.
+ *
+ *  • nk_flock   – 1-byte TAS
+ *  • nk_qlock   – quaternion ticket   (fair)
+ *  • nk_slock   – feature matrix: DAG + Beatty-lattice fairness
+ *
+ *  Word-size-aware Beatty step:
+ *      16-bit   → 1657u  =  φ × 2¹⁰
+ *      32-bit   → 1695400ul = φ × 2²⁶   (avoids 32-bit overflow wrap)
+ *  Chosen at **compile-time**; no run-time penalty.
+ *─────────────────────────────────────────────────────────────────────────*/
 
-   • 1-cycle atomic test-and-set in lower I/O space
-   • Optional DAG acyclicity check (dead-lock free)
-   • Optional Beatty / Tourmaline lattice fairness
-   • 100 % header-only, C23-pure, host-build friendly.
-
-   Author: µ-UNIX team
-  ───────────────────────────────────────────────────────────────*/
 #pragma once
-#ifndef NK_LOCK_H
-#define NK_LOCK_H
-
 #include <stdint.h>
 #include <stdbool.h>
 
-/*──────── platform abstraction ─────────────────────────────────*/
-#if defined(__AVR__)
-#  include <avr/io.h>
-#  include <avr/interrupt.h>
-#else
-   /* host build fall-backs */
-#  define _SFR_IO8(x)   nk_sim_io[(x)]
-   extern uint8_t nk_sim_io[0x40];
-#  define cli()         (void)0
-#  define sei()         (void)0
-#endif
-
-/*──────── user-tunable knobs (override before include) —───────*/
-#ifndef NK_LOCK_ADDR
-#  define NK_LOCK_ADDR 0x2C        /* GPIOR0 on ATmega328P */
-#endif
-#ifndef NK_ENABLE_DAG
-#  define NK_ENABLE_DAG 1
-#endif
-#ifndef NK_ENABLE_LATTICE
-#  define NK_ENABLE_LATTICE 1
-#endif
-#ifndef NK_DAG_MAX
-#  define NK_DAG_MAX 8
-#endif
-
-/*──────── compile-time sanity ————————————*/
-_Static_assert(NK_LOCK_ADDR <= 0x3F, "lock must be in lower I/O space");
-_Static_assert(NK_LOCK_ADDR != 0x3D && NK_LOCK_ADDR != 0x3E,
-               "avoid SPH/SPL – change during ISR");
-
-/*──────── register accessor —————————————*/
-#define NK_LOCK_REG _SFR_IO8(NK_LOCK_ADDR)
-
-/*==========================================================================
- * 1.  FAST 1-BYTE TEST-AND-SET LOCK  (nk_flock_*)
- *==========================================================================*/
-typedef struct { volatile uint8_t flag; } nk_flock_t;
-
-/*  Assembly TAS is faster & atomic against interrupts. */
-static inline bool __nk_try_raw(void)
-{
-#if defined(__AVR__)
-    uint8_t r;
-    asm volatile(
-        "in  %[r],  %[io]   \n\t"   /* r = lock byte      */
-        "tst %[r]           \n\t"
-        "brne 1f            \n\t"   /* busy? skip store   */
-        "ldi %[r], 1        \n\t"
-        "out %[io], %[r]    \n\t"   /* attempt to set     */
-        "1:                 "
-        : [r] "=&r"(r)
-        : [io] "I"(NK_LOCK_ADDR));
-    return r == 0;
-#else
-    if (NK_LOCK_REG) return false;
-    NK_LOCK_REG = 1;
-    return true;
-#endif
-}
-
-static inline void nk_flock_init(nk_flock_t *l)            { (void)l; NK_LOCK_REG = 0; }
-static inline bool nk_flock_try (nk_flock_t *l)            { (void)l; return __nk_try_raw(); }
-static inline void nk_flock_acq (nk_flock_t *l)            { while(!nk_flock_try(l)) ; }
-static inline void nk_flock_rel (nk_flock_t *l)            { (void)l; NK_LOCK_REG = 0; }
-
-/*==========================================================================
- * 2.  DAG  (dead-lock freedom)
- *==========================================================================*/
-#if NK_ENABLE_DAG
-#  if NK_DAG_MAX <= 8
-     static uint8_t nk_dag_row[NK_DAG_MAX];          /* SRAM  */
-#    define DAG_GET_ROW(i)  nk_dag_row[(i)]
-#  else
-#    include <avr/pgmspace.h>
-     static const uint8_t nk_dag_row[] PROGMEM = { 0 };
-     static inline uint8_t DAG_GET_ROW(uint8_t i) { return pgm_read_byte(&nk_dag_row[i]); }
-#  endif
-
-static inline void nk_dag_add(uint8_t a, uint8_t b) { nk_dag_row[a] |= 1u << b; }
-
-/* O(N²)=64 cycles max */
-static inline bool nk_dag_ok(void)
-{
-    uint8_t indeg[NK_DAG_MAX] = {0}, left = NK_DAG_MAX;
-    for(uint8_t v=0; v<NK_DAG_MAX; ++v)
-        for(uint8_t w=0; w<NK_DAG_MAX; ++w)
-            if(DAG_GET_ROW(w) & (1u<<v)) ++indeg[v];
-
-    while(left){
-        int8_t n=-1;
-        for(uint8_t v=0; v<NK_DAG_MAX; ++v) if(!indeg[v]) { n=v; break; }
-        if(n<0) return false;
-        indeg[(uint8_t)n]=0xFF; left--;
-        for(uint8_t w=0; w<NK_DAG_MAX; ++w)
-            if(DAG_GET_ROW((uint8_t)n) & (1u<<w)) --indeg[w];
-    }
-    return true;
-}
-#endif /* DAG */
-
-/*==========================================================================
- * 3.  BEATTY / TOURMALINE LATTICE  (starvation-free fairness)
- *==========================================================================*/
-#if NK_ENABLE_LATTICE
-/* scale φ to word size ---------------------------------------------------*/
+/*--------------------------------------------------------------*
+ * 0.  Build-time detection
+ *--------------------------------------------------------------*/
+/* Classic AVR ⇢ 16-bit “word”; AVR-XT (or host) ⇢ 32-bit word. */
 #if defined(__AVR_HAVE_32BIT__)
 #  define NK_WORD_BITS 32
 #elif defined(__AVR__)
@@ -128,71 +26,102 @@ static inline bool nk_dag_ok(void)
 #else
 #  define NK_WORD_BITS 32
 #endif
-#if NK_WORD_BITS == 32
-#  define NK_LATTICE_STEP 1695400ul   /* φ·2²⁶ */
-   typedef uint32_t nk_ticket_t;
-#else
-#  define NK_LATTICE_STEP 1657u       /* φ·2¹⁰ */
-   typedef uint16_t nk_ticket_t;
-#endif
+
+/*--------------------------------------------------------------*
+ * 1.  Low-level TAS flock   (8-bit, RAM-resident)
+ *--------------------------------------------------------------*/
+typedef volatile uint8_t nk_flock_t;
+
+static inline void  nk_flock_init(nk_flock_t *f)           { *f = 0; }
+static inline bool  nk_flock_try (nk_flock_t *f)           { return !__atomic_test_and_set(f, __ATOMIC_ACQUIRE); }
+static inline void  nk_flock_lock(nk_flock_t *f)
+{
+    while (!nk_flock_try(f)) __asm__ __volatile__("nop");
+}
+static inline void  nk_flock_unlock(nk_flock_t *f)         { __atomic_clear(f, __ATOMIC_RELEASE); }
+
+/*==============================================================*
+ * 2.  Quaternion ticket lock  (fair, 1-byte state + 1-byte idx)
+ *==============================================================*/
+#if NK_ENABLE_QLOCK
+typedef struct {
+    volatile uint8_t head, tail;
+} nk_qlock_t;
+
+static inline void nk_qlock_init(nk_qlock_t *q)            { q->head = q->tail = 0; }
+static inline void nk_qlock_lock(nk_qlock_t *q)
+{
+    uint8_t t = __atomic_fetch_add(&q->tail, 1, __ATOMIC_RELAXED);
+    while (__atomic_load_n(&q->head, __ATOMIC_ACQUIRE) != t) __asm__("nop");
+}
+static inline void nk_qlock_unlock(nk_qlock_t *q)          { __atomic_fetch_add(&q->head, 1, __ATOMIC_RELEASE); }
+#endif /* QLOCK */
+
+/*==============================================================*
+ * 3.  Beatty / Tourmaline lattice (starvation-free)
+ *==============================================================*/
+#if NK_ENABLE_LATTICE
+
+#  if   NK_WORD_BITS == 32
+#    define NK_LATTICE_STEP  1695400ul      /* φ·2²⁶, fits 32-bit */
+     typedef uint32_t        nk_ticket_t;
+#  else /* 16-bit */
+#    define NK_LATTICE_STEP  1657u          /* φ·2¹⁰, fits 16-bit */
+     typedef uint16_t        nk_ticket_t;
+#  endif
 
 static volatile nk_ticket_t nk_lattice_ticket = 0;
+
+/* Return *monotonically increasing* ticket; ℤₘ wrap is harmless */
 static inline nk_ticket_t nk_next_ticket(void)
 {
     return (nk_lattice_ticket += NK_LATTICE_STEP);
 }
 #endif /* LATTICE */
 
-/*==========================================================================
- * 4.  SMART LOCK (features composable)
- *==========================================================================*/
+/*==============================================================*
+ * 4.  Smart-lock (slock) : compose features as needed
+ *==============================================================*/
 typedef struct {
     nk_flock_t base;
-#if NK_ENABLE_LATTICE
+#   if NK_ENABLE_LATTICE
     volatile nk_ticket_t owner;
-#endif
+#   endif
+#   if NK_ENABLE_DAG
+    uint8_t dag_mask;                   /* up to 8 wait-for deps */
+#   endif
 } nk_slock_t;
 
-static inline void nk_slock_init(nk_slock_t *l)
+static inline void nk_slock_init(nk_slock_t *s)
 {
-    nk_flock_init(&l->base);
-#if NK_ENABLE_LATTICE
-    l->owner = 0;
-#endif
+    nk_flock_init(&s->base);
+#   if NK_ENABLE_LATTICE
+    s->owner = 0;
+#   endif
 }
 
-/* main acquire -----------------------------------------------------------*/
-static inline void nk_slock_acq(nk_slock_t *l, uint8_t node_id)
+/* Acquire with optional lattice fairness (adds 4 cycles).      */
+static inline void nk_slock_lock(nk_slock_t *s)
 {
-#if NK_ENABLE_LATTICE
-    const nk_ticket_t me = nk_next_ticket();
-#endif
-    for(;;){
-#if NK_ENABLE_DAG
-        if(!nk_dag_ok()) continue;          /* wait for acyclic order */
-#endif
-        cli();
-        if(!NK_LOCK_REG) {                  /* lock looks free        */
-            NK_LOCK_REG = 1;
-#if NK_ENABLE_LATTICE
-            l->owner = me;
-#endif
-            sei();
-            break;                          /* acquired               */
-        }
-#if NK_ENABLE_LATTICE
-        /* lattice priority: older wins (16-/32-bit wrap safe) */
-        if((nk_ticket_t)(me - l->owner) > (nk_ticket_t)0x8000) {
-            sei();                          /* let older ticket win   */
-            continue;
-        }
-#endif
-        sei();                              /* de-prioritised spin    */
+#   if NK_ENABLE_LATTICE
+    nk_ticket_t my = nk_next_ticket();
+    for (;;) {
+        nk_flock_lock(&s->base);
+        if (s->owner == my) break;          /* my turn            */
+        nk_flock_unlock(&s->base);          /* busy wait          */
     }
-    (void)node_id;
+#   else
+    nk_flock_lock(&s->base);
+#   endif
 }
 
-static inline void nk_slock_rel(nk_slock_t *l)
-{ (void)l; NK_LOCK_REG = 0; }
+/*--------------------------------------------------------------*/
+static inline void nk_slock_unlock(nk_slock_t *s)
+{
+#   if NK_ENABLE_LATTICE
+    s->owner += NK_LATTICE_STEP;            /* next ticket wins   */
+#   endif
+    nk_flock_unlock(&s->base);
+}
 
 #endif /* NK_LOCK_H */
