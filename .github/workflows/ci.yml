@@ -1,7 +1,7 @@
 # Continuous integration workflow for Avrix
-# Uses the setup script to install the AVR toolchain and
-# builds the project using Meson. Documentation is exported
-# as an artifact for each run.
+# Installs the *modern* AVR toolchain via `setup.sh --modern`,
+# builds the firmware using Meson, and exports Sphinx/Doxygen docs
+# as artifacts.
 
 name: CI
 
@@ -19,7 +19,14 @@ jobs:
 
       # Install AVR GCC toolchain and required build utilities
       - name: Install AVR toolchain
-        run: sudo ./setup.sh --legacy
+        run: sudo ./setup.sh --modern
+
+      # Install Meson build system from apt and verify the install
+      - name: Install Meson
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build
+          meson --version
 
       # Configure the Meson build directory for the AVR target
       - name: Configure build
