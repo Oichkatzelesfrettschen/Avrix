@@ -153,8 +153,13 @@ For a *legacy* build drop ``--icf`` / ``-fipa-pta`` and switch
 8 · APT cheat-sheet
 ----------------------------------------------------------------------
 
+Use these queries to see which versions your repositories provide
+before running ``setup.sh``:
+
 .. code-block:: bash
 
    apt-cache search  gcc-avr
    apt-cache show    gcc-avr-14 | grep ^Version
-   apt-cache policy  gcc-avr        # show repo priorities
+   apt-cache policy  gcc-avr              # view repo priorities
+   apt-cache madison gcc-avr-14           # list all 14.x builds
+
