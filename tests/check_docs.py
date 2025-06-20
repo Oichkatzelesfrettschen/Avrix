@@ -60,8 +60,7 @@ def check_references(refs: list[str]) -> list[Path]:
 
 def main() -> int:
     refs = parse_references(INDEX_FILE)
-    missing = check_references(refs)
-    if missing:
+    if missing := check_references(refs):
         for path in missing:
             print(f"Missing file: {path}", file=sys.stderr)
         return 1
