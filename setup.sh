@@ -23,7 +23,8 @@ fi
 
 # Update package lists and install supporting utilities.
 apt-get update
-apt-get install -y software-properties-common apt-transport-https ca-certificates
+apt-get install -y software-properties-common apt-transport-https ca-certificates \
+    build-essential python3-pip
 
 # Determine which repository to enable for the compiler packages.
 case "${1:-}" in
@@ -44,7 +45,8 @@ apt-get update
 
 # Install AVR GCC, avr-libc, binutils, avrdude, gdb, simavr and tooling.
 apt-get install -y "$best_pkg" avr-libc binutils-avr avrdude gdb-avr simavr \
-    meson ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck
+    meson ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck \
+    ccache
 
 # Python packages for Sphinx integration
 pip3 install --break-system-packages --upgrade breathe exhale
