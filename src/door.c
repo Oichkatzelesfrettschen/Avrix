@@ -7,8 +7,8 @@
    • Entire module is freestanding, pure C23 and host-build friendly
    ----------------------------------------------------------------*/
 
-#include "door.h"
 #include "nk_task.h"          /* nk_cur_tid · nk_switch_to */
+#include "door.h"
 #include <string.h>
 
 #if defined(__AVR__)
@@ -18,8 +18,6 @@
   #define pgm_read_byte(p) (*(const uint8_t *)(p))
 #endif
 
-static door_t   door_vec[NK_MAX_TASKS][DOOR_SLOTS]
-                                  __attribute__((section(".noinit")));
 /*───────────────── 0. Compile-time sanity checks ───────────────────*/
 _Static_assert(DOOR_SLAB_SIZE % 8 == 0,  "slab must be multiple of 8 bytes");
 _Static_assert(DOOR_SLOTS      <= 15,   "descriptor index fits in 4 bits");
@@ -29,7 +27,7 @@ _Static_assert(sizeof(door_t)  == 2,    "door_t must remain 2 bytes");
 uint8_t door_slab[DOOR_SLAB_SIZE]
         __attribute__((section(".noinit")));               /* shared payload */
 
-static door_t door_vec[NK_MAX_TASKS][DOOR_SLOTS]
+door_t door_vec[NK_MAX_TASKS][DOOR_SLOTS]
         __attribute__((section(".noinit")));               /* per-task table */
 
 static volatile uint8_t door_caller  __attribute__((section(".noinit")));
@@ -72,7 +70,7 @@ void door_register(uint8_t idx, uint8_t target,
     };
 }
 
-void door_call(uint8_t idx, void *buf)        /* caller side */
+void door_call(uint8_t idx, const void *buf)        /* caller side */
 {
     const uint8_t caller = nk_cur_tid();
     if (idx >= DOOR_SLOTS) return;
@@ -92,7 +90,7 @@ void door_call(uint8_t idx, void *buf)        /* caller side */
 
     nk_switch_to(d.tgt_tid);                  /* ↔ callee */
 
-    memcpy(buf, door_slab, nbytes);           /* ← reply */
+    memcpy((void *)buf, door_slab, nbytes);   /* ← reply */
 }
 
 void door_return(void)                        /* callee side */

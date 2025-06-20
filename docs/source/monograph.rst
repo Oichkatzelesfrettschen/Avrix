@@ -92,11 +92,9 @@ Wear-levelled, power-fail-safe log:
    fs_create("boot.bin",   1);
    fs_create("config.txt", 1);
 
-   char names[FS_NUM_INODES][FS_MAX_NAME + 1];
-   int n = fs_list(names);
-
-   for (int i = 0; i < n; ++i)
-       printf("%s\n", names[i]);
+   char buf[FS_NUM_INODES * (FS_MAX_NAME + 1)];
+   fs_list(buf, sizeof(buf));
+   printf("%s", buf);
 
 ----------------------------------------------------------------------
 6 · Descriptor-Based RPC (“Doors”)
@@ -127,10 +125,18 @@ Lock type        Notes
 Full (DAG+Lat)   cycle-safe + no starvation    +84   +548 B  12 B
 ===============  ============================  ======  =====  ====
 
-Golden-ratio ticket ::
+Golden-ratio ticket
+~~~~~~~~~~~~~~~~~~~
 
-   #define NK_LATTICE_STEP  1657u   /* φ·2¹⁰ for 16-bit counters */
-   nk_ticket += NK_LATTICE_STEP;
+.. code-block:: c
+
+   #if NK_WORD_BITS == 32
+   #  define NK_LATTICE_STEP 1695400ul   /* φ·2²⁶ → 32-bit lattice */
+   #else
+   #  define NK_LATTICE_STEP 1657u       /* φ·2¹⁰ → 16-bit lattice */
+   #endif
+
+   nk_ticket += NK_LATTICE_STEP;  /* single ADD/SUB instruction */
 
 _Lock address guard_ ::
 
@@ -200,9 +206,12 @@ FDO cycle ::
    jobs:
      build:
        runs-on: ubuntu-24.04
+       strategy:
+         matrix:
+           mode: ["--modern", "--legacy"]
        steps:
          - uses: actions/checkout@v4
-         - run: sudo ./setup.sh --modern
+         - run: sudo ./setup.sh ${{ matrix.mode }}
          - run: meson setup build --cross-file cross/atmega328p_gcc14.cross
          - run: ninja -C build
          - run: qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic &
