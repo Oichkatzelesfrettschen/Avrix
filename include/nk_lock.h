@@ -5,6 +5,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <avr/interrupt.h>
+#include <avr/io.h>
+
+#ifndef NK_LOCK_ADDR
+#define NK_LOCK_ADDR 0x2C /**< I/O address used for global lock register */
+#endif
+_Static_assert(NK_LOCK_ADDR <= 0x3F, "lock must be in lower I/O");
+#define NK_LOCK_REG _SFR_IO8(NK_LOCK_ADDR)
 
 /**
  * \file nk_lock.h
@@ -23,21 +30,33 @@ typedef struct {
     volatile uint8_t flag; /**< 0 when unlocked, non-zero when held */
 } nk_flock_t;
 
-static inline void nk_flock_init(nk_flock_t *l) { l->flag = 0; }
+static inline void nk_flock_init(nk_flock_t *l)
+{
+    NK_LOCK_REG = 0;
+    (void)l;
+}
+
 static inline bool nk_flock_try(nk_flock_t *l)
 {
-    if (l->flag)
+    if (NK_LOCK_REG)
         return false;
-    l->flag = 1;
+    NK_LOCK_REG = 1;
+    (void)l;
     return true;
 }
+
 static inline void nk_flock_acq(nk_flock_t *l)
 {
     while (!nk_flock_try(l)) {
         /* busy wait */
     }
 }
-static inline void nk_flock_rel(nk_flock_t *l) { l->flag = 0; }
+
+static inline void nk_flock_rel(nk_flock_t *l)
+{
+    NK_LOCK_REG = 0;
+    (void)l;
+}
 
 /* ----------------------- Optional DAG support ----------------------- */
 #ifdef NK_ENABLE_DAG
@@ -123,8 +142,8 @@ static inline void nk_slock_acq(nk_slock_t *l, uint8_t node_id)
             continue; /* wait until graph order valid */
 #endif
         cli();
-        if (!l->base.flag) {
-            l->base.flag = 1;
+        if (!NK_LOCK_REG) {
+            NK_LOCK_REG = 1;
 #ifdef NK_ENABLE_LATTICE
             l->owner = my;
 #endif
@@ -144,7 +163,8 @@ static inline void nk_slock_acq(nk_slock_t *l, uint8_t node_id)
 
 static inline void nk_slock_rel(nk_slock_t *l)
 {
-    l->base.flag = 0;
+    NK_LOCK_REG = 0;
+    (void)l;
 }
 
 #endif /* NK_LOCK_H */
