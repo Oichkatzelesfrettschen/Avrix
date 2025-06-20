@@ -1,6 +1,10 @@
 project('avrix', 'c', version: '0.1', license: 'MIT')
 
-inc = include_directories('include')
+if host_machine.cpu_family() != 'avr'
+  inc = include_directories('include', 'compat')
+else
+  inc = include_directories('include')
+endif
 subdir('src')
 subdir('tests')
 

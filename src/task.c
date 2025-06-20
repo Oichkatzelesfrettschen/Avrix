@@ -13,6 +13,7 @@
 #endif
 
 #include <string.h>
+#include <stdbool.h>
 #include <avr/interrupt.h>
 
 /*──────────────────────── 1.  Tunables ─────────────────────────*/
@@ -73,6 +74,13 @@ void nk_sched_init(void)
     TIMSK0 = _BV(OCIE0A);
 }
 
+/*
+ * NOTE: The `stack_top` argument is ignored. Stacks are allocated internally
+ *       and the parameter will be removed in a future release.
+ */
+#if defined(__GNUC__)
+__attribute__((deprecated("The 'stack_top' parameter is unused and will be removed in a future release")))
+#endif
 void nk_task_add(nk_tcb_t *t,
                  void (*entry)(void),
                  void *stack_top,
@@ -80,6 +88,8 @@ void nk_task_add(nk_tcb_t *t,
                  uint8_t class)
 {
     if (nk_tasks >= NK_MAX_TASKS) return;
+
+    (void)stack_top;  /* stacks are allocated internally */
 
 #if NK_OPT_STACK_GUARD
     /* internal stack pool + sentinels */

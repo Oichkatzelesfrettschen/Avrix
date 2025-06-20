@@ -11,7 +11,7 @@
 /*────────────────── persistent state (.noinit) ───────────────*/
 uint8_t door_slab[DOOR_SLAB_SIZE]        __attribute__((section(".noinit")));
 
-static door_t   door_vec[MAX_TASKS][DOOR_SLOTS]
+static door_t   door_vec[NK_MAX_TASKS][DOOR_SLOTS]
                                   __attribute__((section(".noinit")));
 
 static volatile uint8_t door_caller       __attribute__((section(".noinit")));

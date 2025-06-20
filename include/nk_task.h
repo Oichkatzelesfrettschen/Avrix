@@ -97,10 +97,16 @@ void nk_sched_init(void);
  *
  * @param tcb       Pointer to caller-allocated TCB
  * @param entry     Task entry function (never returns)
- * @param stack_top Pointer to **top** of caller-allocated stack
+ * @param stack_top Unused. Former pointer to top of caller-allocated stack.
+ *
+ * @note The parameter is ignored; stacks are allocated internally. It will be
+ *       removed in a future release.
  * @param prio      Dynamic priority 0 (highest) … 63 (lowest)
  * @param class     0…3 fairness channel for lock arbitration
  */
+#if defined(__GNUC__)
+__attribute__((deprecated("The 'stack_top' parameter is unused and will be removed in a future release")))
+#endif
 void nk_task_add(nk_tcb_t *tcb,
                  void (*entry)(void),
                  void *stack_top,
