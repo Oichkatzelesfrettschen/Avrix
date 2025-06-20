@@ -87,6 +87,20 @@ language standard.  For bleeding-edge features one may install
 `gcc-avr-14` from the **team-gcc-arm-embedded** PPA.  The library builds
 cleanly with either compiler but is written to remain compatible with C11.
 
+### Legacy vs Modern GCC
+
+The `--legacy` option to `setup.sh` installs the stock 7.3 compiler, while
+`--modern` (the default) pulls in GCC 14 from the PPA.  The newer compiler
+understands the C23 standard and unlocks link-time optimisations such as
+``--icf=safe``.  Source files that rely on C23 features should guard those
+sections with ``#if __STDC_VERSION__ >= 202311L`` so the code still builds
+with the older toolchain.
+
+```bash
+sudo ./setup.sh --modern   # install GCC 14 with C23 support
+sudo ./setup.sh --legacy   # fallback to GCC 7.3
+```
+
 ## Hardware Target: Arduino Uno R3
 
 Avrix is designed around the **Arduino Uno R3**, which combines an

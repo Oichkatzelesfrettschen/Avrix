@@ -2,6 +2,7 @@
 #define AVR_DOOR_H
 
 #include <stdint.h>
+#include "compat.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -25,7 +26,7 @@ typedef struct {
 extern uint8_t door_slab[128];
 
 /** Call a door by index with a pointer to the message payload. */
-void door_call(uint8_t idx, const void *msg);
+void door_call(uint8_t idx AVR_UNUSED, const void *msg);
 
 #ifdef __cplusplus
 }

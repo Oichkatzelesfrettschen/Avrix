@@ -1,4 +1,5 @@
 #include "door.h"
+#include "compat.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
@@ -8,9 +9,8 @@ uint8_t door_slab[128] __attribute__((section(".noinit")));
 /* Per-task door vector, defined by the scheduler. */
 extern door_t door_vec[DOOR_SLOTS];
 
-void door_call(uint8_t idx, const void *msg)
+void door_call(uint8_t idx AVR_UNUSED, const void *msg)
 {
     door_slab[0] = (uint16_t)msg & 0xFF;
     door_slab[1] = (uint16_t)msg >> 8;
-    (void)idx; /* placeholder for task switch */
 }
