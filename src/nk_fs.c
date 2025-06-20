@@ -56,7 +56,7 @@ static void erase_row(uint8_t row) {
 static void open_next_row(void) {
     uint8_t next = (nk_row + 1) & 0x0F;
     erase_row(next);
-    uint8_t seq = eeprom_read_byte((const uint8_t*)addr_for(nk_row, 15) + 2);
+    uint8_t seq = eeprom_read_byte((const uint8_t*)addr_for(nk_row, 15) + ROW_SEQ_OFF);
     seq++;
     eeprom_update_byte((uint8_t*)(next * NK_ROW_SIZE + ROW_SEQ_OFF), seq);
     eeprom_update_byte((uint8_t*)(next * NK_ROW_SIZE + ROW_TAG_OFF), TAG_ROW);
