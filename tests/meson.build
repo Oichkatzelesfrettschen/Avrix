@@ -116,7 +116,7 @@ else
   )
   flock_exe = executable(
     'flock_stress',
-    'flock_stress.c',
+    ['flock_stress.c'] + extra_src,
     link_with           : libavrix,
     include_directories : inc_list,
     c_args              : common_cflags

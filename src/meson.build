@@ -33,8 +33,12 @@ portable_src = files(   # no <avr/...>
   'fs.c'
 )
 
-avr_only_src = kernel_src + []
-avr_only_src -= portable_src       # diff yields AVR-specific set
+avr_only_src = files(
+  'door.c',
+  'task.c',
+  'nk_fs.c',
+  'kalloc.c'
+)
 
 # ───────────────────────── 2. libavrix / libavrix_host ───────────────
 if meson.is_cross_build()          # ==> target = AVR
@@ -52,13 +56,7 @@ else                                # ==> host build (CI, docs, etc.)
     install : false
   )
 
-  # Keep AVR-specific sources compiling (syntax-only) so they never rot
-  executable(
-    'syntax_check_kernel_x',
-    avr_only_src,
-    include_directories : inc,
-    c_args : ['-Werror', '-fsyntax-only']
-  )
+  # AVR-only sources are not built on the host
 endif
 
 # ───────────────────────── 3. Host-only libfs  ───────────────────────

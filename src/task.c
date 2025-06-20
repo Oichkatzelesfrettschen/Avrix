@@ -18,7 +18,6 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <stdckdint.h>
 #include <string.h>
 
 /*───────────────────── 1. Scheduler globals ─────────────────────*/
@@ -34,9 +33,8 @@ static struct {
     .quantum = NK_QUANTUM_MS
 };
 
-/* Door RPC slabs (defined extern in door.c) ----------------------*/
-door_t door_vec[NK_MAX_TASKS][DOOR_SLOTS]
-    __attribute__((section(".noinit")));
+/* Door RPC descriptors (defined in door.c) ----------------------*/
+extern door_t door_vec[NK_MAX_TASKS][DOOR_SLOTS];
 
 /* Optional guarded stacks ---------------------------------------*/
 #if NK_OPT_STACK_GUARD
@@ -79,8 +77,7 @@ static uint8_t find_next_task(void)
     uint8_t bestp = 0xFF;
 
     for (uint8_t i = 0; i < nk_sched.count; ++i) {
-        uint8_t idx;
-        ckd_add(&idx, nk_sched.current, (uint8_t)(i + 1));
+        uint8_t idx = nk_sched.current + (uint8_t)(i + 1);
         idx %= nk_sched.count;
 
         nk_tcb_t *t = nk_sched.tasks[idx];
@@ -272,6 +269,29 @@ ISR(TIMER0_COMPA_vect, ISR_NAKED)
         nk_sched.quantum = NK_QUANTUM_MS;
         switch_to(find_next_task());
     }
+
+    asm volatile(
+        "pop   r24            \n\t"
+        "out   __SREG__, r24  \n\t"
+        "pop   r24            \n\t"
+        "reti                 \n\t"
+        ::: "memory");
+}
+
+/*────────────── Door service ISR – server-side dispatch ─────────────*/
+#ifndef DOORSERV_vect
+#  define DOORSERV_vect _VECTOR(32)
+#endif
+
+ISR(DOORSERV_vect, ISR_NAKED)
+{
+    asm volatile(
+        "push  r24            \n\t"
+        "in    r24, __SREG__  \n\t"
+        "push  r24            \n\t"
+        ::: "memory");
+
+    switch_to(find_next_task());
 
     asm volatile(
         "pop   r24            \n\t"
