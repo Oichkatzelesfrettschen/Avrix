@@ -36,6 +36,16 @@ Resource Accounting
 Total flash usage is under 28 KB leaving space for user programs.  SRAM is
 statically partitioned: 640 B kernel, 640 B shell, 512 B stacks, 256 B heap.
 
+Fixed-Point Format
+------------------
+
+Arithmetic routines use a signed Q8.8 format. The high byte stores the
+integer part while the low byte holds the fractional bits. A value of
+``0x0100`` represents one while ``0xFF00`` encodes ``-1``. The usable
+range is roughly ``-128`` to ``127.996``. Multiplication keeps the
+middle 16 bits of the 32-bit product with rounding so every step
+remains purely 8-bit.
+
 Descriptor-Based RPC
 --------------------
 
