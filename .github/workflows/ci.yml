@@ -23,7 +23,7 @@ jobs:
 
       # Configure the Meson build directory for the AVR target
       - name: Configure build
-        run: meson setup build --cross-file cross/avr_m328p.txt
+        run: meson setup build --cross-file cross/atmega328p_gcc14.cross
 
       # Compile all targets using ninja via Meson
       - name: Compile

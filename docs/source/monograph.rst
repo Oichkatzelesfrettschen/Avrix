@@ -181,7 +181,7 @@ User budget        ≥ 18 000  ≥ 1500
 *Meson cross-file* (`cross/atmega328p_gcc14.cross`) encodes the flag set ::
 
    meson setup build --cross-file cross/atmega328p_gcc14.cross
-   ninja -C build
+   meson compile -C build
    qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 
 FDO cycle ::
@@ -189,7 +189,7 @@ FDO cycle ::
    meson configure build -Dprofile=true   # pass 1 (collect)
    # run workload …
    meson configure build -Dprofile=false  # pass 2 (optimise)
-   ninja -C build
+   meson compile -C build
 
 ----------------------------------------------------------------------
 12 · CI Snapshot
@@ -202,10 +202,10 @@ FDO cycle ::
        runs-on: ubuntu-24.04
        steps:
          - uses: actions/checkout@v4
-         - run: sudo ./setup.sh --modern
-         - run: meson setup build --cross-file cross/atmega328p_gcc14.cross
-         - run: ninja -C build
-         - run: qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic &
+        - run: sudo ./setup.sh --modern
+        - run: meson setup build --cross-file cross/atmega328p_gcc14.cross
+        - run: meson compile -C build
+        - run: qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic &
 
 ----------------------------------------------------------------------
 13 · QEMU Verification

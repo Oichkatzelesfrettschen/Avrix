@@ -93,7 +93,8 @@ if ! qemu-system-avr -version &>/dev/null; then
                        libpixman-1-dev libgtk-3-dev
   git clone --depth 1 https://github.com/seharris/qemu-avr /opt/qemu-avr
   ( cd /opt/qemu-avr && ./configure --target-list=avr-softmmu --disable-werror \
-        >/dev/null && make -s -j"$(nproc)" && make install )
+        >/dev/null && meson compile -C build -j"$(nproc)" >/dev/null \
+        && meson install -C build >/dev/null )
 fi
 
 #──────────────── 4. print tool versions ──────────────────────────────────
@@ -116,7 +117,7 @@ echo "  export LDFLAGS=\"$LDFLAGS\""
 if [[ -f cross/atmega328p_gcc14.cross ]]; then
   echo "[info] Configuring Meson build …"
   meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross >/dev/null
-  ninja -C build >/dev/null
+  meson compile -C build >/dev/null
   ELF=$(find build -name '*.elf' | head -1)
   echo "[info] Built firmware: $ELF"
   echo "[info] Launching QEMU (arduino-uno, head-less) …"

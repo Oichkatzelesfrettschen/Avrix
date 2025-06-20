@@ -36,7 +36,7 @@ For experimental boards or CPU models the upstream GitHub fork
 
    git clone https://github.com/seharris/qemu-avr.git
    cd qemu-avr && ./configure --target-list=avr-softmmu
-   make -j$(nproc) && sudo make install
+   meson compile -C build -j$(nproc) && sudo meson install -C build
 
 3. Bring the tool-chain up to C23
 ---------------------------------
@@ -88,10 +88,10 @@ A minimal CI container is illustrated below:
 
    FROM ubuntu:24.04
    RUN apt update && \
-       apt install -y qemu-system-misc gcc-avr avr-libc make git
+       apt install -y qemu-system-misc gcc-avr avr-libc meson ninja-build git
    COPY . /src
    WORKDIR /src
-   RUN make
+   RUN meson setup build && meson compile -C build
    CMD ["qemu-system-avr", "-M", "mega", "-cpu", "atmega128", \
         "-bios", "unix0.elf", "-nographic"]
 

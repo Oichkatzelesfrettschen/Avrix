@@ -44,8 +44,8 @@ c_link_args = [
 ]
 
 [built-in options]
-c_std           = 'c23'
-optimization    = 'z'       # maps to -Oz
+c_std           = 'c2x'
+optimization    = 's'       # maps to -Os
 warning_level   = 2
 strip           = true
 default_library = 'none'
@@ -100,8 +100,8 @@ c_link_args = [
 ]
 
 [built-in options]
-c_std           = 'c23'
-optimization    = 'z'
+c_std           = 'c2x'
+optimization    = 's'
 warning_level   = 2
 strip           = true
 default_library = 'none'

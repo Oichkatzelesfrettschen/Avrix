@@ -58,8 +58,8 @@ c_link_args = [
 # Meson built-in defaults
 # -----------------------------------------------------------------------
 [built-in options]
-c_std            = 'c23'
-optimization     = 'z'
+c_std            = 'c2x'
+optimization     = 's'
 warning_level    = 2
 strip            = true
 default_library  = 'none'

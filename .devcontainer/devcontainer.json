@@ -1,0 +1,11 @@
+{
+    "name": "avrix-dev",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "runArgs": ["--cap-add=SYS_PTRACE"],
+    "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+    },
+    "postCreateCommand": "meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross || true"
+}

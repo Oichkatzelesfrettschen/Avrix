@@ -45,7 +45,7 @@ c_link_args = [
 ]
 
 [built-in options]
-c_std         = 'c23'
+c_std         = 'c2x'
 warning_level = '3'
 werror        = true
 optimization  = 's'

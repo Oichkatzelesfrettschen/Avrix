@@ -88,6 +88,21 @@ pip3 install --user breathe exhale sphinx-rtd-theme
 npm  install  -g   prettier
 ```
 
+### 2A · VS Code devcontainer
+
+```bash
+code --install-extension ms-vscode.remote-containers
+# then use:  Remote-Containers: Open Folder in Container…
+```
+
+Inside the container run `meson compile -C build` to rebuild after
+changes.
+
+The `postCreateCommand` sets up a `build` directory automatically using
+`cross/atmega328p_gcc14.cross`. Reconfigure with
+`meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross` if
+you change compiler options.
+
 ---
 
 ## 3 · Recommended flags (ATmega328P)
@@ -167,7 +182,7 @@ meson setup build --cross-file cross/atmega328p_gcc14.cross \
 
 1. Fork & branch (`feat/short-title`).
 2. Keep additions **tiny** – flash is precious.
-3. `ninja -C build && meson test` must pass.
+3. `meson compile -C build && meson test` must pass.
 4. Update `docs/monograph.rst` with new flags or memory impact.
 
 ---

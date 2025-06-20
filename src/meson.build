@@ -32,8 +32,12 @@ portable_src = files(   # no <avr/...>
   'fs.c'
 )
 
-avr_only_src = kernel_src + []
-avr_only_src -= portable_src       # diff yields AVR-specific set
+avr_only_src = []
+foreach f : kernel_src
+  if not portable_src.contains(f)
+    avr_only_src += f
+  endif
+endforeach
 
 # ───────────────────────── 2. libavrix / libavrix_host ───────────────
 if meson.is_cross_build()          # ==> target = AVR

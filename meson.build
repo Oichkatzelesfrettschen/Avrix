@@ -15,9 +15,9 @@ project(
   version          : '0.1.0',
   license          : 'MIT',
   default_options  : [
-    'c_std=c23',
+    'c_std=c2x',
     'warning_level=2',
-    'optimization=z',      # maps to -Oz
+    'optimization=s',      # Meson 1.3 accepts "s" for -Os
     'buildtype=release'
   ]
 )
@@ -29,7 +29,6 @@ else
 endif
 
 subdir('src')
-subdir('lib')
 subdir('examples')
 subdir('tests')
 
