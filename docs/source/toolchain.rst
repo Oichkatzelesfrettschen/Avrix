@@ -10,23 +10,25 @@ This repository builds a **C23 µ-UNIX** that boots on an Arduino Uno R3
 Only **two** tool-chain paths are CI-tested; every Meson cross-file,
 script and example in the repo assumes that *one* of them is active.
 
-*If you just need it to work run:*
+*If you just need it to work run either mode:*
 
 .. code-block:: bash
 
-   sudo ./setup.sh --modern      # GCC-14 tool-chain + QEMU smoke-boot
+   sudo ./setup.sh --modern      # Debian GCC‑14 + QEMU demo
+   sudo ./setup.sh --legacy      # Ubuntu gcc-avr 7.3 only
 
 ----------------------------------------------------------------------
 Quick-start
 ----------------------------------------------------------------------
 
-``setup.sh`` will
+``setup.sh`` provides two modes
 
-* add (or skip) the **Debian-sid pin** for *gcc-avr 14.x* and transparently
-  fall back to Ubuntu’s 7.3 tool-chain if the pin is unreachable,
-* install QEMU ≥ 8.2, Meson, Doxygen, Sphinx, graphviz, Prettier, etc.,
-* build a demo ELF, boot it in QEMU and
-  print MCU-specific **CFLAGS / LDFLAGS** you can paste into any Makefile.
+* ``--modern`` pins the **Debian-sid** packages for ``gcc-avr-14`` (gracefully
+  falling back to Ubuntu’s ``gcc-avr``).  It installs QEMU, Meson, Doxygen,
+  Sphinx, graphviz and Prettier, compiles a demo ELF, boots it in QEMU and prints
+  **C23** flags for your Makefile.
+* ``--legacy`` uses Ubuntu’s ``gcc-avr`` package only, skipping the QEMU build
+  and Meson demo.  The suggested flags instead target **C11**.
 
 ----------------------------------------------------------------------
 1 · Choose a compiler source

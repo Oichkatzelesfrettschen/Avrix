@@ -12,6 +12,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mode: ["--modern", "--legacy"]
     steps:
       # Checkout the repository sources
       - name: Checkout repository
@@ -19,7 +22,7 @@ jobs:
 
       # Install AVR GCC toolchain and required build utilities
       - name: Install AVR toolchain
-        run: sudo ./setup.sh --legacy
+        run: sudo ./setup.sh ${{ matrix.mode }}
 
       # Configure the Meson build directory for the AVR target
       - name: Configure build
