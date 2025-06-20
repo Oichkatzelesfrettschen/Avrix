@@ -36,6 +36,25 @@ Resource Accounting
 Total flash usage is under 28 KB leaving space for user programs.  SRAM is
 statically partitioned: 640 B kernel, 640 B shell, 512 B stacks, 256 B heap.
 
+Descriptor-Based RPC
+--------------------
+
+The current revision introduces a "door" mechanism inspired by Solaris
+Doors and Cap'n Proto. Each task owns four door descriptors mapped to a
+128‑byte shared message slab. A single ``door_call()`` copies only the
+pointer to the payload, switches to the callee and returns in about fourteen
+cycles. The slab lives in ``.noinit`` so soft resets preserve in‑flight
+messages. This zero-copy design keeps latency below one microsecond while
+consuming just 1 kB of flash and 200 B of SRAM.
+
+Copy-on-Write Flash
+-------------------
+
+Forked tasks share flash pages until a write occurs. On the first write the
+nanokernel allocates a temporary RAM buffer, modifies the page and reprograms
+it into a spare boot section location. Subsequent reads remain fast while
+writes incur at most the 3 ms page programming delay.
+
 Further Reading
 ---------------
 
