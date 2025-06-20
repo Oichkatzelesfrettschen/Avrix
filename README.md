@@ -122,3 +122,22 @@ comments via the `breathe` and `exhale` extensions.
 
 Use `setup.sh` or the manual commands above to install the compiler
 before configuring Meson.
+
+## Example: File System Demo
+
+An example program demonstrating the in-memory filesystem lives in
+`examples/fs_demo.c`. Build it along with the library using Meson. The program
+stores a greeting and prints it back:
+
+```bash
+meson setup build --cross-file cross/avr_m328p.txt
+meson compile -C build fs_demo_hex
+```
+
+Both the ELF and HEX images are written to `build/examples`.
+
+Run the resulting binary under `simavr` for quick testing:
+
+```bash
+simavr -m atmega328p build/examples/fs_demo
+```

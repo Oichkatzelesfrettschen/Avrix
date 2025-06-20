@@ -1,7 +1,13 @@
-project('avrix', 'c', version: '0.1', license: 'MIT')
+project(
+  'avrix', 'c',
+  version: '0.1',
+  license: 'MIT',
+  default_options: ['c_std=c11', 'warning_level=2']
+)
 
 inc = include_directories('include')
 subdir('src')
+subdir('examples')
 
 # Documentation targets
 doxygen = find_program('doxygen', required: false)

@@ -28,6 +28,7 @@ static int balloc(void) {
 }
 
 /** Helper: free a previously allocated block. */
+static void bfree(uint8_t b) __attribute__((unused));
 static void bfree(uint8_t b) {
     bitmap[b >> 3] &= ~(1u << (b & 7));
 }
