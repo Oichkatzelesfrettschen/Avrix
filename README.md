@@ -131,6 +131,10 @@ meson setup build --cross-file cross/avr_m328p.txt
 meson compile -C build
 ```
 
+When building tests natively Meson searches for AVR headers in common
+locations.  Specify a custom directory with the `-Davr_inc_dir=/path` option
+if your toolchain installs `avr/io.h` elsewhere.
+
 The resulting static library `libavrix.a` can be found in the build
 directory.  Documentation is generated with:
 
