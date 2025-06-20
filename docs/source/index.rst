@@ -17,3 +17,4 @@ from the build directory to generate HTML output.
    toolchain
    monograph
    fuses
+   roadmap-qemu-avr
