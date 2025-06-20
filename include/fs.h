@@ -15,10 +15,10 @@ extern "C" {
  */
 
 /** Size of a filesystem block in bytes. Chosen small to conserve memory. */
-#define FS_BLOCK_SIZE 64
+#define FS_BLOCK_SIZE 32
 
 /** Number of blocks in the in-memory filesystem. */
-#define FS_NUM_BLOCKS 128
+#define FS_NUM_BLOCKS 16
 
 /** Maximum number of inodes supported. */
 #define FS_NUM_INODES 16

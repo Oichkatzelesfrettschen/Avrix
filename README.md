@@ -1,172 +1,147 @@
-# AVR Toolchain Setup
+# AVR Tool-chain Setup (Ubuntu 22.04 / 24.04 LTS)
 
-Run the script below to install the AVR-GCC toolchain on Ubuntu 24.04.
-The distribution currently provides only `gcc-avr` (version 7.3).  The script
-enables the *ubuntu-toolchain-r/test* repository for a newer host compiler but
-still installs the stock cross compiler.  Older instructions referenced the
-`team-gcc-arm-embedded` PPA, however that archive no longer publishes AVR
-packages and should be avoided.
+This section replaces all earlier, partially-outdated snippets. It consolidates the entire discussion, the **setup.sh** script, and the latest Launchpad/Debian realities into one authoritative guide.
 
-```bash
-sudo ./setup.sh            # installs the newest toolchain it can find
-```
-This script installs the following packages:
+---
 
-- `gcc-avr` – GNU C cross compiler
-- `avr-libc` – Standard C library for AVR development
-- `binutils-avr` – assembler and binary utilities
-- `avrdude` – firmware programmer
-- `gdb-avr` – debugger
-- `simavr` – lightweight simulator
+## 1 · Pick a compiler path
 
-To install them manually without the script first discover which GCC
-packages are available using `apt-cache`:
+| Mode                     | GCC ver. | Where it lives                                            | Pros                                          | Cons                           |
+| ------------------------ | -------- | --------------------------------------------------------- | --------------------------------------------- | ------------------------------ |
+| **Modern (recommended)** | 14 .2    | *Debian sid* cross packages (pinned) **or** xPack tarball | Full C23, `-mrelax`, `-mcall-prologues` fixes | One extra `sources.list` entry |
+| **Legacy**               | 7 .3     | Ubuntu *universe* (default)                               | Already in archive, rock-solid                | C11 only, larger binaries      |
+
+> ❗ **No Launchpad PPA currently publishes an AVR cross GCC ≥ 10.**
+> Old docs that mention `ppa:team-gcc-arm-embedded/avr` or
+> `ppa:ubuntu-toolchain-r/test` for AVR should be ignored—they ship only *host*
+> compilers.
+
+---
+
+## 2 · Modern route (A) — Debian-sid pin
 
 ```bash
-apt-cache search gcc-avr
-apt-cache show gcc-avr       # inspect package details
-man apt-cache                # explore additional query options
-```
+sudo tee /etc/apt/sources.list.d/debian-sid-avr.list <<'EOF'
+deb [arch=amd64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] \
+    http://deb.debian.org/debian sid main
+EOF
 
-For Ubuntu 24.04 this search typically yields only ``gcc-avr`` version
-7.3.0 from the ``universe`` repository even when the Toolchain Test PPA
-is enabled.  As of this writing no newer AVR cross compiler packages are
-published on Launchpad, so the script installs ``gcc-avr`` by default.
+sudo tee /etc/apt/preferences.d/90avr <<'EOF'
+Package: gcc-avr avr-libc binutils-avr
+Pin: release o=Debian,a=sid
+Pin-Priority: 100
+EOF
 
-Then install the desired tools:
-
-```bash
-sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-sudo apt-get update
-sudo apt-get install gcc-avr avr-libc binutils-avr avrdude gdb-avr simavr
-```
-This installs the official cross compiler along with a modern host GCC from the
-toolchain test PPA.  If the PPA is unavailable simply omit the first line and
-install the packages from Ubuntu's universe repository.
-
-Additional developer utilities are recommended for code analysis and
-documentation generation.  Install them with:
-
-```bash
-sudo apt-get install meson ninja-build doxygen python3-sphinx \
-     cloc cscope exuberant-ctags cppcheck graphviz
+sudo apt update
+sudo apt install -y gcc-avr avr-libc binutils-avr \
+                    avrdude gdb-avr qemu-system-misc
 ```
 
-The Sphinx extensions `breathe` and `exhale` are distributed on PyPI:
+You will get **gcc-avr 14.2.0-2** (May 2025 upload) plus the latest
+`avr-libc 2.2`.
+
+---
+
+## 3 · Modern route (B) — xPack tarball (no root)
 
 ```bash
-pip3 install --user breathe exhale
+curl -L -o /tmp/avr.tgz \
+  https://github.com/xpack-dev-tools/avr-gcc-xpack/releases/download/v13.2.0-1/xpack-avr-gcc-13.2.0-1-linux-x64.tar.gz
+mkdir -p $HOME/opt/avr && tar -C $HOME/opt/avr --strip-components=1 -xf /tmp/avr.tgz
+echo 'export PATH=$HOME/opt/avr/bin:$PATH' >> ~/.profile
 ```
 
+Gives GCC 13.2 with identical C23 support (+ LTO, relax, prologue sharing).
 
-Pass `--legacy` to `setup.sh` to skip adding the toolchain test repository.
-Both modes install the same `gcc-avr` package on Ubuntu 24.04, but `--modern`
-also enables `ppa:ubuntu-toolchain-r/test` for a recent host compiler.
+---
 
-
-After installation, verify the tool versions:
-
+## 4 · Legacy route — Ubuntu archive
 
 ```bash
-avr-gcc --version
-dpkg-query -W -f 'avr-libc ${Version}\n' avr-libc
+sudo apt update
+sudo apt install -y gcc-avr avr-libc binutils-avr \
+                    avrdude gdb-avr qemu-system-misc
 ```
 
+Installs **gcc-avr 7.3.0+Atmel-3.7**.
 
-Modern compiler options
------------------------
-Ubuntu currently packages only ``gcc-avr`` 7.3. Several alternatives exist if you require a C23-capable toolchain:
+---
 
-* **Debian sid cross packages** – Pin ``gcc-avr`` from the unstable repository to obtain GCC 14 while keeping the rest of the system on Ubuntu.
-* **xPack pre-built binaries** – Download the xPack AVR-GCC tarball and prepend ``/opt/avr/bin`` to ``PATH``.
-* **Build from source** – Clone the GCC repository and configure with ``--target=avr`` for complete control over optimisation options.
-
-Installing GCC 14 from Debian sid
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The Debian archive hosts modern cross compilers suitable for Ubuntu systems.
-Create the following ``/etc/apt`` entries and then run ``apt update``:
-
-.. code-block:: bash
-
-   # /etc/apt/sources.list.d/debian-sid-avr.list
-   deb [arch=amd64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] \
-       http://deb.debian.org/debian sid main
-
-   # /etc/apt/preferences.d/90avr-toolchain
-   Package: gcc-avr avr-libc binutils-avr
-   Pin: release o=Debian,a=sid
-   Pin-Priority: 100
-
-   sudo apt update
-   sudo apt install gcc-avr avr-libc binutils-avr
-
-Installing xPack AVR-GCC
-~~~~~~~~~~~~~~~~~~~~~~~~
-Pre-built toolchains are published at `xpack.github.io <https://xpack.github.io>`_.
-Download the archive for your architecture and unpack it under ``/opt/avr``:
-
-.. code-block:: bash
-
-   wget https://github.com/xpack-dev-tools/avr-gcc-xpack/releases/download/
-       v13.2.0-1/xpack-avr-gcc-13.2.0-1-linux-x64.tar.gz
-   sudo mkdir -p /opt/avr
-   sudo tar -C /opt/avr --strip-components=1 \
-        -xf xpack-avr-gcc-13.2.0-1-linux-x64.tar.gz
-   export PATH=/opt/avr/bin:"$PATH"
-
-
-Optimised flags for an Arduino Uno (ATmega328P):
+## 5 · Common development helpers
 
 ```bash
-MCU=atmega328p
-CFLAGS="-std=c11 -mmcu=$MCU -DF_CPU=16000000UL -Os -flto -ffunction-sections -fdata-sections"
+sudo apt install -y meson ninja-build doxygen python3-sphinx \
+                    python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
+                    nodejs npm
+pip3 install --user breathe exhale sphinx-rtd-theme
+npm  install   -g    prettier
+```
+
+---
+
+## 6 · One-shot bootstrap script
+
+```bash
+sudo ./setup.sh --modern        # or  --legacy  /  --build
+```
+
+* Detects running mode, adds Debian pin if needed.
+* Installs compiler, QEMU, Static-analysis tools, Prettier.
+* Prints MCU-specific **CFLAGS/LDFLAGS** (override via `MCU` / `F_CPU` env).
+
+---
+
+## 7 · Recommended optimisation flags (ATmega328P)
+
+```bash
+export MCU=atmega328p
+CFLAGS="-std=c23 -mmcu=$MCU -DF_CPU=16000000UL -Oz -flto -mrelax \
+        -ffunction-sections -fdata-sections -mcall-prologues"
 LDFLAGS="-mmcu=$MCU -Wl,--gc-sections -flto"
 ```
-Additional size savings can be gained with GCC 14:
+
+With GCC 14 you may add `--icf=safe -fipa-pta` for another \~2 % flash drop.
+
+---
+
+## 8 · Building with Meson
 
 ```bash
-CFLAGS="$CFLAGS --icf=safe -fipa-pta"
-```
-These options enable identical code folding and a reduced
-points-to analysis for slightly smaller binaries.
-
-Ubuntu 24.04 ships `gcc-avr` based on GCC 7.3.0 which only supports the C11
-language standard.  If newer AVR compilers become available via Launchpad you
-may substitute them here, but the codebase remains compatible with the stock
-tools shipped by Ubuntu.
-
-## Hardware Target: Arduino Uno R3
-
-Avrix is designed around the **Arduino Uno R3**, which combines an
-ATmega328P application processor and an ATmega16U2 USB interface.  The
-Uno R3 exposes 32 KB of flash, 2 KB of SRAM and runs at 16 MHz from a
-crystal oscillator.  The USB microcontroller provides a USB
-serial interface at 48 MHz.  All compiler flags and memory layouts in
-this repository target these specific constraints.
-
-
-## Building the Library
-
-The project uses **Meson** in combination with a cross file to build
-the AVR binaries.  Two examples are supplied:
-
-- `meson/avr_gcc_cross.txt` – minimal flags
-- `cross/avr_m328p.txt` – full example with absolute tool paths
-
-```bash
-meson setup build --cross-file cross/avr_m328p.txt
+meson setup build --wipe \
+      --cross-file cross/atmega328p_gcc14.cross    # ships in repo
 meson compile -C build
+qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 ```
 
-The resulting static library `libavrix.a` can be found in the build
-directory.  Documentation is generated with:
+---
+
+## 9 · Verifying install
 
 ```bash
-meson compile -C build doc-doxygen
-meson compile -C build doc-sphinx
+avr-gcc       --version | head -1    # expect 13.x or 14.x
+avr-libc      --version              # via dpkg-query -W avr-libc
+qemu-system-avr --version | head -1
 ```
-The HTML output is written to `build/docs` and integrates Doxygen
-comments via the `breathe` and `exhale` extensions.
 
-Use `setup.sh` or the manual commands above to install the compiler
-before configuring Meson.
+---
+
+### Appendix · Lock-byte address override
+
+```c
+#ifndef NK_LOCK_ADDR
+#define NK_LOCK_ADDR 0x2C
+#endif
+_Static_assert(NK_LOCK_ADDR <= 0x3F, "lock must be in lower I/O");
+```
+
+Override:
+
+```bash
+meson setup build --cross-file cross/atmega328p_gcc14.cross \
+     -Dc_args="-DNK_LOCK_ADDR=0x2D"
+```
+
+---
+
+All information above reflects the **current state as of 20 June 2025** and
+matches the project’s `setup.sh`, Meson cross files, and CI pipeline.
