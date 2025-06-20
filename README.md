@@ -27,21 +27,40 @@ This script installs the following packages:
 - `simavr` – lightweight simulator
 - `nodejs` and `npm` – JavaScript runtime and package manager
 
-To install them manually without the script first discover which GCC
-packages are available using `apt-cache`:
+To perform the installation manually, inspect the APT cache to see which
+compiler packages the configured repositories provide.
+
+`apt-cache search` lists packages matching a pattern, while
+`apt-cache show` exposes the version and dependency information for a
+particular package.  A truncated search confirms that GCC 14 is
+available:
 
 ```bash
-apt-cache search gcc-avr
-apt-cache show gcc-avr-14    # inspect package details
+apt-cache search gcc-avr | head -n 2
+gcc-avr - GNU C compiler for AVR microcontrollers
+gcc-avr-14 - GNU C compiler for AVR microcontrollers (version 14)
+apt-cache show gcc-avr-14 | grep ^Version
 man apt-cache                # explore additional query options
 ```
 
-Then install the desired tools:
+`apt-cache policy` lists versions of a package across all configured
+repositories and identifies which one is selected for installation.
+Run it after refreshing the package lists to verify that the PPA offers a
+newer compiler than Ubuntu's defaults:
+
+```bash
+sudo apt-get update         # ensure apt cache is current
+apt-cache policy gcc-avr-14
+```
+
+Then install the desired tools with automatic confirmation:
 
 ```bash
 sudo add-apt-repository ppa:team-gcc-arm-embedded/avr
 sudo apt-get update
-sudo apt-get install gcc-avr-14 avr-libc binutils-avr avrdude gdb-avr simavr
+sudo apt-get install -y gcc-avr-14 avr-libc binutils-avr avrdude gdb-avr simavr
+pip3 install --user meson
+pip3 install --user breathe exhale
 ```
 Legacy systems can instead install the stock `gcc-avr` (version 7.3.0) from the
 Ubuntu archives.
@@ -145,7 +164,7 @@ the AVR binaries.  Two examples are supplied:
   including optimisation flags tuned for the ATmega328P
 
 ```bash
-meson setup build --cross-file cross/avr_m328p.txt
+meson setup build --wipe --cross-file cross/avr_m328p.txt
 meson compile -C build
 ```
 
@@ -156,8 +175,8 @@ Documentation can be generated individually or via the aggregated
 `doc` target which executes every available generator in one step:
 
 ```bash
-meson compile -C build doc-doxygen   # optional
-meson compile -C build doc-sphinx    # optional
+meson compile -C build doc-doxygen    # fails if the target is disabled
+meson compile -C build doc-sphinx     # fails when docs/doxygen/xml is missing
 meson compile -C build doc           # runs both when present
 ```
 

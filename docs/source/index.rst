@@ -11,7 +11,8 @@ meson compile -C build doc-doxygen   # optional
 meson compile -C build doc-sphinx    # optional
 meson compile -C build doc           # runs every generator
 ```
-from the build directory to generate HTML output.
+from the build directory to generate HTML output.  These targets may fail if
+``doxygen`` is not installed or if the XML files have not been generated yet.
 
 .. toctree::
    :maxdepth: 2
