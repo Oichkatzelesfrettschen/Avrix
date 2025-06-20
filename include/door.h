@@ -12,6 +12,7 @@
 
 #include <stdint.h>
 #include "compat.h"            /* AVR_UNUSED, likely lives in include/ */
+#include "nk_task.h"           /* NK_MAX_TASKS for door_vec */
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,6 +50,7 @@ typedef struct {
 /* One slab shared by *all* tasks. Lives in .noinit so reboot
    persistence works when desired.  Defined in door.c */
 extern uint8_t door_slab[DOOR_SLAB_SIZE];
+extern door_t door_vec[NK_MAX_TASKS][DOOR_SLOTS];
 
 /*──────────────────────── 4. User API ──────────────────────────*/
 /**
