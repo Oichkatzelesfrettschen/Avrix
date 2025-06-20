@@ -9,9 +9,14 @@ optimisations. Passing `--legacy` installs the stock `gcc-avr` from the
 ```bash
 sudo ./setup.sh            # installs the newest toolchain it can find
 ```
+The script accepts `--modern` or `--legacy` to control the GCC source and
+honours `MCU` and `F_CPU` environment variables for the recommended
+compiler flags printed at the end of the run.
+
 The script verifies each package with `dpkg -s` and performs only one
 `apt-get update` after the PPA is enabled. Supporting utilities are installed
 on demand, avoiding redundant package operations.
+
 This script installs the following packages:
 
 - `gcc-avr` – GNU C cross compiler
@@ -20,6 +25,7 @@ This script installs the following packages:
 - `avrdude` – firmware programmer
 - `gdb-avr` – debugger
 - `simavr` – lightweight simulator
+- `nodejs` and `npm` – JavaScript runtime and package manager
 
 To install them manually without the script first discover which GCC
 packages are available using `apt-cache`:
@@ -45,14 +51,24 @@ documentation generation.  Install them with:
 
 ```bash
 sudo apt-get install meson ninja-build doxygen python3-sphinx \
-     cloc cscope exuberant-ctags cppcheck graphviz
+     python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
+     nodejs npm
 ```
-
-The Sphinx extensions `breathe` and `exhale` are distributed on PyPI:
+The script also installs the JavaScript formatter **Prettier** globally:
 
 ```bash
-pip3 install --user breathe exhale
+npm install -g prettier
 ```
+
+The documentation optionally leverages the Read the Docs theme alongside the
+Sphinx extensions `breathe` and `exhale`.  All are distributed on PyPI:
+
+```bash
+pip3 install --user breathe exhale sphinx-rtd-theme
+```
+
+Running `sudo ./setup.sh` installs the entire toolchain along with these
+developer utilities in a single step.
 
 
 Pass `--legacy` to `setup.sh` to use Ubuntu's packages instead of the modern
@@ -134,12 +150,17 @@ meson compile -C build
 ```
 
 The resulting static library `libavrix.a` can be found in the build
-directory.  Documentation is generated with:
+directory.
+
+Documentation can be generated individually or via the aggregated
+`doc` target which executes every available generator in one step:
 
 ```bash
-meson compile -C build doc-doxygen
-meson compile -C build doc-sphinx
+meson compile -C build doc-doxygen   # optional
+meson compile -C build doc-sphinx    # optional
+meson compile -C build doc           # runs both when present
 ```
+
 The HTML output is written to `build/docs` and integrates Doxygen
 comments via the `breathe` and `exhale` extensions.
 

@@ -21,7 +21,14 @@ installed with:
 .. code-block:: bash
 
    sudo apt-get install meson ninja-build doxygen python3-sphinx \
-        cloc cscope exuberant-ctags cppcheck graphviz
+        python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
+        nodejs npm
+
+JavaScript tools such as ``prettier`` can then be installed globally:
+
+.. code-block:: bash
+
+   npm install -g prettier
 
 Recommended optimisation flags for the ATmega328P are::
 
@@ -34,10 +41,14 @@ available on PyPI:
 
 .. code-block:: bash
 
-   pip3 install --user breathe exhale
+   pip3 install --user breathe exhale sphinx-rtd-theme
 
 Running the ``setup.sh`` script found in the project root installs these
-packages automatically when executed with ``sudo``. The script enables the
+
+packages along with ``prettier`` automatically when executed with ``sudo``.
+Use ``--modern`` or ``--legacy`` to select the GCC source.  Environment
+variables ``MCU`` and ``F_CPU`` may be set to customise the flags printed
+at the end of the run; packages automatically when executed with ``sudo``. The script enables the
 ``team-gcc-arm-embedded/avr`` repository when necessary, refreshes the
 package lists once, and verifies each required package with ``dpkg -s`` before
 installation.
