@@ -2,7 +2,7 @@ Toolchain Setup
 ===============
 
 The AVR development environment relies on a number of packages from the
-Ubuntu archives.  Install them with:
+Ubuntu archives. Install them with:
 
 .. code-block:: bash
 
@@ -23,6 +23,12 @@ installed with:
    sudo apt-get install meson ninja-build doxygen python3-sphinx \
         cloc cscope exuberant-ctags cppcheck graphviz
 
+Recommended optimisation flags for the ATmega328P are::
+
+   CFLAGS="-std=c23 -mmcu=atmega328p -DF_CPU=16000000UL -Oz -flto -mrelax \
+       -ffunction-sections -fdata-sections -mcall-prologues"
+   LDFLAGS="-mmcu=atmega328p -Wl,--gc-sections -flto"
+
 The documentation requires the ``breathe`` and ``exhale`` extensions
 available on PyPI:
 
@@ -31,4 +37,7 @@ available on PyPI:
    pip3 install --user breathe exhale
 
 Running the ``setup.sh`` script found in the project root installs these
-packages automatically when executed with ``sudo``.
+packages automatically when executed with ``sudo``. The script enables the
+``team-gcc-arm-embedded/avr`` repository when necessary, refreshes the
+package lists once, and verifies each required package with ``dpkg -s`` before
+installation.
