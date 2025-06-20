@@ -3,9 +3,8 @@ Avrix Documentation
 
 This documentation is generated using Sphinx and Doxygen.  When the
 ``sphinx_rtd_theme`` package is installed, the output mirrors the Read the
-Docs appearance.
-The code targets the Arduino Uno R3 (ATmega328P with ATmega16U2 USB
-controller). Run
+Docs appearance.  The code targets the Arduino Uno R3 (ATmega328P with
+ATmega16U2 USB controller). Run
 ```
 meson compile -C build doc-doxygen   # optional
 meson compile -C build doc-sphinx    # optional
@@ -22,3 +21,18 @@ from the build directory to generate HTML output.  These targets may fail if
    monograph
    fuses
    roadmap-qemu-avr
+
+Generating documentation
+-----------------------
+
+Two optional Meson targets build the API reference and the user manual.
+
+.. code-block:: bash
+
+   meson compile -C build doc-doxygen
+   meson compile -C build doc-sphinx
+
+``doc-doxygen`` places HTML and XML output under ``docs/doxygen`` with
+``docs/doxygen/html/index.html`` as the entry point.  ``doc-sphinx`` writes the
+Sphinx-generated manual to ``build/docs``.  Running ``meson compile -C build
+doc`` executes both targets.
