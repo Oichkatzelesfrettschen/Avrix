@@ -82,6 +82,26 @@ CFLAGS="$CFLAGS --icf=safe -fipa-pta"
 These options enable identical code folding and a reduced
 points-to analysis for slightly smaller binaries.
 
+## Configurable Lock Address
+
+The spinlock primitives can operate on a dedicated I/O register. The
+address is set at compile time with the `NK_LOCK_ADDR` macro which
+defaults to `0x2C`.
+
+```c
+#ifndef NK_LOCK_ADDR
+#define NK_LOCK_ADDR 0x2C
+#endif
+_Static_assert(NK_LOCK_ADDR <= 0x3F, "lock must be in lower I/O");
+```
+
+Override this setting by appending a compiler flag, e.g.
+
+```bash
+meson setup build --cross-file cross/avr_m328p.txt \
+  -Dc_args="-DNK_LOCK_ADDR=0x2D"
+```
+
 Ubuntu 24.04 ships `gcc-avr` based on GCC 7.3.0 which only supports the C11
 language standard.  For bleeding-edge features one may install
 `gcc-avr-14` from the **team-gcc-arm-embedded** PPA.  The library builds
