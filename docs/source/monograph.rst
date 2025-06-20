@@ -198,9 +198,12 @@ FDO cycle ::
    jobs:
      build:
        runs-on: ubuntu-24.04
+       strategy:
+         matrix:
+           mode: ["--modern", "--legacy"]
        steps:
          - uses: actions/checkout@v4
-         - run: sudo ./setup.sh --modern
+         - run: sudo ./setup.sh ${{ matrix.mode }}
          - run: meson setup build --cross-file cross/atmega328p_gcc14.cross
          - run: ninja -C build
          - run: qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic &
