@@ -4,23 +4,24 @@
 
 [![CI](https://github.com/your-org/avrix/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/avrix/actions)
 
-> **Snapshot – 20 Jun 2025**  
-> Commands below are validated against the current repo, the latest **`setup.sh`**, and the CI matrix.
+> **Snapshot · 20 Jun 2025**  
+> Every command below is exercised by CI against the current repo and the
+> latest **`setup.sh`**.
 
 ---
 
-## 0 · One-liner bootstrap 🛠️
+## 0 · One-liner bootstrap 🛠
 
 ```bash
-sudo ./setup.sh --modern      # GCC-14 tool-chain + QEMU smoke-boot
+sudo ./setup.sh --modern           # GCC-14 tool-chain + QEMU smoke-boot
 ````
 
 `setup.sh` will
 
-* add the Debian-sid pin (GCC 14) or transparently revert to Ubuntu’s 7.3 tool-chain,
-* install QEMU ≥ 8.2, Meson, docs & analysis tools,
+* pin the **Debian-sid** cross packages (GCC 14) or transparently fall back to Ubuntu’s 7.3 tool-chain,
+* install QEMU ≥ 8.2, Meson, Doxygen, Sphinx, graphviz, Prettier, etc.,
 * **build** the firmware, boot it in QEMU (`arduino-uno` machine),
-* print MCU-specific `CFLAGS` / `LDFLAGS` for copy-paste.
+* print MCU-specific `CFLAGS`/`LDFLAGS` ready to paste into your Makefile.
 
 ---
 
@@ -28,10 +29,14 @@ sudo ./setup.sh --modern      # GCC-14 tool-chain + QEMU smoke-boot
 
 | Mode                       | GCC      | Source                                         | ✅ Pros                                            | ⚠️ Cons                          |
 | -------------------------- | -------- | ---------------------------------------------- | ------------------------------------------------- | -------------------------------- |
-| **Modern** *(recommended)* | **14.2** | Debian-sid cross pkgs <br>**or** xPack tarball | C23, `-mrelax`, `-mcall-prologues`, smallest code | Needs an *apt* pin or PATH tweak |
-| **Legacy**                 | 7.3      | Ubuntu *universe*                              | Built-in, zero extra setup                        | C11 only, ≈8 % larger binaries   |
+| **Modern** *(recommended)* | **14.2** | Debian-sid cross packages **or** xPack tarball | C23, `-mrelax`, `-mcall-prologues`, smallest code | needs an *apt* pin or PATH tweak |
+| **Legacy**                 | 7.3      | Ubuntu *universe*                              | built-in, zero extra setup                        | C11 only, ≈ 8 % more flash       |
 
-> ℹ️ No Launchpad PPA ships AVR GCC ≥ 10 – ignore references to old PPAs.
+```bash
+apt-cache search gcc-avr | grep -E '^gcc-avr-14\b'
+gcc-avr-14 - GNU C compiler for AVR microcontrollers (version 14)
+apt-cache show gcc-avr-14 | grep ^Version
+```
 
 ### 1A · Debian-sid pin (modern)
 
@@ -68,7 +73,7 @@ echo 'export PATH=$HOME/opt/avr/bin:$PATH' >> ~/.profile && source ~/.profile
 ```bash
 sudo apt update
 sudo apt install -y gcc-avr avr-libc binutils-avr \
-                    avrdude gdb-avr qemu-system-misc   # gcc 7.3
+                    avrdude gdb-avr qemu-system-misc        # gcc 7.3
 ```
 
 ---
@@ -79,8 +84,8 @@ sudo apt install -y gcc-avr avr-libc binutils-avr \
 sudo apt install -y meson ninja-build doxygen python3-sphinx \
                     python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
                     nodejs npm
-pip3  install --user breathe exhale sphinx-rtd-theme
-npm   install -g    prettier
+pip3 install --user breathe exhale sphinx-rtd-theme
+npm  install  -g   prettier
 ```
 
 ---
@@ -93,7 +98,7 @@ CFLAGS="-std=c23 -mmcu=$MCU -DF_CPU=16000000UL -Oz -flto -mrelax \
         -ffunction-sections -fdata-sections -mcall-prologues"
 LDFLAGS="-mmcu=$MCU -Wl,--gc-sections -flto"
 
-# GCC 14 bonus
+# GCC-14 bonus
 CFLAGS="$CFLAGS --icf=safe -fipa-pta"
 ```
 
@@ -110,11 +115,11 @@ qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 
 ---
 
-## 5 · Verify
+## 5 · Verify install
 
 ```bash
-avr-gcc --version | head -1         # expect 13.x or 14.x
-dpkg-query -W -f='avr-libc %v\n' avr-libc
+avr-gcc         --version | head -1     # expect 14.2.x
+dpkg-query -W -f='avr-libc %V\n' avr-libc
 qemu-system-avr --version | head -1
 ```
 
@@ -129,7 +134,7 @@ qemu-system-avr --version | head -1
 _Static_assert(NK_LOCK_ADDR <= 0x3F, "must live in lower I/O space");
 ```
 
-Override at configure time:
+Override during configuration:
 
 ```bash
 meson setup build --cross-file cross/atmega328p_gcc14.cross \
@@ -140,51 +145,43 @@ meson setup build --cross-file cross/atmega328p_gcc14.cross \
 
 ## 7 · Hardware target
 
-| Chip           | Role    | Clock          | Flash / SRAM | Notes          |
-| -------------- | ------- | -------------- | ------------ | -------------- |
-| **ATmega328P** | App MCU | 16 MHz crystal | 32 k / 2 k   | AVRe+, Harvard |
-| **ATmega16U2** | USB-CDC | 48 MHz PLL     | 16 k / 512 B | LUFA firmware  |
+| Chip           | Role    | Clock          | Flash / SRAM | Notes                |
+| -------------- | ------- | -------------- | ------------ | -------------------- |
+| **ATmega328P** | App MCU | 16 MHz crystal | 32 k / 2 k   | 8-bit AVRe+, Harvard |
+| **ATmega16U2** | USB-CDC | 48 MHz PLL     | 16 k / 512 B | LUFA firmware        |
 
 ---
 
 ## 8 · What you get
 
 * **Nanokernel** (< 10 kB) – 1 kHz pre-emptive round-robin
-* **TinyLog-4** EEPROM log – wear-levelled, CRC-8, 420 B flash
-* **Door RPC** – zero-copy Cap’n-Proto slab, 1 µs latency
-* **Spin-locks** – TAS, quaternion, lattice options
-* **Fixed-point Q8.8** math helpers
-* **QEMU board model** (`arduino-uno`) – full CI emulation
+* **TinyLog-4** – wear-levelled EEPROM log (420 B flash)
+* **Door RPC** – zero-copy slab, \~1 µs latency
+* **Spin-locks** – TAS / quaternion / lattice variants
+* **Fixed-point Q8.8** helpers
+* **Full QEMU board model** for CI
 
 ---
 
 ## 9 · Contributing
 
-When building tests natively Meson searches for AVR headers in common
-locations.  Specify a custom directory with the `-Davr_inc_dir=/path` option
-if your toolchain installs `avr/io.h` elsewhere.
-
-The resulting static library `libavrix.a` can be found in the build
-directory.  Documentation is generated with:
-
 1. Fork & branch (`feat/short-title`).
-2. Keep additions **tiny**—flash is precious.
+2. Keep additions **tiny** – flash is precious.
 3. `ninja -C build && meson test` must pass.
-4. Document new flags / memory in `docs/monograph.rst`.
+4. Update `docs/monograph.rst` with new flags or memory impact.
 
 ---
 
-## 10 · Example: File-system demo
-
+## 10 · Example: FS demo
 
 ```bash
 meson setup build --cross-file cross/atmega328p_gcc14.cross
-meson compile -C build fs_demo_hex       # builds demo + HEX
+meson compile -C build fs_demo_hex
 simavr -m atmega328p build/examples/fs_demo.elf
 ```
 
-Demo creates two files, reads them back, and prints via UART (see QEMU
-console or serial monitor).
+Creates two files in TinyLog-4, reads them back, prints via UART (view
+with the QEMU serial console or a USB-UART dongle).
 
 ---
 

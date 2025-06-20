@@ -5,62 +5,59 @@ AVR Tool-chain Setup (Ubuntu 22.04 / 24.04)
 =========================================
 
 This repository builds a **C23 µ-UNIX** that boots on an Arduino Uno R3
-(**ATmega328P + ATmega16U2**) or in QEMU.  
-Two tool-chain paths are fully CI-tested; every Meson cross-file, script and
-markdown example assumes one of them.
+(**ATmega328P + ATmega16U2**) or in QEMU.
 
-*If you just want it to work, run **`sudo ./setup.sh --modern`** and skip the
-rest of this page.*
+Only **two** tool-chain paths are CI-tested; every Meson cross-file,
+script and example in the repo assumes that *one* of them is active.
+
+*If you just need it to work run:*
+
+.. code-block:: bash
+
+   sudo ./setup.sh --modern      # GCC-14 tool-chain + QEMU smoke-boot
 
 ----------------------------------------------------------------------
 Quick-start
 ----------------------------------------------------------------------
 
-.. code:: bash
-
-   # one-shot, root-level bootstrap
-   sudo ./setup.sh --modern      # or  --legacy   /  --build
-
 ``setup.sh`` will
 
-* add or skip the **Debian-sid pin** (modern)  
-* install avr-gcc, avr-libc, binutils, QEMU, analysis tools, Prettier  
-* build a demo ELF, boot it in QEMU, print MCU-specific **CFLAGS/LDFLAGS**
-
-The rest of this document explains the same steps manually.
+* add (or skip) the **Debian-sid pin** for *gcc-avr 14.x* and transparently
+  fall back to Ubuntu’s 7.3 tool-chain if the pin is unreachable,
+* install QEMU ≥ 8.2, Meson, Doxygen, Sphinx, graphviz, Prettier, etc.,
+* build a demo ELF, boot it in QEMU and
+  print MCU-specific **CFLAGS / LDFLAGS** you can paste into any Makefile.
 
 ----------------------------------------------------------------------
 1 · Choose a compiler source
 ----------------------------------------------------------------------
 
-Running the ``setup.sh`` script found in the project root installs these
-packages automatically.  The script attempts the modern PPA first and
-falls back to ``gcc-avr`` if that repository is not accessible.
-
-================  ==========  Where it lives                     Pros / Cons
+================  ==========  Where it lives                        Pros / Cons
 Mode
-================  ==========  =================================  =========================================
-**Modern**        14.2 (2025) Debian-sid cross pkg **or**        + Full C23, `-mrelax`, small binaries  
-                                xPack tarball                     – Needs sid pin *or* PATH edit
-**Legacy**        7.3 (2018)  Ubuntu *universe*                  + Already in archive, zero setup  
-                                                                  – C11 only, ~8 % larger binaries
-================  ==========  =================================  =========================================
+================  ==========  ====================================  ======================================
+**Modern**        14.2 (2025) Debian-sid cross pkgs **or**           + Full C23, `-mrelax`, tiny code  
+                               xPack tarball                          − Needs a *pin* **or** PATH edit
+**Legacy**        7.3 (2018)  Ubuntu *universe*                      + Already in archive, zero effort  
+                                                                     − C11 only, ≈ 8 % larger binaries
+================  ==========  ====================================  ======================================
 
-.. admonition:: No usable Launchpad PPA  
-   As of **June 2025** no Launchpad PPA publishes an AVR cross GCC ≥ 10.  
-   Old advice referencing ``ppa:team-gcc-arm-embedded/avr`` or
-   ``ppa:ubuntu-toolchain-r/test`` for AVR is obsolete.
+.. admonition:: No Launchpad PPA
+
+   As of **June 2025** *no* Launchpad PPA publishes an AVR cross
+   GCC ≥ 10.  Old guides that suggest
+   ``ppa:team-gcc-arm-embedded/avr`` or
+   ``ppa:ubuntu-toolchain-r/test`` for **AVR** are obsolete.
 
 ----------------------------------------------------------------------
 2 A · Modern via Debian-sid pin
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: bash
+.. code-block:: bash
 
-   # add sid repo + low-priority pin (only for three packages)
+   # Add sid repo (signed) and pin only 3 packages.
    echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] \
-        http://deb.debian.org/debian sid main' \
-        | sudo tee /etc/apt/sources.list.d/debian-sid-avr.list
+        http://deb.debian.org/debian sid main' | \
+        sudo tee /etc/apt/sources.list.d/debian-sid-avr.list
 
    sudo tee /etc/apt/preferences.d/90avr <<'EOF'
    Package: gcc-avr avr-libc binutils-avr
@@ -72,91 +69,91 @@ Mode
    sudo apt install -y gcc-avr avr-libc binutils-avr \
                        avrdude gdb-avr qemu-system-misc
 
-*Current sid*: **gcc-avr 14.2.0-2**, avr-libc 2.2.
+*Current sid*: **gcc-avr 14.2.0-2** · **avr-libc 2.2**
 
 2 B · Modern via xPack tarball (no root)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: bash
+.. code-block:: bash
 
    curl -L -o /tmp/avr.tgz \
         https://github.com/xpack-dev-tools/avr-gcc-xpack/releases/download/\
 v13.2.0-1/xpack-avr-gcc-13.2.0-1-linux-x64.tar.gz
    mkdir -p $HOME/opt/avr
    tar -C $HOME/opt/avr --strip-components=1 -xf /tmp/avr.tgz
-   echo 'export PATH=$HOME/opt/avr/bin:$PATH' >> ~/.profile
-   source ~/.profile
+   echo 'export PATH=$HOME/opt/avr/bin:$PATH' >> ~/.profile && source ~/.profile
 
-Provides **GCC 13.2** (full C23, LTO) without touching APT.
+Provides **GCC 13.2** (full C23 + LTO) without touching APT.
 
 2 C · Legacy (Ubuntu archive)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: bash
+.. code-block:: bash
 
    sudo apt update
    sudo apt install -y gcc-avr avr-libc binutils-avr \
-                       avrdude gdb-avr qemu-system-misc      # gcc 7.3
+                       avrdude gdb-avr qemu-system-misc   # gcc 7.3
 
 ----------------------------------------------------------------------
 3 · Development helpers
 ----------------------------------------------------------------------
 
-.. code:: bash
+.. code-block:: bash
 
    sudo apt install -y meson ninja-build doxygen python3-sphinx \
-                       python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
-                       nodejs npm
+                      python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
+                      nodejs npm
    pip3 install --user breathe exhale sphinx-rtd-theme
-   npm  install   -g   prettier
+   npm  install  -g    prettier
 
 ----------------------------------------------------------------------
-4 · Sanity-check the tool-chain
+4 · Sanity-check the install
 ----------------------------------------------------------------------
 
-.. code:: bash
+.. code-block:: bash
 
-   avr-gcc --version        | head -1      # 13.x or 14.x for modern
-   dpkg-query -W avr-libc   | cut -f2
-   qemu-system-avr --version| head -1
+   avr-gcc --version        | head -1   # 14.x expected for modern path
+   dpkg-query -W -f='avr-libc %V\n' avr-libc
+   qemu-system-avr --version | head -1
 
 ----------------------------------------------------------------------
 5 · Optimisation flags (Uno R3)
 ----------------------------------------------------------------------
 
-.. code:: bash
+.. code-block:: bash
 
    MCU=atmega328p
    CFLAGS="-std=c23 -mmcu=$MCU -DF_CPU=16000000UL -Oz -flto -mrelax \
            -ffunction-sections -fdata-sections -mcall-prologues"
    LDFLAGS="-mmcu=$MCU -Wl,--gc-sections -flto"
 
-*GCC 14 bonus*: add ``--icf=safe -fipa-pta`` for ≈ 2 % extra flash drop.
+   # GCC 14 bonus
+   CFLAGS="$CFLAGS --icf=safe -fipa-pta"
 
 ----------------------------------------------------------------------
 6 · Building with Meson
 ----------------------------------------------------------------------
 
-.. code:: bash
+.. code-block:: bash
 
    meson setup build --wipe \
-        --cross-file cross/atmega328p_gcc14.cross   # file is in repo
+        --cross-file cross/atmega328p_gcc14.cross
    meson compile -C build
    qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 
-Docs:
+Documentation targets:
 
-.. code:: bash
+.. code-block:: bash
 
    meson compile -C build doc-doxygen
    meson compile -C build doc-sphinx
 
 ----------------------------------------------------------------------
-7 · Frequently used APT queries
+7 · Handy APT queries
 ----------------------------------------------------------------------
 
-.. code:: bash
+.. code-block:: bash
 
    apt-cache search  gcc-avr
-   apt-cache show    gcc-avr | grep ^Version
-   apt-cache policy  gcc-avr        # displays repo priorities
+   apt-cache show    gcc-avr-14 | grep ^Version
+   apt-cache policy  gcc-avr               # see repo priorities
