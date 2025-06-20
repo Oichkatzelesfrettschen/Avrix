@@ -31,6 +31,11 @@ endian     = 'little'
 [properties]
 needs_exe_wrapper = true
 
+c_args = ['-std=23', '-mmcu=atmega328p', '-DF_CPU=16000000UL', '-Oz',
+  '-flto', '-pgo', '-ffunction-sections', '-fdata-sections']
+link_args = ['-mmcu=atmega328p', '-Wl,--gc-sections', '-flto']
+
+
 c_args = [
   # MCU + language + clock ------------------------------------------------
   '-mmcu=atmega328p',

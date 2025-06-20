@@ -33,6 +33,10 @@ The rest of this document explains the same steps manually.
 1 · Choose a compiler source
 ----------------------------------------------------------------------
 
+Running the ``setup.sh`` script found in the project root installs these
+packages automatically.  The script attempts the modern PPA first and
+falls back to ``gcc-avr`` if that repository is not accessible.
+
 ================  ==========  Where it lives                     Pros / Cons
 Mode
 ================  ==========  =================================  =========================================

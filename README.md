@@ -1,59 +1,44 @@
-# µ-UNIX for AVR
+````markdown
+# µ-UNIX for AVR  
+**A < 10 kB C23 nanokernel, log-FS, and lock/RPC suite for the Arduino Uno R3**
 
-### Complete Environment & Tool-chain Guide  *(Ubuntu 22.04 / 24.04 LTS)*
+[![CI](https://github.com/your-org/avrix/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/avrix/actions)
 
-> **Status — 20 Jun 2025**
-> Every command in this README is verified against the current repo,
-> the latest **`setup.sh`**, and our CI matrix.
-
----
-
-## Table of Contents
-
-1. [Overview](#overview)
-2. [Pick a Compiler Path](#pick-a-compiler-path)
-3. [Modern Route A – Debian-sid Pin](#modern-route-a)
-4. [Modern Route B – xPack Tarball](#modern-route-b)
-5. [Legacy Route – Ubuntu Archive](#legacy-route)
-6. [Common Dev Helpers](#common-dev-helpers)
-7. [One-shot Bootstrap](#one-shot-bootstrap)
-8. [Recommended Flags](#recommended-flags)
-9. [Build & Run](#build--run)
-10. [Verify the Install](#verify-the-install)
-11. [Lock-Byte Override](#lock-byte-override)
-12. [Hardware Target](#hardware-target)
+> **Snapshot — 20 Jun 2025**  
+> All commands are verified against the current repo, the latest `setup.sh`,
+> and the GitHub Actions matrix.
 
 ---
 
-## Overview<a name="overview"></a>
-
-This project delivers a **< 10 kB C23 nanokernel**, a wear-levelled
-EEPROM log, and a lock/RPC suite for the
-**Arduino Uno R3** (ATmega328P @ 16 MHz + ATmega16U2 USB bridge).
-Everything builds and self-boots inside QEMU or on real hardware using a
-single script:
+## 0 • Instant gratification — one-liner
 
 ```bash
-sudo ./setup.sh --modern        # full tool-chain + QEMU + smoke-test
-```
+sudo ./setup.sh --modern   # full tool-chain + QEMU smoke-boot
+````
 
-If you’d rather DIY, continue below.
+`setup.sh` will
 
----
+* pin the Debian-sid cross packages (GCC 14) or transparently fall back to
+  Ubuntu’s 7.3 legacy tool-chain,
+* install QEMU ≥ 8.2, Meson, docs + analysis tools,
+* **build** the firmware, boot it in QEMU (`arduino-uno` machine),
+* print MCU-specific `CFLAGS`/`LDFLAGS` for copy-paste.
 
-## Pick a Compiler Path<a name="pick-a-compiler-path"></a>
-
-| Mode                     | GCC  | Where it lives                                 | Pros                                                  | Cons                             |
-| ------------------------ | ---- | ---------------------------------------------- | ----------------------------------------------------- | -------------------------------- |
-| **Modern (recommended)** | 14.2 | Debian-sid cross packages **or** xPack tarball | Full C23, `-mrelax`, `-mcall-prologues`, smaller code | Add a `sources.list` entry (pin) |
-| **Legacy**               | 7.3  | Ubuntu *universe*                              | Built-in, zero setup                                  | C11 only, \~8 % larger binaries  |
-
-> **Heads-up:** no Launchpad PPA ships AVR GCC ≥ 10.
-> Old docs that quote `ppa:team-gcc-arm-embedded/avr` are obsolete.
+If you want to drive manually, read on.
 
 ---
 
-## Modern Route A — Debian-sid Pin<a name="modern-route-a"></a>
+## 1 • Compiler choices
+
+| Mode                     | GCC      | Source                                               | 📈 Pros                                           | 📉 Cons                              |
+| ------------------------ | -------- | ---------------------------------------------------- | ------------------------------------------------- | ------------------------------------ |
+| **Modern (recommended)** | **14.2** | Debian-sid cross packages (pin) **or** xPack tarball | C23, `-mrelax`, `-mcall-prologues`, smallest code | Needs a pin (apt pref) or PATH tweak |
+| **Legacy**               | 7.3      | Ubuntu *universe*                                    | Built-in, zero setup                              | C11 only, \~8 % larger binaries      |
+
+> No Launchpad PPA ships AVR GCC ≥ 10.  Ignore old references to
+> `ppa:team-gcc-arm-embedded/avr` or `ppa:ubuntu-toolchain-r/test`.
+
+### 1A · Debian-sid pin (modern)
 
 ```bash
 sudo tee /etc/apt/sources.list.d/debian-sid-avr.list <<'EOF'
@@ -72,83 +57,56 @@ sudo apt install -y gcc-avr avr-libc binutils-avr \
                     avrdude gdb-avr qemu-system-misc
 ```
 
-*Installs `gcc-avr 14.2.0-2` + `avr-libc 2.2`.*
+Installs **gcc-avr 14.2.0-2 + avr-libc 2.2**.
 
----
-
-## Modern Route B — xPack Tarball (no root)<a name="modern-route-b"></a>
+### 1B · xPack tarball (no root, modern)
 
 ```bash
 curl -L -o /tmp/avr.tgz \
   https://github.com/xpack-dev-tools/avr-gcc-xpack/releases/download/\
 v13.2.0-1/xpack-avr-gcc-13.2.0-1-linux-x64.tar.gz
-
 mkdir -p $HOME/opt/avr
 tar -C $HOME/opt/avr --strip-components=1 -xf /tmp/avr.tgz
 echo 'export PATH=$HOME/opt/avr/bin:$PATH' >> ~/.profile && source ~/.profile
 ```
 
-Provides GCC 13.2 with full C23 + LTO.
-
----
-
-## Legacy Route — Ubuntu Archive<a name="legacy-route"></a>
+### 1C · Ubuntu archive (legacy)
 
 ```bash
 sudo apt update
 sudo apt install -y gcc-avr avr-libc binutils-avr \
-                    avrdude gdb-avr qemu-system-misc
+                    avrdude gdb-avr qemu-system-misc   # gcc 7.3
 ```
-
-Installs `gcc-avr 7.3.0+Atmel-3.7`.
 
 ---
 
-## Common Dev Helpers<a name="common-dev-helpers"></a>
+## 2 • Dev helpers
 
 ```bash
 sudo apt install -y meson ninja-build doxygen python3-sphinx \
                     python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
                     nodejs npm
-pip3 install --user breathe exhale sphinx-rtd-theme
-npm  install   -g    prettier
+pip3  install --user breathe exhale sphinx-rtd-theme
+npm   install -g    prettier
 ```
 
 ---
 
-## One-shot Bootstrap<a name="one-shot-bootstrap"></a>
-
-```bash
-sudo ./setup.sh --modern   # or  --legacy   /  --build
-```
-
-* adds Debian pin (modern)
-* installs compiler, QEMU, static-analysis, Prettier
-* configures Meson, **builds firmware**, performs a QEMU smoke-boot
-* prints MCU-specific `CFLAGS` / `LDFLAGS`
-
-### Legacy vs Modern GCC
-
-* 7.3 understands C11 only.
-* 13–14 unlock C23 **and** linker relaxation (`--icf=safe`).
-  Guard optional C23 code with `#if __STDC_VERSION__ >= 202311L`.
-
----
-
-## Recommended Flags<a name="recommended-flags"></a>
+## 3 • Recommended flags (ATmega328P)
 
 ```bash
 export MCU=atmega328p
 CFLAGS="-std=c23 -mmcu=$MCU -DF_CPU=16000000UL -Oz -flto -mrelax \
         -ffunction-sections -fdata-sections -mcall-prologues"
 LDFLAGS="-mmcu=$MCU -Wl,--gc-sections -flto"
-```
 
-*For GCC 14 add `--icf=safe -fipa-pta` → \~2 % extra flash drop.*
+# GCC 14 bonus
+CFLAGS="$CFLAGS --icf=safe -fipa-pta"
+```
 
 ---
 
-## Build & Run<a name="build--run"></a>
+## 4 • Build & run
 
 ```bash
 meson setup build --wipe \
@@ -159,23 +117,23 @@ qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 
 ---
 
-## Verify the Install<a name="verify-the-install"></a>
+## 5 • Verify
 
 ```bash
-avr-gcc --version | head -1      # expect 13.x or 14.x
-dpkg-query -W -f 'avr-libc %v\n' avr-libc
+avr-gcc --version | head -1
+dpkg-query -W avr-libc | cut -f2
 qemu-system-avr --version | head -1
 ```
 
 ---
 
-## Lock-Byte Override<a name="lock-byte-override"></a>
+## 6 • Lock-byte override
 
 ```c
 #ifndef NK_LOCK_ADDR
 #define NK_LOCK_ADDR 0x2C
 #endif
-_Static_assert(NK_LOCK_ADDR <= 0x3F, "lock must be in lower I/O");
+_Static_assert(NK_LOCK_ADDR <= 0x3F, "must live in lower I/O");
 ```
 
 Override at configure time:
@@ -187,19 +145,39 @@ meson setup build --cross-file cross/atmega328p_gcc14.cross \
 
 ---
 
-## Hardware Target<a name="hardware-target"></a>
+## 7 • Hardware target
 
-**Arduino Uno R3**
+| Chip           | Role    | Clock          | Flash / SRAM | Notes          |
+| -------------- | ------- | -------------- | ------------ | -------------- |
+| **ATmega328P** | App MCU | 16 MHz crystal | 32 k / 2 k   | AVRe+, Harvard |
+| **ATmega16U2** | USB-CDC | 48 MHz PLL     | 16 k / 512 B | LUFA firmware  |
 
-| Sub-MCU    | Role               | Clock          | Flash / SRAM | Notes               |
-| ---------- | ------------------ | -------------- | ------------ | ------------------- |
-| ATmega328P | Application kernel | 16 MHz crystal | 32 k / 2 k   | Harvard, AVRe+ core |
-| ATmega16U2 | USB-CDC bridge     | 48 MHz PLL     | 16 k / 0.5 k | Runs LUFA firmware  |
-
-All flags, linker scripts, and memory layouts in this repo target **exactly**
-these limits.  Other AVRs may work but are not CI-covered.
+All linker scripts & memory budgets assume these exact limits.
 
 ---
 
-Happy Hacking — and remember: **the entire µ-UNIX stack fits in less flash
-than one JPEG emoji.** 🡒 Let’s keep it that way.
+## 8 • What you get
+
+* **Nanokernel** (< 10 kB) with pre-emptive round-robin
+* **TinyLog-4** EEPROM log (wear-levelled, CRC-8)
+* **Door RPC** (zero-copy Cap’n-Proto slab)
+* **Spin-locks** (TAS / quaternion / lattice)
+* **Fixed-point Q8.8** math helpers
+* **QEMU board model** (`arduino-uno`) for full-speed CI
+
+---
+
+## 9 • Contributing
+
+1. Fork & branch (`feat/short-title`).
+2. Keep additions **tiny**—flash is precious.
+3. Run `ninja -C build && meson test` before the PR.
+4. Document any new flags or memory overhead in `monograph.rst`.
+
+---
+
+Happy hacking — and remember: the entire OS still takes **less flash than one
+JPEG emoji**. Let’s keep it that way. 🐜
+
+```
+```

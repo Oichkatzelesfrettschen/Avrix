@@ -1,3 +1,12 @@
+#!/bin/sh
+# ==============================================================
+#  AVR Development Environment Setup Script
+# --------------------------------------------------------------
+#  Installs the AVR toolchain on Ubuntu 24.04 "Noble".
+#  By default the script installs the modern toolchain from the
+#  `team-gcc-arm-embedded` PPA which provides GCC 14.  Passing
+#  `--legacy` installs the older gcc-avr 7.3 package from Ubuntu.  The script
+#  automatically falls back to this legacy toolchain if the PPA is unavailable.
 #!/usr/bin/env bash
 #────────────────────────────────────────────────────────────────────────────
 # setup.sh — µ-UNIX / AVR tool-chain + QEMU bootstrapper
@@ -57,7 +66,14 @@ EOF
     ;;
 esac
 
-apt-get -qq update
+# Install AVR GCC, avr-libc, binutils, avrdude, gdb, simavr and tooling.
+if ! apt-get -qq update && apt-get install -y "$best_pkg" avr-libc binutils-avr avrdude gdb-avr simavr \
+    meson ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck graphviz; then
+    echo "Falling back to gcc-avr" >&2
+    apt-get install -y gcc-avr avr-libc binutils-avr avrdude gdb-avr simavr \
+        meson ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck graphviz
+fi
+
 
 #──────────────── 2. install packages ─────────────────────────────────────
 BASE_PKGS=(
