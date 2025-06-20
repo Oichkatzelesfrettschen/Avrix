@@ -60,6 +60,13 @@ MCU=atmega328p
 CFLAGS="-std=c11 -mmcu=$MCU -DF_CPU=16000000UL -Os -flto -ffunction-sections -fdata-sections"
 LDFLAGS="-mmcu=$MCU -Wl,--gc-sections -flto"
 ```
+Additional size savings can be gained with GCC 14:
+
+```bash
+CFLAGS="$CFLAGS --icf=safe -fipa-pta"
+```
+These options enable identical code folding and a reduced
+points-to analysis for slightly smaller binaries.
 
 Ubuntu 24.04 ships `gcc-avr` based on GCC 7.3.0 which only supports the C11
 language standard.  For bleeding-edge features one may install
@@ -78,21 +85,26 @@ this repository target these specific constraints.
 
 ## Building the Library
 
-The project now uses **Meson** instead of Make.  A cross file for
-`avr-gcc` is provided in `meson/avr_gcc_cross.txt`.
+The project uses **Meson** in combination with a cross file to build
+the AVR binaries.  Two examples are supplied:
+
+- `meson/avr_gcc_cross.txt` – minimal flags
+- `cross/avr_m328p.txt` – full example with absolute tool paths
 
 ```bash
-meson setup build --cross-file meson/avr_gcc_cross.txt
+meson setup build --cross-file cross/avr_m328p.txt
 meson compile -C build
 ```
 
 The resulting static library `libavrix.a` can be found in the build
-directory.  Documentation can be generated with:
+directory.  Documentation is generated with:
 
 ```bash
 meson compile -C build doc-doxygen
 meson compile -C build doc-sphinx
 ```
+The HTML output is written to `build/docs` and integrates Doxygen
+comments via the `breathe` and `exhale` extensions.
 
 Use `setup.sh` or the manual commands above to install the compiler
 before configuring Meson.

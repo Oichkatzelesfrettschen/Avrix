@@ -15,3 +15,4 @@ from the build directory to generate HTML output.
 
    hardware
    monograph
+   fuses
