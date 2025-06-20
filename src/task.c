@@ -116,10 +116,18 @@ static void switch_to_task(uint8_t next)
     _nk_switch_context(&from->sp, to->sp);
 }
 
+/* Call scheduler with interrupts masked to avoid race conditions */
 static void schedule_next(void)
 {
     uint8_t n = find_next_task();
     switch_to_task(n);
+}
+
+static inline void atomic_schedule(void)
+{
+    cli();
+    schedule_next();
+    sei();
 }
 
 /*─────────────────────── Public interface ──────────────────────*/
@@ -188,8 +196,7 @@ void nk_yield(void)
 {
     cli();
     nk_sched.quantum_left = 0;
-    schedule_next();
-    sei();
+    atomic_schedule();
 }
 
 void nk_sleep(uint16_t ms)
@@ -198,8 +205,7 @@ void nk_sleep(uint16_t ms)
     nk_tcb_t *t = nk_sched.tasks[nk_sched.current];
     t->state = NK_SLEEPING;
     t->sleep_ticks = ms;
-    schedule_next();
-    sei();
+    atomic_schedule();
 }
 
 uint8_t nk_current_tid(void)
@@ -222,8 +228,7 @@ void nk_task_wait(uint8_t deps)
     nk_tcb_t *t = nk_sched.tasks[nk_sched.current];
     t->deps = deps;
     t->state = NK_BLOCKED;
-    schedule_next();
-    sei();
+    atomic_schedule();
 }
 
 void nk_task_signal(uint8_t tid)
@@ -243,25 +248,35 @@ void nk_task_signal(uint8_t tid)
 #endif
 
 /*──────────────────── Timer ISR for preemption ──────────────────*/
+/*
+ * TIMER0_COMPA interrupt service routine
+ * --------------------------------------
+ * The ISR is declared ISR_NAKED to retain full control over the
+ * prologue/epilogue. Only r24 and SREG are touched here; the actual
+ * housekeeping is delegated to nk_timer0_handler() in C for clarity.
+ */
 ISR(TIMER0_COMPA_vect, ISR_NAKED)
 {
     asm volatile(
         "push r24            \n\t"
         "in   r24, __SREG__  \n\t"
         "push r24            \n\t"
-        "call update_sleep_timers \n\t"
-        "lds  r24, nk_sched+4 \n\t" /* quantum_left */
-        "dec  r24            \n\t"
-        "sts  nk_sched+4, r24\n\t"
-        "brne 1f             \n\t"
-        "ldi  r24, %0        \n\t"
-        "sts  nk_sched+4, r24\n\t"
-        "call schedule_next  \n\t"
-        "1:                  \n\t"
+        ::: "memory");
+    nk_timer0_handler();
+    asm volatile(
         "pop  r24            \n\t"
-        "out  __SREG__, r24 \n\t"
+        "out  __SREG__, r24  \n\t"
         "pop  r24            \n\t"
         "reti                \n"
-        :: "M"(NK_QUANTUM_MS));
+        ::: "memory");
+}
+
+static void nk_timer0_handler(void)
+{
+    update_sleep_timers();
+    if (--nk_sched.quantum_left == 0) {
+        nk_sched.quantum_left = NK_QUANTUM_MS;
+        schedule_next();
+    }
 }
 
