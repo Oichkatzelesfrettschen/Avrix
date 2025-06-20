@@ -23,6 +23,9 @@ sudo ./setup.sh --modern           # GCC-14 tool-chain + QEMU smoke-boot
 * **build** the firmware, boot it in QEMU (`arduino-uno` machine),
 * print MCU-specific `CFLAGS`/`LDFLAGS` ready to paste into your Makefile.
 
+Run `./setup.sh --help` to see all options or to perform the installation
+steps manually.
+
 ---
 
 ## 1 · Compiler choices
@@ -82,9 +85,11 @@ sudo apt install -y gcc-avr avr-libc binutils-avr \
 
 ```bash
 sudo apt install -y meson ninja-build doxygen python3-sphinx \
-                    python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
-                    nodejs npm
-pip3 install --user breathe exhale sphinx-rtd-theme
+                    python3-pip python3-venv cloc cscope exuberant-ctags \
+                    cppcheck graphviz nodejs npm
+# Use a dedicated virtual environment for the Sphinx extensions
+python3 -m venv ~/.avrix-docs
+~/.avrix-docs/bin/pip install --upgrade breathe exhale sphinx-rtd-theme
 npm  install  -g   prettier
 ```
 
@@ -185,8 +190,8 @@ with the QEMU serial console or a USB-UART dongle).
 
 ---
 
-Use `setup.sh` or the manual commands above to install the compiler
-before configuring Meson.
+Run `./setup.sh` to install the toolchain or invoke `./setup.sh --help`
+for a breakdown of the manual commands before configuring Meson.
 
 ## Performance checks with clang-tidy
 
