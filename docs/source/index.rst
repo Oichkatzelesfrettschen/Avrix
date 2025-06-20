@@ -9,3 +9,8 @@ meson compile doc-doxygen
 meson compile doc-sphinx
 ```
 from the build directory to generate HTML output.
+
+.. toctree::
+   :maxdepth: 2
+
+   hardware
