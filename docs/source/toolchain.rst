@@ -30,6 +30,39 @@ If your project relies on the C23 standard you have several ways to obtain a new
 * **xPack binaries** are pre-built archives. Unpack to ``/opt/avr`` and prepend that directory to ``PATH``.
 * **Build from source** using ``--target=avr`` for maximum control.
 
+Debian cross compiler
+~~~~~~~~~~~~~~~~~~~~~
+Add the Sid repository and APT preferences as root:
+
+.. code-block:: bash
+
+   echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] \
+         http://deb.debian.org/debian sid main' \
+         | sudo tee /etc/apt/sources.list.d/debian-sid-avr.list
+
+   cat <<EOF | sudo tee /etc/apt/preferences.d/90avr-toolchain
+   Package: gcc-avr avr-libc binutils-avr
+   Pin: release o=Debian,a=sid
+   Pin-Priority: 100
+   EOF
+
+   sudo apt update
+   sudo apt install gcc-avr avr-libc binutils-avr
+
+xPack tarball
+~~~~~~~~~~~~~
+Download the latest release from `xpack.github.io <https://xpack.github.io>`_ and
+extract it to ``/opt/avr``:
+
+.. code-block:: bash
+
+   wget https://github.com/xpack-dev-tools/avr-gcc-xpack/releases/download/
+        v13.2.0-1/xpack-avr-gcc-13.2.0-1-linux-x64.tar.gz
+   sudo mkdir -p /opt/avr
+   sudo tar -C /opt/avr --strip-components=1 \
+        -xf xpack-avr-gcc-13.2.0-1-linux-x64.tar.gz
+   export PATH=/opt/avr/bin:"$PATH"
+
 Additional utilities useful for development and static analysis can be
 installed with:
 

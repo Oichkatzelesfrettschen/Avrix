@@ -81,6 +81,39 @@ Ubuntu currently packages only ``gcc-avr`` 7.3. Several alternatives exist if yo
 * **xPack pre-built binaries** – Download the xPack AVR-GCC tarball and prepend ``/opt/avr/bin`` to ``PATH``.
 * **Build from source** – Clone the GCC repository and configure with ``--target=avr`` for complete control over optimisation options.
 
+Installing GCC 14 from Debian sid
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The Debian archive hosts modern cross compilers suitable for Ubuntu systems.
+Create the following ``/etc/apt`` entries and then run ``apt update``:
+
+.. code-block:: bash
+
+   # /etc/apt/sources.list.d/debian-sid-avr.list
+   deb [arch=amd64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] \
+       http://deb.debian.org/debian sid main
+
+   # /etc/apt/preferences.d/90avr-toolchain
+   Package: gcc-avr avr-libc binutils-avr
+   Pin: release o=Debian,a=sid
+   Pin-Priority: 100
+
+   sudo apt update
+   sudo apt install gcc-avr avr-libc binutils-avr
+
+Installing xPack AVR-GCC
+~~~~~~~~~~~~~~~~~~~~~~~~
+Pre-built toolchains are published at `xpack.github.io <https://xpack.github.io>`_.
+Download the archive for your architecture and unpack it under ``/opt/avr``:
+
+.. code-block:: bash
+
+   wget https://github.com/xpack-dev-tools/avr-gcc-xpack/releases/download/
+       v13.2.0-1/xpack-avr-gcc-13.2.0-1-linux-x64.tar.gz
+   sudo mkdir -p /opt/avr
+   sudo tar -C /opt/avr --strip-components=1 \
+        -xf xpack-avr-gcc-13.2.0-1-linux-x64.tar.gz
+   export PATH=/opt/avr/bin:"$PATH"
+
 
 Optimised flags for an Arduino Uno (ATmega328P):
 
