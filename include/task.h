@@ -29,6 +29,7 @@ typedef struct {
     sp_t sp;             /**< Saved stack pointer. */
     task_state_t state;  /**< Current task state. */
     uint8_t priority;    /**< Priority (0-63). */
+    uint8_t deps;        /**< Outstanding dependencies for DAG scheduling. */
 } tcb_t;
 
 /** Maximum number of tasks supported. */
@@ -48,9 +49,24 @@ void scheduler_init(void);
 void scheduler_add_task(tcb_t *tcb, void (*entry)(void), void *stack);
 
 /**
+ * @brief Yield control to the next ready task.
+ */
+void scheduler_yield(void);
+
+/**
  * @brief Run the scheduler loop.
  */
 void scheduler_run(void);
+
+/**
+ * @brief Mark a blocked task as ready when a dependency completes.
+ */
+void scheduler_signal(tcb_t *tcb);
+
+/**
+ * @brief Block a task until \c deps dependencies are satisfied.
+ */
+void scheduler_block(tcb_t *tcb, uint8_t deps);
 
 #ifdef __cplusplus
 }
