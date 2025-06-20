@@ -101,7 +101,7 @@ Provides **GCC 13.2** (full C23 + LTO) without touching APT.
 
 .. code-block:: bash
 
-   sudo apt install -y meson ninja-build doxygen python3-sphinx \
+   sudo apt install -y meson ninja-build doxygen python3-sphinx simavr \
                       python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
                       nodejs npm
    pip3 install --user breathe exhale sphinx-rtd-theme

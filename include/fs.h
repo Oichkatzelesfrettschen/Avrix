@@ -2,6 +2,7 @@
 #define AVR_FS_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,7 +52,24 @@ int  fs_read(file_t *f, void *buf, uint16_t len);
  * \param[out] out  Array with ``FS_NUM_INODES`` elements for storing names.
  * \return          Number of entries copied into ``out``.
  */
-int  fs_list(char (*out)[FS_MAX_NAME + 1]);
+/**
+ * Populate *buf* with a newline separated list of valid filenames.
+ *
+ * The resulting string is always NUL terminated.  Names exceeding
+ * ``len`` are truncated to fit.  The directory is flat so at most
+ * ``FS_NUM_INODES`` entries are produced.
+ *
+ * \param[out] buf  Destination buffer for the concatenated list.
+ * \param len       Buffer length in bytes.
+ * \return          Number of filenames written.
+ */
+int  fs_list(char *buf, size_t len);
+
+/** Release *name* and reclaim all associated blocks.
+ *
+ * Returns ``0`` on success or ``-1`` if the file does not exist.
+ */
+int  fs_unlink(const char *name);
 
 #ifdef __cplusplus
 }

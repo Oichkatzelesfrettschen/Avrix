@@ -79,6 +79,7 @@ test('q8_8_mul_boundaries', fp_exe)
 # ───────────────────── 3. Filesystem & lock stress tests ─────────────
 fs_test_src  = ['fs_test.c', 'sim.c'] + extra_src
 flock_src    = ['flock_stress.c', 'sim.c'] + extra_src
+spin_src     = ['spin_test.c', 'sim.c'] + extra_src
 
 if native_mode
   fs_exe = executable(
@@ -97,6 +98,14 @@ if native_mode
     c_args              : common_cflags,
     native              : true
   )
+  spin_exe = executable(
+    'spin_test',
+    spin_src,
+    link_with           : libfs,
+    include_directories : inc_list,
+    c_args              : common_cflags,
+    native              : true
+  )
 else
   fs_exe = executable(
     'fs_test',
@@ -107,7 +116,14 @@ else
   )
   flock_exe = executable(
     'flock_stress',
-    'flock_stress.c',
+    ['flock_stress.c'] + extra_src,
+    link_with           : libavrix,
+    include_directories : inc_list,
+    c_args              : common_cflags
+  )
+  spin_exe = executable(
+    'spin_test',
+    'spin_test.c',
     link_with           : libavrix,
     include_directories : inc_list,
     c_args              : common_cflags
@@ -116,3 +132,4 @@ endif
 
 test('fs_basic',    fs_exe)
 test('flock_stress', flock_exe)
+test('spin_lock',    spin_exe)
