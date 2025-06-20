@@ -1,0 +1,71 @@
+# -----------------------------------------------------------------------
+#  atmega32_gcc14.cross   —   Meson cross-compile definition
+#
+#  Target : ATmega32 @ 16 MHz, 32 kB flash, 2 kB SRAM, 1 kB EEPROM
+#  Host   : any Linux box with avr-gcc ≥ 14.x in $PATH
+#
+#  Highlights
+#    • C23 by default                    (avr-gcc 14 has full support)
+#    • LTO + -Oz + -mrelax + -mcall-prologues  →  typical 11-14 % shrink
+#    • No RTTI / unwinding / exceptions  (saves ~0.5 kB flash)
+#    • Optional FDO:  meson configure build -Dprofile=true
+# -----------------------------------------------------------------------
+
+[binaries]
+c         = 'avr-gcc'
+ar        = 'avr-ar'
+strip     = 'avr-strip'
+objcopy   = 'avr-objcopy'
+size      = 'avr-size'
+exe_wrapper = 'true'
+
+[host_machine]
+system     = 'baremetal'
+cpu_family = 'avr'
+cpu        = 'atmega32'
+endian     = 'little'
+
+# -----------------------------------------------------------------------
+# Flags that apply to *all* C translation units and the final link step.
+# -----------------------------------------------------------------------
+[properties]
+needs_exe_wrapper = true
+
+c_args = [
+  '-mmcu=atmega32',
+  '-std=c23',
+  '-DF_CPU=16000000UL',
+  '-Oz',
+  '-flto',
+  '-mrelax',
+  '-mcall-prologues',
+  '-ffunction-sections',
+  '-fdata-sections',
+  '-fno-exceptions',
+  '-fno-rtti',
+  '-fno-unwind-tables',
+  '-fno-asynchronous-unwind-tables',
+]
+
+c_link_args = [
+  '-mmcu=atmega32',
+  '-flto',
+  '-Wl,--gc-sections',
+]
+
+# -----------------------------------------------------------------------
+# Meson built-in defaults
+# -----------------------------------------------------------------------
+[built-in options]
+c_std            = 'c23'
+optimization     = 'z'
+warning_level    = 2
+strip            = true
+default_library  = 'none'
+b_staticpic      = false
+
+# -----------------------------------------------------------------------
+# Project-specific knobs exposed via -Dkey=value on meson configure
+# -----------------------------------------------------------------------
+[project options]
+profile = false

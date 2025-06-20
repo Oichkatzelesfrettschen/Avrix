@@ -43,7 +43,7 @@ void door_register(uint8_t idx, uint8_t target,
     if (idx >= DOOR_SLOTS || words == 0 ||
         words * 8u > DOOR_SLAB_SIZE) return;
 
-    door_vec[nk_cur_tid()][idx] =
+    door_vec[nk_current_tid()][idx] =
         (door_t){ .tgt_tid = target,
                   .words   = (uint8_t)(words & 0x0F),
                   .flags   = (uint8_t)(flags & 0x0F) };
@@ -51,7 +51,7 @@ void door_register(uint8_t idx, uint8_t target,
 
 void door_call(uint8_t idx, void *buf /*↔ reply*/)
 {
-    uint8_t caller = nk_cur_tid();
+    uint8_t caller = nk_current_tid();
     if (idx >= DOOR_SLOTS) return;
 
     door_t d = door_vec[caller][idx];
