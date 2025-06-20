@@ -4,7 +4,13 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <avr/interrupt.h>
+#ifdef __AVR__
+#  include <avr/interrupt.h>
+#else
+/* fallbacks for native builds */
+#  define cli() ((void)0)
+#  define sei() ((void)0)
+#endif
 
 /**
  * \file nk_lock.h
