@@ -1,6 +1,7 @@
 project = 'Avrix'
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.imgconverter',
     'breathe',
     'exhale',
 ]
