@@ -9,8 +9,10 @@ Ubuntu archives. Install them with:
    sudo add-apt-repository ppa:team-gcc-arm-embedded/avr
    sudo apt-get update
    sudo apt-get install -y gcc-avr-14 avr-libc binutils-avr avrdude gdb-avr simavr
-   pip3 install --user meson
-   pip3 install --user breathe exhale
+
+Python tooling (requires ``pip3`` or a virtual environment)::
+
+   pip3 install --user meson breathe exhale
 
 ``gcc-avr-14`` provides the GNU C cross compiler, while ``avr-libc``
 contains the AVR C library and headers. ``binutils-avr`` supplies the
@@ -24,8 +26,7 @@ specific package.  A short search reveals GCC 14:
 
 .. code-block:: bash
 
-   apt-cache search gcc-avr | head -n 2
-   gcc-avr - GNU C compiler for AVR microcontrollers
+   apt-cache search gcc-avr | grep -E '^gcc-avr-14\\b'
    gcc-avr-14 - GNU C compiler for AVR microcontrollers (version 14)
    apt-cache show gcc-avr-14 | grep ^Version
 
@@ -81,11 +82,9 @@ paths:
    meson compile -C build doc-doxygen    # fails if the target was skipped
    meson compile -C build doc-sphinx     # fails when Doxygen XML is missing
 
+``--wipe`` deletes any existing ``build`` directory.  Use a dedicated
+directory or back up artifacts you intend to keep.
 
-packages along with ``prettier`` automatically when executed with ``sudo``.
-Use ``--modern`` or ``--legacy`` to select the GCC source.  Environment
-variables ``MCU`` and ``F_CPU`` may be set to customise the flags printed
-at the end of the run; packages automatically when executed with ``sudo``. The script enables the
-``team-gcc-arm-embedded/avr`` repository when necessary, refreshes the
-package lists once, and verifies each required package with ``dpkg -s`` before
-installation.
+The ``setup.sh`` helper installs these packages automatically.  Pass
+``--modern`` or ``--legacy`` to choose the GCC source and set ``MCU`` and
+``F_CPU`` to tailor the optimisation flags printed at the end of the run.

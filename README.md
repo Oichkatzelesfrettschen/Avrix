@@ -36,8 +36,7 @@ particular package.  A truncated search confirms that GCC 14 is
 available:
 
 ```bash
-apt-cache search gcc-avr | head -n 2
-gcc-avr - GNU C compiler for AVR microcontrollers
+apt-cache search gcc-avr | grep -E '^gcc-avr-14\b'
 gcc-avr-14 - GNU C compiler for AVR microcontrollers (version 14)
 apt-cache show gcc-avr-14 | grep ^Version
 man apt-cache                # explore additional query options
@@ -58,9 +57,15 @@ Then install the desired tools with automatic confirmation:
 ```bash
 sudo add-apt-repository ppa:team-gcc-arm-embedded/avr
 sudo apt-get update
-sudo apt-get install -y gcc-avr-14 avr-libc binutils-avr avrdude gdb-avr simavr
-pip3 install --user meson
-pip3 install --user breathe exhale
+sudo apt-get install -y gcc-avr-14 avr-libc binutils-avr \
+     avrdude gdb-avr simavr
+```
+
+### Python tooling
+These utilities require `pip3` or an active virtual environment:
+
+```bash
+pip3 install --user meson breathe exhale
 ```
 Legacy systems can instead install the stock `gcc-avr` (version 7.3.0) from the
 Ubuntu archives.
@@ -167,6 +172,8 @@ the AVR binaries.  Two examples are supplied:
 meson setup build --wipe --cross-file cross/avr_m328p.txt
 meson compile -C build
 ```
+The `--wipe` option removes any existing contents of the chosen build
+directory. Use a fresh directory or back up artifacts you wish to keep.
 
 The resulting static library `libavrix.a` can be found in the build
 directory.
