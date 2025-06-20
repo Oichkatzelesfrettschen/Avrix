@@ -52,6 +52,17 @@ void scheduler_add_task(tcb_t *tcb, void (*entry)(void), void *stack);
  */
 void scheduler_run(void);
 
+/**
+ * @brief Return the ID of the currently running task.
+ */
+uint8_t scheduler_current_tid(void);
+
+/**
+ * @brief Immediately switch to the specified task.
+ * @param tid Target task ID.
+ */
+void scheduler_switch_to(uint8_t tid);
+
 #ifdef __cplusplus
 }
 #endif

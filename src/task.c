@@ -65,3 +65,19 @@ void scheduler_run(void) {
     }
 }
 
+uint8_t scheduler_current_tid(void) {
+    return current_task;
+}
+
+void scheduler_switch_to(uint8_t tid) {
+    if (tid >= task_count || tid == current_task) {
+        return;
+    }
+    tcb_t *from = task_list[current_task];
+    tcb_t *to = task_list[tid];
+    to->state = TASK_RUNNING;
+    current_task = tid;
+    context_switch(from, to);
+    from->state = TASK_READY;
+}
+

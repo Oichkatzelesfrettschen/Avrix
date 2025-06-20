@@ -124,6 +124,7 @@ the AVR binaries.  Two examples are supplied:
 
 - `meson/avr_gcc_cross.txt` – minimal flags
 - `cross/avr_m328p.txt` – full example with absolute tool paths
+  including optimisation flags tuned for the ATmega328P
 
 ```bash
 meson setup build --cross-file cross/avr_m328p.txt
