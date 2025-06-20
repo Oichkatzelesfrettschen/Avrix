@@ -1,9 +1,13 @@
 #include "task.h"
+#include "door.h"
 #include <avr/interrupt.h>
 
 static tcb_t *task_list[MAX_TASKS];
 static uint8_t task_count;
 static uint8_t current_task;
+
+/* Door descriptors for the current task. Placed in .noinit. */
+door_t door_vec[DOOR_SLOTS] __attribute__((section(".noinit")));
 
 /**
  * Simple round-robin scheduler with fixed time slice.
