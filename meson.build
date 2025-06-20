@@ -6,7 +6,10 @@ subdir('src')
 # Documentation targets
 doxygen = find_program('doxygen', required: false)
 if doxygen.found()
-  run_target('doc-doxygen', command: [doxygen, meson.current_source_dir() / 'Doxyfile'])
+  run_target('doc-doxygen',
+    command: ['sh', '-c',
+      'cd ' + meson.current_source_dir() + ' && ' + doxygen.path() + ' Doxyfile']
+  )
 endif
 
 sphinx = find_program('sphinx-build', required: false)

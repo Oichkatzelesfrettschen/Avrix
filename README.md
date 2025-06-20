@@ -1,12 +1,12 @@
 # AVR Toolchain Setup
 
 Run the script below to install the AVR-GCC toolchain on Ubuntu 24.04.
-The script attempts to install the latest cross compiler available by
-enabling the *ubuntu-toolchain-r/test* PPA and searching for
-\`gcc-<version>-avr\` packages using `apt-cache search`. If none are found it
-falls back to the stock \`gcc-avr\` from the \`universe\` repository. Recent
-versions of the toolchain are also available from the `team-gcc-arm-embedded`
-PPA which provides packages such as `gcc-avr-14`.
+The helper first attempts to use the modern packages from
+`ppa:team-gcc-arm-embedded/avr`. When that repository cannot be
+reached, the script automatically falls back to the stock `gcc-avr`
+package from the `universe` archive. Recent versions of the toolchain
+are also available from the `team-gcc-arm-embedded` PPA which provides
+packages such as `gcc-avr-14`.
 
 ```bash
 sudo ./setup.sh            # installs the newest toolchain it can find
@@ -19,6 +19,7 @@ This script installs the following packages:
 - `avrdude` – firmware programmer
 - `gdb-avr` – debugger
 - `simavr` – lightweight simulator
+- `graphviz` – diagram generation utility used by Doxygen
 
 To install them manually without the script first discover which GCC
 packages are available using `apt-cache`:
@@ -54,9 +55,10 @@ pip3 install --user breathe exhale
 ```
 
 
-Pass `--legacy` to `setup.sh` to use Ubuntu's packages instead of the modern
-PPA.  Using `--modern` (the default) selects GCC 14 from
-`ppa:team-gcc-arm-embedded/avr`.
+Passing `--legacy` forces the use of Ubuntu's packages instead of the
+modern toolchain.  When invoked without arguments the script attempts
+the modern PPA first and transparently reverts to `gcc-avr` if that
+repository is unreachable.
 
 
 After installation, verify the tool versions:
@@ -103,7 +105,8 @@ The project uses **Meson** in combination with a cross file to build
 the AVR binaries.  Two examples are supplied:
 
 - `meson/avr_gcc_cross.txt` – minimal flags
-- `cross/avr_m328p.txt` – full example with absolute tool paths
+- `cross/avr_m328p.txt` – full example with absolute tool paths and
+  optimisation flags tuned for the ATmega328P
 
 ```bash
 meson setup build --cross-file cross/avr_m328p.txt

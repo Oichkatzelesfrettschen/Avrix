@@ -31,4 +31,5 @@ available on PyPI:
    pip3 install --user breathe exhale
 
 Running the ``setup.sh`` script found in the project root installs these
-packages automatically when executed with ``sudo``.
+packages automatically.  The script attempts the modern PPA first and
+falls back to ``gcc-avr`` if that repository is not accessible.
