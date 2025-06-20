@@ -34,6 +34,9 @@ typedef struct {
 /** Maximum number of tasks supported. */
 #define MAX_TASKS 10
 
+/** Bytes allocated for each task's stack. */
+#define TASK_STACK_SIZE 64
+
 /**
  * @brief Initialise the scheduler.
  */
@@ -43,7 +46,7 @@ void scheduler_init(void);
  * @brief Add a task to the scheduler.
  * @param tcb  Pointer to task control block.
  * @param entry Function pointer to task entry.
- * @param stack Top of stack memory.
+ * @param stack Unused; stacks are allocated internally.
  */
 void scheduler_add_task(tcb_t *tcb, void (*entry)(void), void *stack);
 

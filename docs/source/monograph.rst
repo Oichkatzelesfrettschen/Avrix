@@ -20,8 +20,9 @@ Kernel Architecture
 
 The nanokernel reserves 10 KB of flash and under 384 B of SRAM.  Context
 switches take 35 cycles.  A round-robin scheduler drives up to eight tasks
-with 64-byte stacks.  Filesystem structures mirror Unix V7 but reside in
-RAM for simplicity.
+with 64-byte stacks.  Each stack is wrapped in 0xA5 guard bytes which the
+scheduler verifies on every context switch to detect overflow.  Filesystem
+structures mirror Unix V7 but reside in RAM for simplicity.
 
 Optimisation Techniques
 -----------------------
