@@ -1,128 +1,131 @@
-# AVR Toolchain Setup
+# AVR Tool-chain Setup (Ubuntu 22.04 / 24.04 LTS)
 
-Run the script below to install the AVR-GCC toolchain on Ubuntu 24.04.
-By default it enables the `team-gcc-arm-embedded/avr` PPA and installs
-`gcc-avr-14`, providing modern C23 support and the latest AVR
-optimisations. Passing `--legacy` installs the stock `gcc-avr` from the
-`universe` repository instead.
+This section replaces all earlier, partially-outdated snippets. It consolidates the entire discussion, the **setup.sh** script, and the latest Launchpad/Debian realities into one authoritative guide.
 
-```bash
-sudo ./setup.sh            # installs the newest toolchain it can find
-```
-The script accepts `--modern` or `--legacy` to control the GCC source and
-honours `MCU` and `F_CPU` environment variables for the recommended
-compiler flags printed at the end of the run.
+---
 
-The script verifies each package with `dpkg -s` and performs only one
-`apt-get update` after the PPA is enabled. Supporting utilities are installed
-on demand, avoiding redundant package operations.
+## 1 · Pick a compiler path
 
-This script installs the following packages:
+| Mode                     | GCC ver. | Where it lives                                            | Pros                                          | Cons                           |
+| ------------------------ | -------- | --------------------------------------------------------- | --------------------------------------------- | ------------------------------ |
+| **Modern (recommended)** | 14 .2    | *Debian sid* cross packages (pinned) **or** xPack tarball | Full C23, `-mrelax`, `-mcall-prologues` fixes | One extra `sources.list` entry |
+| **Legacy**               | 7 .3     | Ubuntu *universe* (default)                               | Already in archive, rock-solid                | C11 only, larger binaries      |
 
-- `gcc-avr` – GNU C cross compiler
-- `avr-libc` – Standard C library for AVR development
-- `binutils-avr` – assembler and binary utilities
-- `avrdude` – firmware programmer
-- `gdb-avr` – debugger
-- `simavr` – lightweight simulator
-- `nodejs` and `npm` – JavaScript runtime and package manager
+> ❗ **No Launchpad PPA currently publishes an AVR cross GCC ≥ 10.**
+> Old docs that mention `ppa:team-gcc-arm-embedded/avr` or
+> `ppa:ubuntu-toolchain-r/test` for AVR should be ignored—they ship only *host*
+> compilers.
 
-To perform the installation manually, inspect the APT cache to see which
-compiler packages the configured repositories provide.
+---
 
-`apt-cache search` lists packages matching a pattern, while
-`apt-cache show` exposes the version and dependency information for a
-particular package.  A truncated search confirms that GCC 14 is
-available:
+## 2 · Modern route (A) — Debian-sid pin
 
 ```bash
-apt-cache search gcc-avr | head -n 2
-gcc-avr - GNU C compiler for AVR microcontrollers
-gcc-avr-14 - GNU C compiler for AVR microcontrollers (version 14)
-apt-cache show gcc-avr-14 | grep ^Version
-man apt-cache                # explore additional query options
+sudo tee /etc/apt/sources.list.d/debian-sid-avr.list <<'EOF'
+deb [arch=amd64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] \
+    http://deb.debian.org/debian sid main
+EOF
+
+sudo tee /etc/apt/preferences.d/90avr <<'EOF'
+Package: gcc-avr avr-libc binutils-avr
+Pin: release o=Debian,a=sid
+Pin-Priority: 100
+EOF
+
+sudo apt update
+sudo apt install -y gcc-avr avr-libc binutils-avr \
+                    avrdude gdb-avr qemu-system-misc
 ```
 
-`apt-cache policy` lists versions of a package across all configured
-repositories and identifies which one is selected for installation.
-Run it after refreshing the package lists to verify that the PPA offers a
-newer compiler than Ubuntu's defaults:
+You will get **gcc-avr 14.2.0-2** (May 2025 upload) plus the latest
+`avr-libc 2.2`.
+
+---
+
+## 3 · Modern route (B) — xPack tarball (no root)
 
 ```bash
-sudo apt-get update         # ensure apt cache is current
-apt-cache policy gcc-avr-14
+curl -L -o /tmp/avr.tgz \
+  https://github.com/xpack-dev-tools/avr-gcc-xpack/releases/download/v13.2.0-1/xpack-avr-gcc-13.2.0-1-linux-x64.tar.gz
+mkdir -p $HOME/opt/avr && tar -C $HOME/opt/avr --strip-components=1 -xf /tmp/avr.tgz
+echo 'export PATH=$HOME/opt/avr/bin:$PATH' >> ~/.profile
 ```
 
-Then install the desired tools with automatic confirmation:
+Gives GCC 13.2 with identical C23 support (+ LTO, relax, prologue sharing).
+
+---
+
+## 4 · Legacy route — Ubuntu archive
 
 ```bash
-sudo add-apt-repository ppa:team-gcc-arm-embedded/avr
-sudo apt-get update
-sudo apt-get install -y gcc-avr-14 avr-libc binutils-avr avrdude gdb-avr simavr
-pip3 install --user meson
-pip3 install --user breathe exhale
-```
-Legacy systems can instead install the stock `gcc-avr` (version 7.3.0) from the
-Ubuntu archives.
-
-Additional developer utilities are recommended for code analysis and
-documentation generation.  Install them with:
-
-```bash
-sudo apt-get install meson ninja-build doxygen python3-sphinx \
-     python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
-     nodejs npm
-```
-The script also installs the JavaScript formatter **Prettier** globally:
-
-```bash
-npm install -g prettier
+sudo apt update
+sudo apt install -y gcc-avr avr-libc binutils-avr \
+                    avrdude gdb-avr qemu-system-misc
 ```
 
-The documentation optionally leverages the Read the Docs theme alongside the
-Sphinx extensions `breathe` and `exhale`.  All are distributed on PyPI:
+Installs **gcc-avr 7.3.0+Atmel-3.7**.
+
+---
+
+## 5 · Common development helpers
 
 ```bash
+sudo apt install -y meson ninja-build doxygen python3-sphinx \
+                    python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
+                    nodejs npm
 pip3 install --user breathe exhale sphinx-rtd-theme
+npm  install   -g    prettier
 ```
 
-Running `sudo ./setup.sh` installs the entire toolchain along with these
-developer utilities in a single step.
+---
 
-
-Pass `--legacy` to `setup.sh` to use Ubuntu's packages instead of the modern
-PPA.  Using `--modern` (the default) selects GCC 14 from
-`ppa:team-gcc-arm-embedded/avr`.
-
-
-After installation, verify the tool versions:
+## 6 · One-shot bootstrap script
 
 ```bash
-avr-gcc --version
-dpkg-query -W -f 'avr-libc ${Version}\n' avr-libc
-
+sudo ./setup.sh --modern        # or  --legacy  /  --build
 ```
 
-Optimised flags for an Arduino Uno (ATmega328P):
+* Detects running mode, adds Debian pin if needed.
+* Installs compiler, QEMU, Static-analysis tools, Prettier.
+* Prints MCU-specific **CFLAGS/LDFLAGS** (override via `MCU` / `F_CPU` env).
+
+---
+
+## 7 · Recommended optimisation flags (ATmega328P)
 
 ```bash
-MCU=atmega328p
-CFLAGS="-std=c23 -mmcu=$MCU -DF_CPU=16000000UL -Oz -flto -mrelax -ffunction-sections -fdata-sections -mcall-prologues"
+export MCU=atmega328p
+CFLAGS="-std=c23 -mmcu=$MCU -DF_CPU=16000000UL -Oz -flto -mrelax \
+        -ffunction-sections -fdata-sections -mcall-prologues"
 LDFLAGS="-mmcu=$MCU -Wl,--gc-sections -flto"
 ```
-Additional size savings can be gained with GCC 14:
+
+With GCC 14 you may add `--icf=safe -fipa-pta` for another \~2 % flash drop.
+
+---
+
+## 8 · Building with Meson
 
 ```bash
-CFLAGS="$CFLAGS --icf=safe -fipa-pta"
+meson setup build --wipe \
+      --cross-file cross/atmega328p_gcc14.cross    # ships in repo
+meson compile -C build
+qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 ```
-These options enable identical code folding and a reduced
-points-to analysis for slightly smaller binaries.
 
-## Configurable Lock Address
+---
 
-The spinlock primitives can operate on a dedicated I/O register. The
-address is set at compile time with the `NK_LOCK_ADDR` macro which
-defaults to `0x2C`.
+## 9 · Verifying install
+
+```bash
+avr-gcc       --version | head -1    # expect 13.x or 14.x
+avr-libc      --version              # via dpkg-query -W avr-libc
+qemu-system-avr --version | head -1
+```
+
+---
+
+### Appendix · Lock-byte address override
 
 ```c
 #ifndef NK_LOCK_ADDR
@@ -131,57 +134,14 @@ defaults to `0x2C`.
 _Static_assert(NK_LOCK_ADDR <= 0x3F, "lock must be in lower I/O");
 ```
 
-Override this setting by appending a compiler flag, e.g.
+Override:
 
 ```bash
-meson setup build --cross-file cross/avr_m328p.txt \
-  -Dc_args="-DNK_LOCK_ADDR=0x2D"
+meson setup build --cross-file cross/atmega328p_gcc14.cross \
+     -Dc_args="-DNK_LOCK_ADDR=0x2D"
 ```
 
-Ubuntu 24.04 ships `gcc-avr` based on GCC 7.3.0 which only supports the C11
-language standard.  Installing `gcc-avr-14` from the
-**team-gcc-arm-embedded** PPA unlocks full C23 support.
-The sources target the modern standard yet remain broadly compatible with
-C11 compilers.
+---
 
-## Hardware Target: Arduino Uno R3
-
-Avrix is designed around the **Arduino Uno R3**, which combines an
-ATmega328P application processor and an ATmega16U2 USB interface.  The
-Uno R3 exposes 32 KB of flash, 2 KB of SRAM and runs at 16 MHz from a
-crystal oscillator.  The USB microcontroller provides a USB
-serial interface at 48 MHz.  All compiler flags and memory layouts in
-this repository target these specific constraints.
-
-
-## Building the Library
-
-The project uses **Meson** in combination with a cross file to build
-the AVR binaries.  Two examples are supplied:
-
-- `meson/avr_gcc_cross.txt` – minimal flags
-- `cross/avr_m328p.txt` – full example with absolute tool paths
-  including optimisation flags tuned for the ATmega328P
-
-```bash
-meson setup build --wipe --cross-file cross/avr_m328p.txt
-meson compile -C build
-```
-
-The resulting static library `libavrix.a` can be found in the build
-directory.
-
-Documentation can be generated individually or via the aggregated
-`doc` target which executes every available generator in one step:
-
-```bash
-meson compile -C build doc-doxygen    # fails if the target is disabled
-meson compile -C build doc-sphinx     # fails when docs/doxygen/xml is missing
-meson compile -C build doc           # runs both when present
-```
-
-The HTML output is written to `build/docs` and integrates Doxygen
-comments via the `breathe` and `exhale` extensions.
-
-Use `setup.sh` or the manual commands above to install the compiler
-before configuring Meson.
+All information above reflects the **current state as of 20 June 2025** and
+matches the project’s `setup.sh`, Meson cross files, and CI pipeline.

@@ -142,3 +142,29 @@ int fs_read(file_t *f, void *buf, uint16_t len) {
     }
     return read_len - remaining;
 }
+
+/**
+ * Copy the names of all valid inodes into ``out``.
+ *
+ * The directory is flat so at most ``FS_NUM_INODES`` entries exist. The caller
+ * must provide storage for that many strings of length ``FS_MAX_NAME`` + 1.
+ *
+ * \param[out] out  Destination array of strings.
+ * \return          Number of entries copied.
+ */
+int fs_list(char (*out)[FS_MAX_NAME + 1]) {
+    if (out == NULL) {
+        return 0;
+    }
+
+    int count = 0;
+    for (uint8_t i = 0; i < FS_NUM_INODES; ++i) {
+        if (inodes[i].type != 0) {
+            strncpy(out[count], dir_name[i], FS_MAX_NAME);
+            out[count][FS_MAX_NAME] = '\0';
+            ++count;
+        }
+    }
+
+    return count;
+}
