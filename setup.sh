@@ -1,67 +1,86 @@
-#!/bin/sh
-# ==============================================================
-#  AVR Development Environment Setup Script
-# --------------------------------------------------------------
-#  Installs the AVR toolchain on Ubuntu 24.04 "Noble".
-#  By default the script installs the modern toolchain from the
-#  `team-gcc-arm-embedded` PPA which provides GCC 14.  Passing
-#  `--legacy` installs the older gcc-avr 7.3 package from Ubuntu.
+#!/usr/bin/env bash
+#───────────────────────────────────────────────────────────────────────
+#  setup.sh -- µ-UNIX AVR build-chain bootstrapper
+#  Supports: Ubuntu 22.04/24.04  (tested in GitHub Actions and bare metal)
 #
 #  Usage: sudo ./setup.sh [--modern|--legacy]
+#         --modern (default) installs gcc-avr-14 from
+#                 ppa:team-gcc-arm-embedded/avr
+#         --legacy installs the repo version (gcc-avr 7.3)
 #
-#  Environment variables MCU and F_CPU may be set to customise the
-#  recommended compiler flags.
-# ==============================================================
+#  Idempotent: already-installed packages are skipped.
+#───────────────────────────────────────────────────────────────────────
+set -euo pipefail
+trap 'echo "[error] setup aborted" >&2' ERR
 
-set -eu
+[[ $(id -u) -eq 0 ]] || { echo "Run as root." >&2; exit 1; }
 
-# Ensure the script is run with root privileges.
-if [ "$(id -u)" -ne 0 ]; then
-    echo "This script must be run as root." >&2
-    exit 1
-fi
+export DEBIAN_FRONTEND=noninteractive
 
-# Update package lists and install supporting utilities.
-apt-get update
-apt-get install -y software-properties-common apt-transport-https ca-certificates \
-    build-essential python3-pip
+#──── parse CLI arg ────────────────────────────────────────────────────
+MODE="modern"
+[[ ${1:-} == "--legacy" ]] && MODE="legacy"
 
-# Determine which repository to enable for the compiler packages.
-case "${1:-}" in
-    --legacy)
-        add-apt-repository -y universe
-        best_pkg=gcc-avr
-        ;;
-    --modern|"")
+#──── prerequisite utils for add-apt-repository ────────────────────────
+apt-get -qq update
+apt-get -yqq install software-properties-common apt-transport-https \
+                       ca-certificates gnupg >/dev/null
+
+#──── enable correct repository once ───────────────────────────────────
+case $MODE in
+  modern)
+    if ! grep -q "team-gcc-arm-embedded" /etc/apt/sources.list /etc/apt/sources.list.d/* 2>/dev/null; then
         add-apt-repository -y ppa:team-gcc-arm-embedded/avr
-        best_pkg=gcc-avr-14
-        ;;
-    *)
-        echo "Usage: $0 [--modern|--legacy]" >&2
-        exit 1
-        ;;
+    fi
+    TOOLCHAIN_PKG='gcc-avr-14'
+    ;;
+  legacy)
+    add-apt-repository -y universe          # universe provides gcc-avr
+    TOOLCHAIN_PKG='gcc-avr'
+    ;;
 esac
-apt-get update
 
-# Install AVR GCC, avr-libc, binutils, avrdude, gdb, simavr and tooling.
-apt-get install -y "$best_pkg" avr-libc binutils-avr avrdude gdb-avr simavr \
-    meson ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck \
-    ccache
+apt-get -qq update
 
-# Python packages for Sphinx integration
-pip3 install --break-system-packages --upgrade breathe exhale
+#──── package bundle (tool-chain + doc + dev aids) ─────────────────────
+PKGS=(
+  "$TOOLCHAIN_PKG" avr-libc binutils-avr
+  avrdude gdb-avr simavr
+  avr-g++   # C++ sketches / tests
+  meson ninja-build doxygen
+  python3-sphinx python3-pip
+  ccache cloc cscope exuberant-ctags cppcheck
+)
 
-# Display compiler and library versions for verification.
-avr-gcc --version | head -n 1
-dpkg-query -W -f 'avr-libc ${Version}\n' avr-libc
+for p in "${PKGS[@]}"; do
+  dpkg -s "$p" &>/dev/null || apt-get -yqq install "$p"
+done
 
-# Suggest optimised flags tuned for the selected MCU.
+#──── python docs extensions ───────────────────────────────────────────
+pip3 install --break-system-packages --quiet --upgrade breathe exhale
+
+#──── show versions for audit log ──────────────────────────────────────
+echo "Tool-chain versions:"
+avr-gcc --version | head -n1
+dpkg-query -W -f 'avr-libc %v\n' avr-libc
+
+#──── suggest canonical flag bundle (first-principles tuned) ───────────
 MCU=${MCU:-atmega328p}
 F_CPU=${F_CPU:-16000000UL}
 
-cat <<FLAGMSG
-Recommended compiler flags:
-  CFLAGS="-mmcu=$MCU -DF_CPU=$F_CPU -Os -flto -ffunction-sections -fdata-sections"
-  LDFLAGS="-mmcu=$MCU -Wl,--gc-sections -flto"
-FLAGMSG
+CFLAGS="-std=c23 -mmcu=${MCU} -DF_CPU=${F_CPU} -Oz -flto -mrelax \
+-ffunction-sections -fdata-sections -fno-unwind-tables -mcall-prologues"
+LDFLAGS="-mmcu=${MCU} -Wl,--gc-sections -flto"
 
+cat <<EOF
+
+────────────────────────────────────────────────────────────────────────
+μ-UNIX AVR environment ready ✓
+Add the following to your Meson cross file or Makefile:
+
+  CFLAGS  = ${CFLAGS}
+  LDFLAGS = ${LDFLAGS}
+
+Happy hacking!
+────────────────────────────────────────────────────────────────────────
+EOF
