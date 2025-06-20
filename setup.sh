@@ -65,27 +65,30 @@ Pin-Priority: 100
 EOF
     ;;
 esac
-
-# Install AVR GCC, avr-libc, binutils, avrdude, gdb, simavr and tooling.
-if ! apt-get -qq update && apt-get install -y "$best_pkg" avr-libc binutils-avr avrdude gdb-avr simavr \
-    meson ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck graphviz; then
-    echo "Falling back to gcc-avr" >&2
-    apt-get install -y gcc-avr avr-libc binutils-avr avrdude gdb-avr simavr \
-        meson ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck graphviz
+apt-get -qq update
+if [[ "$mode" != "--legacy" ]]; then
+  if ! apt-cache policy gcc-avr | grep -q "Candidate: .*14"; then
+    echo "[warn] gcc-avr-14 package not found after repository setup." >&2
+  fi
 fi
+
 
 
 #──────────────── 2. install packages ─────────────────────────────────────
 BASE_PKGS=(
   "$TOOLCHAIN_PKG" avr-libc binutils-avr avrdude gdb-avr
-  qemu-system-misc meson ninja-build doxygen python3-sphinx python3-pip
+  qemu-system-misc meson ninja-build doxygen python3-sphinx python3-pip python3-venv
   ccache cloc cscope exuberant-ctags cppcheck graphviz nodejs npm
 )
 for p in "${BASE_PKGS[@]}"; do pkg_installed "$p" || apt-get -yqq install "$p"; done
 
-pip3 install --break-system-packages -q --upgrade breathe exhale sphinx-rtd-theme
+DOC_VENV=/opt/avrix-docs
+if [ ! -d "$DOC_VENV" ]; then
+  python3 -m venv "$DOC_VENV"
+fi
+"$DOC_VENV/bin/pip" install -q --upgrade pip breathe exhale sphinx-rtd-theme
+echo "[info] Documentation venv: $DOC_VENV"
 npm install -g --silent prettier
-
 #──────────────── 3. QEMU sanity check ────────────────────────────────────
 if ! qemu-system-avr -version &>/dev/null; then
   echo "[warn] qemu-system-avr not present — building avr-softmmu target …"
