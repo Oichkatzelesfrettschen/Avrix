@@ -25,6 +25,8 @@ packages are available using `apt-cache`:
 
 ```bash
 apt-cache search gcc-avr
+apt-cache show gcc-avr-14    # inspect package details
+man apt-cache                # explore additional query options
 ```
 
 Then install the desired tools:

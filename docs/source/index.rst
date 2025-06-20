@@ -14,3 +14,4 @@ from the build directory to generate HTML output.
    :maxdepth: 2
 
    hardware
+   monograph
