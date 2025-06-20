@@ -1,29 +1,108 @@
+# ─── cross/atmega328p_gcc14.cross ─────────────────────────────────────
+#  Target : Arduino-Uno R3  (ATmega328P @ 16 MHz, 32 k Flash, 2 k SRAM)
+#  Compiler: gcc-avr ≥ 14.0  (Debian-sid package or xPack)
+#  Focus  : absolute minimum flash/RAM footprint with full C23.
+
 [binaries]
-c='avr-gcc'
-ar='avr-ar'
-strip='avr-strip'
-objcopy='avr-objcopy'
-size='avr-size'
-exe_wrapper='true'
+c           = 'avr-gcc'
+ar          = 'avr-ar'
+strip       = 'avr-strip'
+objcopy     = 'avr-objcopy'
+size        = 'avr-size'
+exe_wrapper = 'true'        # Meson test-runner stub
 
 [host_machine]
-system='baremetal'
-cpu_family='avr'
-cpu='atmega328p'
-endian='little'
+system      = 'baremetal'
+cpu_family  = 'avr'
+cpu         = 'atmega328p'
+endian      = 'little'
 
 [properties]
-needs_exe_wrapper=true
+needs_exe_wrapper = true
 
-c_args=['-mmcu=atmega328p','-std=gnu11','-DF_CPU=16000000UL','-Os','-flto','-mrelax','-mcall-prologues','-ffunction-sections','-fdata-sections','-fno-exceptions','-fno-unwind-tables','-fno-asynchronous-unwind-tables']
+c_args = [
+  '-std=c23', '-mmcu=atmega328p', '-DF_CPU=16000000UL',
 
-c_link_args=['-mmcu=atmega328p','-flto','-Wl,--gc-sections']
+  # ─ size / code-gen tweaks ─
+  '-Oz', '-flto',
+  '-mrelax', '-mcall-prologues',
+  '-fdata-sections', '-ffunction-sections',
+  '-fmerge-constants', '-fmerge-all-constants',
+  '-fno-ident',
+
+  # ─ strip unused run-time features ─
+  '-fno-exceptions', '-fno-rtti',
+  '-fno-unwind-tables', '-fno-asynchronous-unwind-tables',
+  '-fno-stack-protector'
+]
+
+c_link_args = [
+  '-mmcu=atmega328p', '-flto',
+  '-Wl,--gc-sections',
+  '-Wl,--icf=safe',        # identical-code folding
+  '-Wl,--relax'            # linker relaxation pass
+]
 
 [built-in options]
-c_std='gnu11'
-optimization='s'
-warning_level='2'
-strip=true
-default_library='static'
-b_staticpic=false
+c_std           = 'c23'
+optimization    = 'z'       # maps to -Oz
+warning_level   = 2
+strip           = true
+default_library = 'none'
+b_staticpic     = false
 
+[project options]
+profile = false             # toggle PGO via “meson configure -Dprofile=true”
+
+
+# ─── cross/atmega328p_clang20.cross ───────────────────────────────────
+#  Needs:  sudo add-apt-repository ppa:llvm-team/llvm
+#          sudo apt install clang-20 llvm-20 lld-20
+
+[binaries]
+c           = 'clang-20'
+ar          = 'llvm-ar-20'
+strip       = 'llvm-strip-20'
+objcopy     = 'llvm-objcopy-20'
+size        = 'avr-size'          # GNU size still fine
+exe_wrapper = 'true'
+
+[host_machine]
+system      = 'baremetal'
+cpu_family  = 'avr'
+cpu         = 'atmega328p'
+endian      = 'little'
+
+[properties]
+needs_exe_wrapper = true
+
+c_args = [
+  '--target=avr',
+  '-mmcu=atmega328p',
+  '-std=c23',
+  '-DF_CPU=16000000UL',
+
+  # size / optimisation
+  '-Oz', '-flto',                # Thin-LTO by default
+  '-mrelax-all',
+  '-fdata-sections', '-ffunction-sections',
+  '-fmerge-all-constants',
+  '-fno-exceptions', '-fno-rtti',
+  '-fno-unwind-tables', '-fno-asynchronous-unwind-tables'
+]
+
+c_link_args = [
+  '--target=avr', '-mmcu=atmega328p',
+  '-flto',
+  '-Wl,--gc-sections',
+  '-Wl,--icf=safe',
+  '-fuse-ld=lld'                # lld-avr (LLVM 20) supports ICF
+]
+
+[built-in options]
+c_std           = 'c23'
+optimization    = 'z'
+warning_level   = 2
+strip           = true
+default_library = 'none'
+b_staticpic     = false

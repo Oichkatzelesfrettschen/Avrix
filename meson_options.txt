@@ -1,0 +1,2 @@
+option('avr_inc_dir', type: 'string', value: '',
+       description: 'Path to AVR libc headers (fallback to standard locations)')
