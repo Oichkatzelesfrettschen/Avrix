@@ -2,13 +2,18 @@
 # ==============================================================
 #  AVR Development Environment Setup Script
 # --------------------------------------------------------------
-#  Installs the AVR toolchain on Ubuntu 24.04 "Noble". By default
-#  it pulls Atmel-branded packages from Peter de Bruijn's PPA but
-#  it can fall back to the official universe repository.
+#  Installs the AVR toolchain on Ubuntu 24.04 "Noble".
+#  By default the script attempts to install the newest cross compiler
+#  available.  It enables the *ubuntu-toolchain-r/test* PPA and searches
+#  for any gcc-<version>-avr packages.  If none are present it falls back
+#  to the stock gcc-avr package.  The historic pmjdebruijn PPA can be
+#  selected for older releases.
 #
-#  Usage: sudo ./setup.sh [--official]
+#  Usage: sudo ./setup.sh [--stock|--old]
 #
-#  Pass --official to skip the PPA and use Ubuntu's stock packages.
+#  --stock     Use Ubuntu's stock packages only.
+#  --old       Attempt to install the deprecated pmjdebruijn PPA.
+#
 #  Environment variables MCU and F_CPU may be set to customise the
 #  recommended compiler flags.
 # ==============================================================
@@ -25,20 +30,40 @@ fi
 apt-get update
 apt-get install -y software-properties-common apt-transport-https ca-certificates
 
-# Determine whether to use the PPA or the official repository.
-if [ "${1:-}" = "--official" ]; then
-    add-apt-repository -y universe
-else
-    add-apt-repository -y ppa:pmjdebruijn/avr
-fi
+# Determine which repository to enable for the compiler packages.
+case "${1:-}" in
+    --stock)
+        add-apt-repository -y universe
+        ;;
+    --old)
+        add-apt-repository -y ppa:pmjdebruijn/avr
+        ;;
+    "")
+        add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        ;;
+    *)
+        echo "Usage: $0 [--stock|--old]" >&2
+        exit 1
+        ;;
+esac
 apt-get update
 
+# Determine the best available compiler package.
+# Determine the newest gcc-<version>-avr package, if any.
+best_pkg=$(apt-cache search '^gcc-[0-9][0-9]*-avr' 2>/dev/null | awk '{print $1}' | sort -V | tail -n 1)
+if [ -z "$best_pkg" ]; then
+    best_pkg=gcc-avr
+    echo "No versioned cross compiler found; using $best_pkg" >&2
+else
+    echo "Using $best_pkg" >&2
+fi
+
 # Install the toolchain components.
-apt-get install -y gcc-avr avr-libc binutils-avr avrdude gdb-avr
+apt-get install -y "$best_pkg" avr-libc binutils-avr avrdude gdb-avr
 
 # Display compiler and library versions for verification.
 avr-gcc --version | head -n 1
-avr-libc-config --version
+dpkg-query -W -f 'avr-libc ${Version}\n' avr-libc
 
 # Suggest optimised flags tuned for the selected MCU.
 MCU=${MCU:-atmega328p}

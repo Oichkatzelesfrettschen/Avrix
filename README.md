@@ -1,12 +1,24 @@
 # AVR Toolchain Setup
 
-Run the script below to install Atmel's AVR-GCC toolchain on Ubuntu 24.04:
+Run the script below to install the AVR-GCC toolchain on Ubuntu 24.04.
+The script attempts to install the latest cross compiler available by
+enabling the *ubuntu-toolchain-r/test* PPA and searching for
+\`gcc-<version>-avr\` packages.  If none are found it falls back to the
+stock \`gcc-avr\` from the \`universe\` repository.
 
 ```bash
-sudo ./setup.sh            # installs via the pmjdebruijn PPA
+sudo ./setup.sh            # installs the newest toolchain it can find
 ```
 
-To use Ubuntu's official packages instead, pass `--official`.
+Pass `--stock` to force the script to use only Ubuntu's packages.
+Use `--old` to try the deprecated pmjdebruijn PPA on older systems.
+
+After installation, verify the tool versions:
+
+```bash
+avr-gcc --version
+dpkg-query -W -f 'avr-libc ${Version}\n' avr-libc
+```
 
 Optimised flags for an Arduino Uno (ATmega328P):
 
