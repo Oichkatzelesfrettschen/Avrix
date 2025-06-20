@@ -13,6 +13,7 @@
 #endif
 
 #include <string.h>
+#include <stdbool.h>
 #include <avr/interrupt.h>
 
 /*──────────────────────── 1.  Tunables ─────────────────────────*/
@@ -37,7 +38,7 @@ static volatile uint8_t tick_left = NK_QUANTUM_TICKS;
 static uint8_t nk_stacks[NK_MAX_TASKS][NK_STACK_SIZE + 2*GUARD_BYTES];
 #endif
 
-/*────────── low-level asm context swap (provided in isr.S) ──────────*/
+/*────────── low-level __asm__ context swap (provided in isr.S) ──────────*/
 extern void _nk_context_swap(nk_sp_t *save, nk_sp_t load);
 
 /*──────────────────────── 3.  Tiny helpers ─────────────────────*/
@@ -48,7 +49,7 @@ uint8_t nk_cur_tid(void)                     { return nk_cur; }
 __attribute__((naked))
 void nk_yield(void)
 {
-    asm volatile(
+    __asm__ volatile(
         "push r18              \n\t"
         "lds  r18, tick_left   \n\t"
         "dec  r18              \n\t"
@@ -147,7 +148,7 @@ void nk_sched_tick(void)
 /* 1 kHz Timer-0 ISR – decrements quantum and calls scheduler */
 ISR(TIMER0_COMPA_vect, ISR_NAKED)
 {
-    asm volatile(
+    __asm__ volatile(
         "push r18                \n\t"
         "lds  r18, tick_left     \n\t"
         "dec  r18                \n\t"
@@ -167,7 +168,7 @@ void nk_sched_run(void)  __attribute__((noreturn));
 void nk_sched_run(void)
 {
     sei();                           /* global IRQ enable */
-    for (;;) asm volatile("sleep");  /* idle task = MCU sleep */
+    for (;;) __asm__ volatile("sleep");  /* idle task = MCU sleep */
 }
 
 /*──────────────────────── 8.  DAG helpers (optional) ─────────*/
@@ -191,5 +192,5 @@ void nk_task_signal(nk_tcb_t *t)
 __attribute__((weak,naked))
 void _nk_context_swap(nk_sp_t *save, nk_sp_t load)
 {
-    asm volatile("ret");
+    __asm__ volatile("ret");
 }

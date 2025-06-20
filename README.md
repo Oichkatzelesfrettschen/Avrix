@@ -185,3 +185,16 @@ comments via the `breathe` and `exhale` extensions.
 
 Use `setup.sh` or the manual commands above to install the compiler
 before configuring Meson.
+
+## Performance checks with clang-tidy
+
+The repository ships `optimize.sh`, a convenience wrapper around
+``clang-tidy``. The script runs the ``performance-*`` checks over every
+source file in ``src``. Execute it once ``clang-tidy`` is installed:
+
+```bash
+./optimize.sh
+```
+
+Extra options are forwarded to ``clang-tidy`` and the ``MCU``
+environment variable selects the target AVR chip.
