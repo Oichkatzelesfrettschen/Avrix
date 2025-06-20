@@ -125,10 +125,18 @@ Lock type        Notes
 Full (DAG+Lat)   cycle-safe + no starvation    +84   +548 B  12 B
 ===============  ============================  ======  =====  ====
 
-Golden-ratio ticket ::
+Golden-ratio ticket
+~~~~~~~~~~~~~~~~~~~
 
-   #define NK_LATTICE_STEP  1657u   /* φ·2¹⁰ for 16-bit counters */
-   nk_ticket += NK_LATTICE_STEP;
+.. code-block:: c
+
+   #if NK_WORD_BITS == 32
+   #  define NK_LATTICE_STEP 1695400ul   /* φ·2²⁶ → 32-bit lattice */
+   #else
+   #  define NK_LATTICE_STEP 1657u       /* φ·2¹⁰ → 16-bit lattice */
+   #endif
+
+   nk_ticket += NK_LATTICE_STEP;  /* single ADD/SUB instruction */
 
 _Lock address guard_ ::
 
