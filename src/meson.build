@@ -24,7 +24,8 @@ kernel_src = files(
   'task.c',            # pure C
   'nk_fs.c',
   'kalloc.c',
-  'context_switch.S'   # hand-written AVR ASM
+  'context_switch.S',  # hand-written AVR ASM
+  'switch_task.S'
 )
 
 portable_src = files(   # no <avr/...>
