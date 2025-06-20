@@ -31,11 +31,14 @@ sudo ./setup.sh --modern           # GCC-14 tool-chain + QEMU smoke-boot
 | -------------------------- | -------- | ---------------------------------------------- | ------------------------------------------------- | -------------------------------- |
 | **Modern** *(recommended)* | **14.2** | Debian-sid cross packages **or** xPack tarball | C23, `-mrelax`, `-mcall-prologues`, smallest code | needs an *apt* pin or PATH tweak |
 | **Legacy**                 | 7.3      | Ubuntu *universe*                              | built-in, zero extra setup                        | C11 only, ≈ 8 % more flash       |
+Before running `setup.sh` you can check available versions:
 
 ```bash
 apt-cache search gcc-avr | grep -E '^gcc-avr-14\b'
 gcc-avr-14 - GNU C compiler for AVR microcontrollers (version 14)
 apt-cache show gcc-avr-14 | grep ^Version
+apt-cache policy gcc-avr            # see which repo wins
+apt-cache madison gcc-avr-14        # list all 14.x builds
 ```
 
 ### 1A · Debian-sid pin (modern)
