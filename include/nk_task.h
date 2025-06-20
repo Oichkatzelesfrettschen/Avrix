@@ -75,7 +75,8 @@ void     nk_task_signal(uint8_t tid);
 
 /* Compatibility macros for legacy code. */
 #define nk_sched_init()      nk_init()
-#define nk_task_add(t,e,s,p,c) nk_task_create((t),(e),(p),(s),(NK_STACK_SIZE))
+#define nk_task_add(t,e,s,p,c) \
+    ((void)(c), nk_task_create((t), (e), (p), (s), (NK_STACK_SIZE)))
 #define nk_sched_run()       nk_start()
 #define nk_cur_tid()         nk_current_tid()
 

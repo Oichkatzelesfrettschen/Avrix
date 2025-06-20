@@ -108,8 +108,14 @@ static void switch_to_task(uint8_t next)
     nk_tcb_t *restrict from = nk_sched.tasks[nk_sched.current];
     nk_tcb_t *restrict to   = nk_sched.tasks[next];
 
-    if (from->state == NK_RUNNING)
+    switch (from->state) {
+    case NK_RUNNING:
         from->state = NK_READY;
+        break;
+    default:
+        /* NK_SLEEPING or NK_BLOCKED already set */
+        break;
+    }
     to->state = NK_RUNNING;
     nk_sched.current = next;
 

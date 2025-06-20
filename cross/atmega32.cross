@@ -16,6 +16,7 @@ c         = 'avr-gcc'
 ar        = 'avr-ar'
 strip     = 'avr-strip'
 objcopy   = 'avr-objcopy'
+as        = 'avr-as'
 size      = 'avr-size'
 exe_wrapper = 'true'
 

@@ -5,6 +5,7 @@ ar      = 'avr-ar'
 strip   = 'avr-strip'
 objcopy = 'avr-objcopy'
 objdump = 'avr-objdump'
+as      = 'avr-as'
 size    = 'avr-size'
 
 [host_machine]
