@@ -21,7 +21,13 @@ Kernel Architecture
 The nanokernel reserves 10 KB of flash and under 384 B of SRAM.  Context
 switches take 35 cycles.  A round-robin scheduler drives up to eight tasks
 with 64-byte stacks.  Filesystem structures mirror Unix V7 but reside in
-RAM for simplicity.
+RAM for simplicity. The demonstration disk allocates only sixteen
+32-byte blocks so the entire image occupies just 512\,B of SRAM. Persistent
+settings live in the 1\,kB EEPROM using the TinyLog-4 layout. It packs 256
+records of four bytes and writes each atomically with a checksum so power
+failures never corrupt data.
+The 256\,B heap is governed by ``kalloc``—a minimal free-list allocator that
+recycles memory blocks for safety on this micro-scale platform.
 
 Optimisation Techniques
 -----------------------
@@ -54,6 +60,16 @@ Forked tasks share flash pages until a write occurs. On the first write the
 nanokernel allocates a temporary RAM buffer, modifies the page and reprograms
 it into a spare boot section location. Subsequent reads remain fast while
 writes incur at most the 3 ms page programming delay.
+
+TinyLog-4 EEPROM Filesystem
+--------------------------
+
+The 1 kB EEPROM is organised as 16 rows of 64 bytes. Each row holds fifteen
+4-byte records plus a header with a sequence counter. Records contain a tag,
+two data bytes and an 8-bit CRC. Appending data simply writes the next free
+record. On boot the code scans for the latest valid row in under 140 µs. When
+a row fills, the next one is erased and a new header is written, ensuring
+wear is spread evenly across all rows.
 
 Further Reading
 ---------------

@@ -1,5 +1,6 @@
 #include "task.h"
 #include "door.h"
+#include "kalloc.h"
 #include <avr/interrupt.h>
 
 static tcb_t *task_list[MAX_TASKS];
@@ -15,6 +16,7 @@ door_t door_vec[DOOR_SLOTS] __attribute__((section(".noinit")));
 void scheduler_init(void) {
     task_count = 0;
     current_task = 0;
+    kalloc_init();
 }
 
 void scheduler_add_task(tcb_t *tcb, void (*entry)(void), void *stack) {
