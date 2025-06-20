@@ -1,8 +1,15 @@
-project('avrix', 'c', version: '0.1', license: 'MIT')
+project(
+  'avrix', 'c',
+  version: '0.1',
+  license: 'MIT',
+  default_options: ['c_std=c23', 'warning_level=2']
+)
 
 inc = include_directories('include')
 subdir('src')
+subdir('examples')
 subdir('tests')
+subdir('lib')
 
 # --------------------------------------------------------------
 #  Optional documentation targets
