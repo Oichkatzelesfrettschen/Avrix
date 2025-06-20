@@ -27,10 +27,6 @@ static int balloc(void) {
     return -1;
 }
 
-/** Helper: free a previously allocated block. */
-static void bfree(uint8_t b) {
-    bitmap[b >> 3] &= ~(1u << (b & 7));
-}
 
 /** Helper: allocate a free inode. Returns inode number or -1. */
 static int ialloc(uint8_t type) {

@@ -1,12 +1,10 @@
 # AVR Toolchain Setup
 
 Run the script below to install the AVR-GCC toolchain on Ubuntu 24.04.
-The script attempts to install the latest cross compiler available by
-enabling the *ubuntu-toolchain-r/test* PPA and searching for
-\`gcc-<version>-avr\` packages using `apt-cache search`. If none are found it
-falls back to the stock \`gcc-avr\` from the \`universe\` repository. Recent
-versions of the toolchain are also available from the `team-gcc-arm-embedded`
-PPA which provides packages such as `gcc-avr-14`.
+By default it enables the `team-gcc-arm-embedded/avr` PPA and installs
+`gcc-avr-14`, providing modern C23 support and the latest AVR
+optimisations. Passing `--legacy` installs the stock `gcc-avr` from the
+`universe` repository instead.
 
 ```bash
 sudo ./setup.sh            # installs the newest toolchain it can find
@@ -14,6 +12,11 @@ sudo ./setup.sh            # installs the newest toolchain it can find
 The script accepts `--modern` or `--legacy` to control the GCC source and
 honours `MCU` and `F_CPU` environment variables for the recommended
 compiler flags printed at the end of the run.
+
+The script verifies each package with `dpkg -s` and performs only one
+`apt-get update` after the PPA is enabled. Supporting utilities are installed
+on demand, avoiding redundant package operations.
+
 This script installs the following packages:
 
 - `gcc-avr` – GNU C cross compiler
@@ -85,7 +88,7 @@ Optimised flags for an Arduino Uno (ATmega328P):
 
 ```bash
 MCU=atmega328p
-CFLAGS="-std=c11 -mmcu=$MCU -DF_CPU=16000000UL -Os -flto -ffunction-sections -fdata-sections"
+CFLAGS="-std=c23 -mmcu=$MCU -DF_CPU=16000000UL -Oz -flto -mrelax -ffunction-sections -fdata-sections -mcall-prologues"
 LDFLAGS="-mmcu=$MCU -Wl,--gc-sections -flto"
 ```
 Additional size savings can be gained with GCC 14:
@@ -96,10 +99,31 @@ CFLAGS="$CFLAGS --icf=safe -fipa-pta"
 These options enable identical code folding and a reduced
 points-to analysis for slightly smaller binaries.
 
+## Configurable Lock Address
+
+The spinlock primitives can operate on a dedicated I/O register. The
+address is set at compile time with the `NK_LOCK_ADDR` macro which
+defaults to `0x2C`.
+
+```c
+#ifndef NK_LOCK_ADDR
+#define NK_LOCK_ADDR 0x2C
+#endif
+_Static_assert(NK_LOCK_ADDR <= 0x3F, "lock must be in lower I/O");
+```
+
+Override this setting by appending a compiler flag, e.g.
+
+```bash
+meson setup build --cross-file cross/avr_m328p.txt \
+  -Dc_args="-DNK_LOCK_ADDR=0x2D"
+```
+
 Ubuntu 24.04 ships `gcc-avr` based on GCC 7.3.0 which only supports the C11
-language standard.  For bleeding-edge features one may install
-`gcc-avr-14` from the **team-gcc-arm-embedded** PPA.  The library builds
-cleanly with either compiler but is written to remain compatible with C11.
+language standard.  Installing `gcc-avr-14` from the
+**team-gcc-arm-embedded** PPA unlocks full C23 support.
+The sources target the modern standard yet remain broadly compatible with
+C11 compilers.
 
 ## Hardware Target: Arduino Uno R3
 
@@ -118,6 +142,7 @@ the AVR binaries.  Two examples are supplied:
 
 - `meson/avr_gcc_cross.txt` – minimal flags
 - `cross/avr_m328p.txt` – full example with absolute tool paths
+  including optimisation flags tuned for the ATmega328P
 
 ```bash
 meson setup build --cross-file cross/avr_m328p.txt

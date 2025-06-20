@@ -2,6 +2,7 @@ project('avrix', 'c', version: '0.1', license: 'MIT')
 
 inc = include_directories('include')
 subdir('src')
+subdir('tests')
 
 # --------------------------------------------------------------
 #  Optional documentation targets

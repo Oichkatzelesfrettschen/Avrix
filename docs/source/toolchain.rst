@@ -2,7 +2,7 @@ Toolchain Setup
 ===============
 
 The AVR development environment relies on a number of packages from the
-Ubuntu archives.  Install them with:
+Ubuntu archives. Install them with:
 
 .. code-block:: bash
 
@@ -30,6 +30,12 @@ JavaScript tools such as ``prettier`` can then be installed globally:
 
    npm install -g prettier
 
+Recommended optimisation flags for the ATmega328P are::
+
+   CFLAGS="-std=c23 -mmcu=atmega328p -DF_CPU=16000000UL -Oz -flto -mrelax \
+       -ffunction-sections -fdata-sections -mcall-prologues"
+   LDFLAGS="-mmcu=atmega328p -Wl,--gc-sections -flto"
+
 The documentation requires the ``breathe`` and ``exhale`` extensions
 available on PyPI:
 
@@ -38,7 +44,11 @@ available on PyPI:
    pip3 install --user breathe exhale sphinx-rtd-theme
 
 Running the ``setup.sh`` script found in the project root installs these
+
 packages along with ``prettier`` automatically when executed with ``sudo``.
 Use ``--modern`` or ``--legacy`` to select the GCC source.  Environment
 variables ``MCU`` and ``F_CPU`` may be set to customise the flags printed
-at the end of the run.
+at the end of the run; packages automatically when executed with ``sudo``. The script enables the
+``team-gcc-arm-embedded/avr`` repository when necessary, refreshes the
+package lists once, and verifies each required package with ``dpkg -s`` before
+installation.
