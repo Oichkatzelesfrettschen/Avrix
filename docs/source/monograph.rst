@@ -92,11 +92,9 @@ Wear-levelled, power-fail-safe log:
    fs_create("boot.bin",   1);
    fs_create("config.txt", 1);
 
-   char names[FS_NUM_INODES][FS_MAX_NAME + 1];
-   int n = fs_list(names);
-
-   for (int i = 0; i < n; ++i)
-       printf("%s\n", names[i]);
+   char buf[FS_NUM_INODES * (FS_MAX_NAME + 1)];
+   fs_list(buf, sizeof(buf));
+   printf("%s", buf);
 
 ----------------------------------------------------------------------
 6 · Descriptor-Based RPC (“Doors”)
