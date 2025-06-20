@@ -13,15 +13,16 @@
 ## 0 · One-liner bootstrap 🛠
 
 ```bash
-sudo ./setup.sh --modern           # GCC-14 tool-chain + QEMU smoke-boot
+sudo ./setup.sh --modern           # Debian gcc-avr-14 + QEMU demo
+sudo ./setup.sh --legacy           # Ubuntu gcc-avr 7.3 only
 ````
 
-`setup.sh` will
-
-* pin the **Debian-sid** cross packages (GCC 14) or transparently fall back to Ubuntu’s 7.3 tool-chain,
-* install QEMU ≥ 8.2, Meson, Doxygen, Sphinx, graphviz, Prettier, etc.,
-* **build** the firmware, boot it in QEMU (`arduino-uno` machine),
-* print MCU-specific `CFLAGS`/`LDFLAGS` ready to paste into your Makefile.
+* `--modern` pins the **Debian-sid** packages for `gcc-avr-14`, installs
+  QEMU, Meson and documentation helpers, then compiles a demo firmware and
+  boots it in QEMU (`arduino-uno`).  CFLAGS default to **C23**.
+* `--legacy` installs only `gcc-avr`, `avr-libc`, `binutils-avr`, `avrdude` and
+  `gdb-avr`.  No QEMU build or Meson demo is run and the suggested flags target
+  **C11**.
 
 ---
 
@@ -100,6 +101,7 @@ LDFLAGS="-mmcu=$MCU -Wl,--gc-sections -flto"
 
 # GCC-14 bonus
 CFLAGS="$CFLAGS --icf=safe -fipa-pta"
+# Legacy mode → replace -std=c23 with -std=c11
 ```
 
 ---

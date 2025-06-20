@@ -1,21 +1,18 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # ==============================================================
 #  AVR Development Environment Setup Script
 # --------------------------------------------------------------
-#  Installs the AVR toolchain on Ubuntu 24.04 "Noble".
-#  By default the script installs the modern toolchain from the
-#  `team-gcc-arm-embedded` PPA which provides GCC 14.  Passing
-#  `--legacy` installs the older gcc-avr 7.3 package from Ubuntu.  The script
-#  automatically falls back to this legacy toolchain if the PPA is unavailable.
-#!/usr/bin/env bash
+#  Installs AVR GCC on Ubuntu 22.04/24.04.  The `--modern` mode
+#  pins Debian sid packages (gcc-avr-14) and installs QEMU,
+#  Meson, documentation tools and Prettier.  `--legacy` only
+#  installs Ubuntu's gcc-avr 7.3 without any extras.
 #────────────────────────────────────────────────────────────────────────────
 # setup.sh — µ-UNIX / AVR tool-chain + QEMU bootstrapper
 # Tested on Ubuntu 22.04 & 24.04 (2025-06 snapshots)
 #
-# Usage:  sudo ./setup.sh [--legacy|--modern|--deb-sid]
-#   --modern   (default)  → gcc-avr 14.x via Debian pin
-#   --deb-sid             → same as --modern (explicit)
-#   --legacy              → gcc-avr 7.3 from Ubuntu universe
+# Usage:  sudo ./setup.sh [--modern|--legacy]
+#   --modern (default) → Debian gcc-avr-14 + full toolset
+#   --legacy           → Ubuntu gcc-avr 7.3 only
 #
 # The script:
 #   1. Installs/updates compiler, QEMU, build helpers
@@ -30,8 +27,8 @@ trap 'echo "[error] setup aborted" >&2' ERR
 export DEBIAN_FRONTEND=noninteractive
 
 mode=${1:---modern}
-case "$mode" in --modern|--deb-sid|--legacy|"") ;; *)
-  echo "Usage: sudo $0 [--modern|--deb-sid|--legacy]" >&2; exit 1;;
+case "$mode" in --modern|--legacy|"") ;; *)
+  echo "Usage: sudo $0 [--modern|--legacy]" >&2; exit 1;;
 esac
 [[ -z "$mode" || "$mode" == "--modern" ]] && mode="--modern"
 echo "[info] Selected mode: $mode"
@@ -49,10 +46,13 @@ apt-get -yqq install software-properties-common apt-transport-https \
 
 #──────────────── 1. compiler repos ───────────────────────────────────────
 TOOLCHAIN_PKG=gcc-avr
+EXTRA_PKGS=()
 case "$mode" in
   --legacy)
     add-apt-repository -y universe ;;
-  --modern|--deb-sid)
+  --modern)
+    TOOLCHAIN_PKG=gcc-avr-14
+    EXTRA_PKGS=(qemu-system-misc meson ninja-build)
     # Debian sid pin
     cat >/etc/apt/sources.list.d/debian-sid-avr.list <<'EOF'
 deb [arch=amd64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] \
@@ -63,49 +63,49 @@ Package: gcc-avr avr-libc binutils-avr
 Pin: release o=Debian,a=sid
 Pin-Priority: 100
 EOF
+    EXTRA_PKGS+=(doxygen python3-sphinx python3-pip ccache cloc cscope \
+                 exuberant-ctags cppcheck graphviz nodejs npm)
     ;;
 esac
 
-# Install AVR GCC, avr-libc, binutils, avrdude, gdb, simavr and tooling.
-if ! apt-get -qq update && apt-get install -y "$best_pkg" avr-libc binutils-avr avrdude gdb-avr simavr \
-    meson ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck graphviz; then
-    echo "Falling back to gcc-avr" >&2
-    apt-get install -y gcc-avr avr-libc binutils-avr avrdude gdb-avr simavr \
-        meson ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck graphviz
+#──────────────── 2. install packages ─────────────────────────────────────
+BASE_PKGS=("$TOOLCHAIN_PKG" avr-libc binutils-avr avrdude gdb-avr "${EXTRA_PKGS[@]}")
+apt-get -qq update
+for p in "${BASE_PKGS[@]}"; do
+  pkg_installed "$p" || apt-get -yqq install "$p"
+done
+
+if [[ "$mode" == "--modern" ]]; then
+  pip3 install --break-system-packages -q --upgrade breathe exhale sphinx-rtd-theme
+  npm install -g --silent prettier
 fi
 
-
-#──────────────── 2. install packages ─────────────────────────────────────
-BASE_PKGS=(
-  "$TOOLCHAIN_PKG" avr-libc binutils-avr avrdude gdb-avr
-  qemu-system-misc meson ninja-build doxygen python3-sphinx python3-pip
-  ccache cloc cscope exuberant-ctags cppcheck graphviz nodejs npm
-)
-for p in "${BASE_PKGS[@]}"; do pkg_installed "$p" || apt-get -yqq install "$p"; done
-
-pip3 install --break-system-packages -q --upgrade breathe exhale sphinx-rtd-theme
-npm install -g --silent prettier
-
 #──────────────── 3. QEMU sanity check ────────────────────────────────────
-if ! qemu-system-avr -version &>/dev/null; then
-  echo "[warn] qemu-system-avr not present — building avr-softmmu target …"
-  apt-get -yqq install pkg-config libglib2.0-dev autoconf automake \
-                       libpixman-1-dev libgtk-3-dev
-  git clone --depth 1 https://github.com/seharris/qemu-avr /opt/qemu-avr
-  ( cd /opt/qemu-avr && ./configure --target-list=avr-softmmu --disable-werror \
-        >/dev/null && make -s -j"$(nproc)" && make install )
+if [[ "$mode" == "--modern" ]]; then
+  if ! qemu-system-avr -version &>/dev/null; then
+    echo "[warn] qemu-system-avr not present — building avr-softmmu target …"
+    apt-get -yqq install pkg-config libglib2.0-dev autoconf automake \
+                         libpixman-1-dev libgtk-3-dev
+    git clone --depth 1 https://github.com/seharris/qemu-avr /opt/qemu-avr
+    ( cd /opt/qemu-avr && ./configure --target-list=avr-softmmu --disable-werror \
+          >/dev/null && make -s -j"$(nproc)" && make install )
+  fi
 fi
 
 #──────────────── 4. print tool versions ──────────────────────────────────
 echo "---------------------------------------------------------------------"
 echo "avr-gcc   : $(avr-gcc -dumpversion)"
 echo "avr-libc  : $(dpkg-query -W -f='${Version}\n' avr-libc)"
-echo "qemu-avr  : $(qemu-system-avr --version | head -1)"
+if command -v qemu-system-avr >/dev/null; then
+  echo "qemu-avr  : $(qemu-system-avr --version | head -1)"
+fi
 echo "---------------------------------------------------------------------"
 
 #──────────────── 5. CFLAG helper (for copy-paste) ────────────────────────
 MCU=${MCU:-atmega328p}  F_CPU=${F_CPU:-16000000UL}
-CFLAGS="-std=c23 -mmcu=$MCU -DF_CPU=$F_CPU -Oz -flto -mrelax \
+CSTD=c23
+[[ "$mode" == "--legacy" ]] && CSTD=c11
+CFLAGS="-std=$CSTD -mmcu=$MCU -DF_CPU=$F_CPU -Oz -flto -mrelax \
         -ffunction-sections -fdata-sections -fno-unwind-tables -mcall-prologues"
 LDFLAGS="-mmcu=$MCU -Wl,--gc-sections -flto"
 echo "[info] Suggested flags:"
@@ -113,21 +113,25 @@ echo "  export CFLAGS=\"$CFLAGS\""
 echo "  export LDFLAGS=\"$LDFLAGS\""
 
 #──────────────── 6. bootstrap project build & QEMU smoke test ───────────
-if [[ -f cross/atmega328p_gcc14.cross ]]; then
-  echo "[info] Configuring Meson build …"
-  meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross >/dev/null
-  ninja -C build >/dev/null
-  ELF=$(find build -name '*.elf' | head -1)
-  echo "[info] Built firmware: $ELF"
-  echo "[info] Launching QEMU (arduino-uno, head-less) …"
-  qemu-system-avr -M arduino-uno -bios "$ELF" -nographic \
-                  -serial none -monitor null \
-                  -d cpu_reset -no-reboot -icount shift=0,align=off &
-  sleep 2
-  pkill -f qemu-system-avr || true
-  echo "[info] QEMU smoke-test completed."
+if [[ "$mode" == "--modern" ]]; then
+  if [[ -f cross/atmega328p_gcc14.cross ]]; then
+    echo "[info] Configuring Meson build …"
+    meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross >/dev/null
+    ninja -C build >/dev/null
+    ELF=$(find build -name '*.elf' | head -1)
+    echo "[info] Built firmware: $ELF"
+    echo "[info] Launching QEMU (arduino-uno, head-less) …"
+    qemu-system-avr -M arduino-uno -bios "$ELF" -nographic \
+                    -serial none -monitor null \
+                    -d cpu_reset -no-reboot -icount shift=0,align=off &
+    sleep 2
+    pkill -f qemu-system-avr || true
+    echo "[info] QEMU smoke-test completed."
+  else
+    echo "[warn] cross/atmega328p_gcc14.cross not found – build skipped."
+  fi
 else
-  echo "[warn] cross/atmega328p_gcc14.cross not found – build skipped."
+  echo "[info] Legacy mode: Meson demo and QEMU run skipped."
 fi
 
 echo "───────────────────────────────────────────────────────────────────────"
