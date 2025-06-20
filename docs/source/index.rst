@@ -8,7 +8,8 @@ controller). Run
 meson compile doc-doxygen
 meson compile doc-sphinx
 ```
-from the build directory to generate HTML output.
+from the build directory to generate HTML output.  These targets may fail if
+``doxygen`` is not installed or if the XML files have not been generated yet.
 
 .. toctree::
    :maxdepth: 2

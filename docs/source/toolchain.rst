@@ -8,12 +8,36 @@ Ubuntu archives.  Install them with:
 
    sudo add-apt-repository ppa:team-gcc-arm-embedded/avr
    sudo apt-get update
-   sudo apt-get install gcc-avr-14 avr-libc binutils-avr avrdude gdb-avr simavr
+   sudo apt-get install -y gcc-avr-14 avr-libc binutils-avr avrdude gdb-avr simavr
+   pip3 install --user meson
+   pip3 install --user breathe exhale
 
 ``gcc-avr-14`` provides the GNU C cross compiler, while ``avr-libc``
 contains the AVR C library and headers. ``binutils-avr`` supplies the
 assembler and linker, ``avrdude`` programs flash memory, ``gdb-avr``
 enables debugging and ``simavr`` offers a lightweight simulator.
+
+Before installation you can query the repositories to determine which
+compiler versions are available.  ``apt-cache search`` lists packages
+matching a pattern, while ``apt-cache show`` prints version details for a
+specific package.  A short search reveals GCC 14:
+
+.. code-block:: bash
+
+   apt-cache search gcc-avr | head -n 2
+   gcc-avr - GNU C compiler for AVR microcontrollers
+   gcc-avr-14 - GNU C compiler for AVR microcontrollers (version 14)
+   apt-cache show gcc-avr-14 | grep ^Version
+
+``apt-cache policy`` lists the candidate package and shows which repository
+contributes each available version.  Running it after ``sudo apt-get update``
+confirms that the PPA indeed provides a newer compiler than Ubuntu's
+defaults:
+
+.. code-block:: bash
+
+   sudo apt-get update       # refresh package lists
+   apt-cache policy gcc-avr-14
 
 Additional utilities useful for development and static analysis can be
 installed with:
@@ -32,3 +56,14 @@ available on PyPI:
 
 Running the ``setup.sh`` script found in the project root installs these
 packages automatically when executed with ``sudo``.
+
+Building the sources with ``meson`` requires a clean build directory.  The
+cross file ``cross/avr_m328p.txt`` configures the correct MCU and toolchain
+paths:
+
+.. code-block:: bash
+
+   meson setup build --wipe --cross-file cross/avr_m328p.txt
+   meson compile -C build
+   meson compile -C build doc-doxygen    # fails if the target was skipped
+   meson compile -C build doc-sphinx     # fails when Doxygen XML is missing
