@@ -21,3 +21,4 @@ from the build directory to generate HTML output.  These targets may fail if
    toolchain
    monograph
    fuses
+   roadmap-qemu-avr
