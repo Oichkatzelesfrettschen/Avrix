@@ -1,0 +1,53 @@
+[binaries]
+c       = 'avr-gcc'
+cpp     = 'avr-g++'
+ar      = 'avr-ar'
+strip   = 'avr-strip'
+objcopy = 'avr-objcopy'
+objdump = 'avr-objdump'
+size    = 'avr-size'
+
+[host_machine]
+system     = 'none'
+cpu_family = 'avr'
+cpu        = 'atmega128'
+endian     = 'little'
+
+[properties]
+c_args = [
+  '-mmcu=atmega128',
+  '-std=c23',
+  '-DF_CPU=16000000UL',
+  '-Oz',
+  '-flto',
+  '-fuse-linker-plugin',
+  '-mrelax',
+  '-mcall-prologues',
+  '-fstack-protector-strong',
+  '-D_FORTIFY_SOURCE=2',
+  '-ffunction-sections',
+  '-fdata-sections',
+  '-fno-jump-tables',
+  '-Wall',
+  '-Wextra',
+  '-Werror',
+  '-Wstack-usage=64',
+]
+
+c_link_args = [
+  '-mmcu=atmega128',
+  '-flto',
+  '-fuse-linker-plugin',
+  '-Wl,--gc-sections',
+  '-Wl,--print-memory-usage',
+  '-Wl,--relax',
+]
+
+[built-in options]
+c_std         = 'c23'
+warning_level = '3'
+werror        = true
+optimization  = 's'
+b_lto         = true
+b_staticpic   = false
+

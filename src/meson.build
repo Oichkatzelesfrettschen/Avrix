@@ -10,6 +10,7 @@ if meson.is_cross_build()
     'fs.c',
     'door.c',
     'task.c',
+    'context_switch.S',
     'nk_fs.c',
     'kalloc.c'
   )
@@ -33,7 +34,7 @@ install_headers(
   '../include/nk_lock.h',
   '../include/door.h',
   '../include/memguard.h',
-  '../include/task.h',
+  '../include/nk_task.h',
   '../include/nk_fs.h',
   '../include/kalloc.h',
   subdir : 'avrix'
