@@ -71,7 +71,12 @@ _Static_assert(sizeof(nk_tcb_t) == 8,
 /*──────────────── 4. Public API ─────────────────────────*/
 
 /** Initialise scheduler, idle task & 1 kHz tick. */
-void nk_sched_init(void);
+void scheduler_init(void);
+#if defined(__GNUC__)
+void nk_sched_init(void) __attribute__((alias("scheduler_init")));
+#else
+static inline void nk_sched_init(void) { scheduler_init(); }
+#endif
 
 /**
  * Add a task to the run queue.
@@ -93,7 +98,12 @@ void nk_task_add(nk_tcb_t *tcb,
                  uint8_t class);
 
 /** Enter the scheduler – never returns. */
-void nk_sched_run(void) __attribute__((noreturn));
+void scheduler_run(void) __attribute__((noreturn));
+#if defined(__GNUC__)
+void nk_sched_run(void) __attribute__((alias("scheduler_run"), noreturn));
+#else
+static inline void nk_sched_run(void) { scheduler_run(); }
+#endif
 
 /*─ Cooperative helpers — used by locks / Doors ──────────*/
 uint8_t nk_cur_tid(void);     /**< current PID */
