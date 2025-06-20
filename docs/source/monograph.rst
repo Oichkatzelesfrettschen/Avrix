@@ -55,6 +55,25 @@ nanokernel allocates a temporary RAM buffer, modifies the page and reprograms
 it into a spare boot section location. Subsequent reads remain fast while
 writes incur at most the 3 ms page programming delay.
 
+Directory Listing Example
+------------------------
+
+The filesystem maintains a flat directory. ``fs_list()`` copies the filenames
+of all valid inodes into a caller-supplied array and returns how many entries
+were written.  A short program might create a few files and then print the
+directory contents:
+
+.. code-block:: c
+
+   fs_create("boot.bin", 1);
+   fs_create("config.txt", 1);
+
+   char names[FS_NUM_INODES][FS_MAX_NAME + 1];
+   int count = fs_list(names);
+   for (int i = 0; i < count; ++i) {
+       printf("%s\n", names[i]);
+   }
+
 Further Reading
 ---------------
 

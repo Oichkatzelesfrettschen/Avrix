@@ -1,12 +1,11 @@
 # AVR Toolchain Setup
 
 Run the script below to install the AVR-GCC toolchain on Ubuntu 24.04.
-The script attempts to install the latest cross compiler available by
-enabling the *ubuntu-toolchain-r/test* PPA and searching for
-\`gcc-<version>-avr\` packages using `apt-cache search`. If none are found it
-falls back to the stock \`gcc-avr\` from the \`universe\` repository. Recent
-versions of the toolchain are also available from the `team-gcc-arm-embedded`
-PPA which provides packages such as `gcc-avr-14`.
+The distribution currently provides only `gcc-avr` (version 7.3).  The script
+enables the *ubuntu-toolchain-r/test* repository for a newer host compiler but
+still installs the stock cross compiler.  Older instructions referenced the
+`team-gcc-arm-embedded` PPA, however that archive no longer publishes AVR
+packages and should be avoided.
 
 ```bash
 sudo ./setup.sh            # installs the newest toolchain it can find
@@ -25,19 +24,25 @@ packages are available using `apt-cache`:
 
 ```bash
 apt-cache search gcc-avr
-apt-cache show gcc-avr-14    # inspect package details
+apt-cache show gcc-avr       # inspect package details
 man apt-cache                # explore additional query options
 ```
+
+For Ubuntu 24.04 this search typically yields only ``gcc-avr`` version
+7.3.0 from the ``universe`` repository even when the Toolchain Test PPA
+is enabled.  As of this writing no newer AVR cross compiler packages are
+published on Launchpad, so the script installs ``gcc-avr`` by default.
 
 Then install the desired tools:
 
 ```bash
-sudo add-apt-repository ppa:team-gcc-arm-embedded/avr
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
 sudo apt-get update
-sudo apt-get install gcc-avr-14 avr-libc binutils-avr avrdude gdb-avr simavr
+sudo apt-get install gcc-avr avr-libc binutils-avr avrdude gdb-avr simavr
 ```
-Legacy systems can instead install the stock `gcc-avr` (version 7.3.0) from the
-Ubuntu archives.
+This installs the official cross compiler along with a modern host GCC from the
+toolchain test PPA.  If the PPA is unavailable simply omit the first line and
+install the packages from Ubuntu's universe repository.
 
 Additional developer utilities are recommended for code analysis and
 documentation generation.  Install them with:
@@ -54,18 +59,28 @@ pip3 install --user breathe exhale
 ```
 
 
-Pass `--legacy` to `setup.sh` to use Ubuntu's packages instead of the modern
-PPA.  Using `--modern` (the default) selects GCC 14 from
-`ppa:team-gcc-arm-embedded/avr`.
+Pass `--legacy` to `setup.sh` to skip adding the toolchain test repository.
+Both modes install the same `gcc-avr` package on Ubuntu 24.04, but `--modern`
+also enables `ppa:ubuntu-toolchain-r/test` for a recent host compiler.
 
 
 After installation, verify the tool versions:
 
+
 ```bash
 avr-gcc --version
 dpkg-query -W -f 'avr-libc ${Version}\n' avr-libc
-
 ```
+
+
+Modern compiler options
+-----------------------
+Ubuntu currently packages only ``gcc-avr`` 7.3. Several alternatives exist if you require a C23-capable toolchain:
+
+* **Debian sid cross packages** – Pin ``gcc-avr`` from the unstable repository to obtain GCC 14 while keeping the rest of the system on Ubuntu.
+* **xPack pre-built binaries** – Download the xPack AVR-GCC tarball and prepend ``/opt/avr/bin`` to ``PATH``.
+* **Build from source** – Clone the GCC repository and configure with ``--target=avr`` for complete control over optimisation options.
+
 
 Optimised flags for an Arduino Uno (ATmega328P):
 
@@ -83,9 +98,9 @@ These options enable identical code folding and a reduced
 points-to analysis for slightly smaller binaries.
 
 Ubuntu 24.04 ships `gcc-avr` based on GCC 7.3.0 which only supports the C11
-language standard.  For bleeding-edge features one may install
-`gcc-avr-14` from the **team-gcc-arm-embedded** PPA.  The library builds
-cleanly with either compiler but is written to remain compatible with C11.
+language standard.  If newer AVR compilers become available via Launchpad you
+may substitute them here, but the codebase remains compatible with the stock
+tools shipped by Ubuntu.
 
 ## Hardware Target: Arduino Uno R3
 

@@ -3,9 +3,9 @@
 #  AVR Development Environment Setup Script
 # --------------------------------------------------------------
 #  Installs the AVR toolchain on Ubuntu 24.04 "Noble".
-#  By default the script installs the modern toolchain from the
-#  `team-gcc-arm-embedded` PPA which provides GCC 14.  Passing
-#  `--legacy` installs the older gcc-avr 7.3 package from Ubuntu.
+#  By default the script enables the `ubuntu-toolchain-r/test` repository to
+#  obtain a newer host GCC.  Both modes ultimately install the `gcc-avr` package
+#  provided by Ubuntu.  `--legacy` skips the PPA entirely.
 #
 #  Usage: sudo ./setup.sh [--modern|--legacy]
 #
@@ -32,8 +32,8 @@ case "${1:-}" in
         best_pkg=gcc-avr
         ;;
     --modern|"")
-        add-apt-repository -y ppa:team-gcc-arm-embedded/avr
-        best_pkg=gcc-avr-14
+        add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        best_pkg=gcc-avr
         ;;
     *)
         echo "Usage: $0 [--modern|--legacy]" >&2
@@ -41,6 +41,9 @@ case "${1:-}" in
         ;;
 esac
 apt-get update
+# Display available AVR compiler packages for reference
+echo "Available AVR packages:" >&2
+apt-cache search gcc-avr >&2 || true
 
 # Install AVR GCC, avr-libc, binutils, avrdude, gdb, simavr and tooling.
 apt-get install -y "$best_pkg" avr-libc binutils-avr avrdude gdb-avr simavr \
