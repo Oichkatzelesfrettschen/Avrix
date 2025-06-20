@@ -3,16 +3,11 @@
 #  AVR Development Environment Setup Script
 # --------------------------------------------------------------
 #  Installs the AVR toolchain on Ubuntu 24.04 "Noble".
-#  By default the script attempts to install the newest cross compiler
-#  available.  It enables the *ubuntu-toolchain-r/test* PPA and searches
-#  for any gcc-<version>-avr packages.  If none are present it falls back
-#  to the stock gcc-avr package.  The historic pmjdebruijn PPA can be
-#  selected for older releases.
+#  By default the script installs the modern toolchain from the
+#  `team-gcc-arm-embedded` PPA which provides GCC 14.  Passing
+#  `--legacy` installs the older gcc-avr 7.3 package from Ubuntu.
 #
-#  Usage: sudo ./setup.sh [--stock|--old]
-#
-#  --stock     Use Ubuntu's stock packages only.
-#  --old       Attempt to install the deprecated pmjdebruijn PPA.
+#  Usage: sudo ./setup.sh [--modern|--legacy]
 #
 #  Environment variables MCU and F_CPU may be set to customise the
 #  recommended compiler flags.
@@ -32,43 +27,27 @@ apt-get install -y software-properties-common apt-transport-https ca-certificate
 
 # Determine which repository to enable for the compiler packages.
 case "${1:-}" in
-    --stock)
+    --legacy)
         add-apt-repository -y universe
+        best_pkg=gcc-avr
         ;;
-    --old)
-        add-apt-repository -y ppa:pmjdebruijn/avr
-        ;;
-    "")
-        add-apt-repository -y ppa:ubuntu-toolchain-r/test
+    --modern|"")
+        add-apt-repository -y ppa:team-gcc-arm-embedded/avr
+        best_pkg=gcc-avr-14
         ;;
     *)
-        echo "Usage: $0 [--stock|--old]" >&2
+        echo "Usage: $0 [--modern|--legacy]" >&2
         exit 1
         ;;
 esac
 apt-get update
 
+# Install AVR GCC, avr-libc, binutils, avrdude, gdb, simavr and tooling.
+apt-get install -y "$best_pkg" avr-libc binutils-avr avrdude gdb-avr simavr \
+    meson ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck
 
-# Determine the best available compiler package.
-# Determine the newest gcc-<version>-avr package, if any.
-best_pkg=$(apt-cache search '^gcc-[0-9][0-9]*-avr' 2>/dev/null | awk '{print $1}' | sort -V | tail -n 1)
-if [ -z "$best_pkg" ]; then
-    best_pkg=gcc-avr
-    echo "No versioned cross compiler found; using $best_pkg" >&2
-else
-    echo "Using $best_pkg" >&2
-fi
-
-
-
-# Determine the best available compiler package.
-best_pkg=$(apt-cache search gcc | grep -E '^gcc-[0-9]+-avr' | awk '{print $1}' | sort -V | tail -n 1)
-if [ -z "$best_pkg" ]; then
-    best_pkg=gcc-avr
-fi
-
-# Install the toolchain components.
-apt-get install -y "$best_pkg" avr-libc binutils-avr avrdude gdb-avr
+# Python packages for Sphinx integration
+pip3 install --break-system-packages --upgrade breathe exhale
 
 # Display compiler and library versions for verification.
 avr-gcc --version | head -n 1
