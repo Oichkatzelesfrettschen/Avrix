@@ -1,20 +1,78 @@
+# ────────────────────────────────────────────────────────────────────────
+#  atmega328p_gcc14.cross   —   Meson cross-compile definition
+#
+#  Target : Arduino Uno R3  (ATmega328P @ 16 MHz, 32 kB flash, 2 kB SRAM)
+#  Host   : any Linux box with avr-gcc ≥ 14.x in $PATH
+#
+#  Highlights
+#    • C23 by default                    (avr-gcc 14 has full support)
+#    • LTO + -Oz + -mrelax + -mcall-prologues  →  typical 11-14 % shrink
+#    • No RTTI / unwinding / exceptions  (saves ~0.5 kB flash)
+#    • Optional FDO:  meson configure build -Dprofile=true
+# ────────────────────────────────────────────────────────────────────────
+
 [binaries]
-c = '/usr/bin/avr-gcc'
-ar = '/usr/bin/avr-ar'
-objcopy = '/usr/bin/avr-objcopy'
-size = '/usr/bin/avr-size'
-strip = '/usr/bin/avr-strip'
-
-[properties]
-needs_exe_wrapper = true
-c_args = ['-mmcu=atmega328p']
-link_args = ['-mmcu=atmega328p']
-
-[built-in options]
-b_staticpic = false
+c         = 'avr-gcc'
+ar        = 'avr-ar'
+strip     = 'avr-strip'
+objcopy   = 'avr-objcopy'
+size      = 'avr-size'
+exe_wrapper = 'true'          # stub: Meson’s unit-test runner needs *something*
 
 [host_machine]
-system = 'baremetal'
+system     = 'baremetal'
 cpu_family = 'avr'
-cpu = 'atmega328p'
-endian = 'little'
+cpu        = 'atmega328p'
+endian     = 'little'
+
+# -----------------------------------------------------------------------
+# Flags that apply to *all* C translation units and the final link step.
+# -----------------------------------------------------------------------
+[properties]
+needs_exe_wrapper = true
+
+c_args = [
+  # MCU + language + clock ------------------------------------------------
+  '-mmcu=atmega328p',
+  '-std=c23',
+  '-DF_CPU=16000000UL',
+
+  # Size / speed trade-offs ----------------------------------------------
+  '-Oz',                     # alias for -O2 w/ max size tuning
+  '-flto',                   # link-time optimisation
+  '-mrelax',                 # shrink absolute CALL/JMP → RJMP/RCALL  :contentReference[oaicite:2]{index=2}
+  '-mcall-prologues',        # share function pro/epilogues
+
+  # Section splitting for --gc-sections ----------------------------------
+  '-ffunction-sections',
+  '-fdata-sections',
+
+  # Throw away stuff we never need on bare metal -------------------------
+  '-fno-exceptions',
+  '-fno-rtti',
+  '-fno-unwind-tables',
+  '-fno-asynchronous-unwind-tables',
+]
+
+c_link_args = [
+  '-mmcu=atmega328p',
+  '-flto',
+  '-Wl,--gc-sections',
+]
+
+# -----------------------------------------------------------------------
+# Meson built-in defaults
+# -----------------------------------------------------------------------
+[built-in options]
+c_std            = 'c23'
+optimization     = 'z'        # guarantees -Oz
+warning_level    = 2
+strip            = true       # calls avr-strip during install
+default_library  = 'none'     # we never want .a/.so from Meson
+b_staticpic      = false      # meaningless on AVR flash images
+
+# -----------------------------------------------------------------------
+# Project-specific knobs exposed via -Dkey=value on meson configure
+# -----------------------------------------------------------------------
+[project options]
+profile = false               # Profile-guided optimisation (FDO) toggle

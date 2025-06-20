@@ -40,7 +40,25 @@ Communication Stack
 -------------------
 The 16U2 handles USB using NRZI encoding with bit stuffing. It provides up to
 four 64-byte endpoints. The 328P communicates with the 16U2 via USART,
-forming a virtual shared memory for buffering and protocol handling.
+forming a virtual shared memory for buffering and protocol handling. The board
+uses a two-chip arrangement as shown in :numref:`uno-arch`.
+
+.. _uno-arch:
+.. figure:: images/uno_block.svg
+   :alt: System partitioning of the ATmega328P application core and ATmega16U2 USB bridge
+
+   System-level partitioning of compute, USB and shield I/O domains.
+
+Integrated Architecture
+-----------------------
+The two-MCU arrangement allows the ATmega16U2 to focus solely on USB tasks
+while the ATmega328P runs the nanokernel and application code. A 16\,MHz
+crystal feeds both chips; the 16U2 multiplies it to 48\,MHz for full-speed
+USB. Power from VIN or USB passes through an ideal-diode MOSFET before
+fanning out to the regulators. The 328P exposes 32\,KiB of flash and 2\,KiB of
+SRAM to the nanokernel. Locks and door-based RPC provide microsecond-scale
+context switches. TinyLog-4 uses the on-chip EEPROM for wear-levelled
+persistent storage.
 
 Gaps in the Datasheets
 ----------------------
@@ -58,3 +76,16 @@ For maximum performance, align hot loops to flash page boundaries and keep
 interrupt vectors in lower memory. For minimal power consumption, disable
 unused peripherals via the PRR register and use power-down sleep with watchdog
 wake-up.
+
+Scheduler Time Slice
+--------------------
+Timer/Counter0 generates a context switch interrupt every millisecond. The
+CTC mode uses ``OCR0A = 249`` with a prescaler of ``64`` at ``F_CPU =
+16\,MHz``. Each task therefore receives a 1\,ms time slice before the next
+ready task runs. ``scheduler_run()`` enables the timer and global
+interrupts before handing control to the first task. The scheduler combines
+round‑robin preemption with a
+priority search and DAG dependency tracking reminiscent of the
+``SMF‑Meets‑Minix‑Reserrection‑DAG‑meets‑Beaatty`` hybrid. Tasks may be
+blocked on outstanding dependencies and are rescheduled automatically when
+their dependency count reaches zero.
