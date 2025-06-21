@@ -98,7 +98,8 @@ static inline void nk_slock_init(nk_slock_t *s)
 {
     nk_flock_init(&s->base);
 #   if NK_ENABLE_LATTICE
-    s->owner = 0;
+    /* initial ticket so the first waiter wins immediately */
+    s->owner = NK_LATTICE_STEP;
 #   endif
 }
 
