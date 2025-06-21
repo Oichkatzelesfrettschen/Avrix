@@ -2,49 +2,49 @@
 # ════════════════════════════════════════════════════════════════════════
 #  setup.sh — µ-UNIX / AVR tool-chain & QEMU bootstrapper
 #
-#  ✅ Verified on Ubuntu 22.04 LTS and 24.04 LTS (snapshots 2025-06-20).
+#  ✅ Verified on Ubuntu 22.04 LTS  and 24.04 LTS  (2025-06-20 snapshots)
 #
 #  Usage
 #  ─────
-#      sudo ./setup.sh [--modern|--legacy]
+#        sudo ./setup.sh [--modern|--legacy]
 #
-#      --modern   (default) →  gcc-avr 14.x via Debian-sid pin
+#        --modern   (default) → gcc-avr 14.x from a Debian-sid pin
 #                              + QEMU + Meson + docs + analysis goodies
-#      --legacy              →  gcc-avr 7.3 from Ubuntu universe only
-#                              (no QEMU build, no demo firmware)
+#        --legacy              → gcc-avr 7.3 from Ubuntu *universe* only
+#                              (skips QEMU build + firmware demo)
 #
-#  What happens
-#  ────────────
-#   1. Adds/updates the required APT sources (Debian sid pin or Universe).
-#   2. Installs compiler, QEMU, Meson, docs helpers, static-analysis tools.
-#   3. Builds `qemu-system-avr` from source if the distro package lacks it.
-#   4. Prints size-tuned **CFLAGS/LDFLAGS** for the ATmega328P.
-#   5. (modern) Configures Meson, builds demo firmware, smoke-boots it in QEMU.
+#  Steps
+#  ─────
+#   1. Enables the required APT repositories.
+#   2. Installs compiler, QEMU, Meson, doc helpers, static-analysis tools.
+#   3. Builds qemu-system-avr from source if the distro lacks avr-softmmu.
+#   4. Prints size-tuned **CFLAGS / LDFLAGS** for the ATmega328P.
+#   5. For --modern: configures Meson, builds a demo ELF, smoke-boots in QEMU.
 # ════════════════════════════════════════════════════════════════════════
 set -euo pipefail
-trap 'echo "[error] setup aborted" >&2' ERR
+trap 'echo -e "\n[error] setup aborted 🚨" >&2' ERR
 
 [[ $(id -u) -eq 0 ]] || { echo "Run as root." >&2; exit 1; }
 export DEBIAN_FRONTEND=noninteractive
 
 MODE="${1:---modern}"
 case "$MODE" in --modern|--legacy|"") ;; *)
-  echo "Usage: sudo $0 [--modern|--legacy]" >&2; exit 1 ;;
+  echo "Usage: sudo ./setup.sh [--modern|--legacy]" >&2; exit 1 ;;
 esac
-echo "[info] Selected mode: $MODE"
 
-# ────────────────────────── Helper functions ────────────────────────────
+step() { printf '\n\033[1;36m[%s]\033[0m %s\n' "$(date +%H:%M:%S)" "$*"; }
 pkg_installed() { dpkg -s "$1" &>/dev/null; }
 have_repo()     { grep -RHq "$1" /etc/apt/*sources* 2>/dev/null; }
 
-step() { printf '\n\033[1;36m[%s]\033[0m %s\n' "$(date +%H:%M:%S)" "$*"; }
+step "Selected mode: $MODE"
 
-step "Refreshing base APT indices"
+# ───────────────────────── 0 · base tools ───────────────────────────────
+step "Refreshing APT indices"
 apt-get -qq update
 apt-get -yqq install software-properties-common apt-transport-https \
-                      ca-certificates gnupg git
+                      ca-certificates gnupg git curl
 
-# ─────────────────────── 1 · Repositories ───────────────────────────────
+# ───────────────────────── 1 · repositories ─────────────────────────────
 if [[ $MODE == "--modern" ]]; then
   if ! have_repo "deb.debian.org/debian sid"; then
     step "Adding Debian-sid cross repo"
@@ -63,11 +63,11 @@ else
 fi
 apt-get -qq update
 
-# ─────────────────────── 2 · Package selection ──────────────────────────
-TOOLCHAIN=gcc-avr                # 7.3 (legacy) or 14.x candidate (modern)
+# ───────────────────────── 2 · packages ─────────────────────────────────
+TOOLCHAIN=gcc-avr   # will resolve to 14.x (sid) or 7.3 (ubuntu)
 BASE_PKGS=(
   "$TOOLCHAIN" avr-libc binutils-avr avrdude gdb-avr
-  qemu-system-misc simavr
+  qemu-system-misc  simavr
 )
 
 if [[ $MODE == "--modern" ]]; then
@@ -77,16 +77,16 @@ if [[ $MODE == "--modern" ]]; then
   )
 fi
 
-step "Installing packages"
+step "Installing ${#BASE_PKGS[@]} packages (this can take a while)"
 for p in "${BASE_PKGS[@]}"; do
   pkg_installed "$p" || apt-get -yqq install "$p"
 done
 
-# ─────────────────────── 3 · Docs virtual-env (modern) ──────────────────
+# ───────────────────────── 3 · docs venv (modern) ───────────────────────
 if [[ $MODE == "--modern" ]]; then
   DOC_VENV=/opt/avrix-docs
   if [[ ! -d $DOC_VENV ]]; then
-    step "Creating Python venv for docs → $DOC_VENV"
+    step "Creating Python venv for Sphinx → $DOC_VENV"
     python3 -m venv "$DOC_VENV"
   fi
   step "Installing Sphinx extensions"
@@ -94,7 +94,7 @@ if [[ $MODE == "--modern" ]]; then
   npm install -g --silent prettier
 fi
 
-# ─────────────────────── 4 · QEMU availability ──────────────────────────
+# ───────────────────────── 4 · QEMU check / build ───────────────────────
 if ! command -v qemu-system-avr &>/dev/null; then
   step "Building qemu-system-avr (avr-softmmu)"
   apt-get -yqq install pkg-config libglib2.0-dev autoconf automake \
@@ -104,15 +104,15 @@ if ! command -v qemu-system-avr &>/dev/null; then
         >/dev/null && make -s -j"$(nproc)" && make install )
 fi
 
-# ─────────────────────── 5 · Version report ─────────────────────────────
+# ───────────────────────── 5 · versions report ──────────────────────────
 echo
-echo "────────── Installed versions ──────────"
+echo "──────────── Installed versions ────────────"
 printf "avr-gcc  : %s\n"  "$(avr-gcc -dumpversion)"
 printf "avr-libc : %s\n"  "$(dpkg-query -W -f='${Version}\n' avr-libc)"
 printf "qemu-avr : %s\n"  "$(qemu-system-avr --version | head -1)"
-echo "────────────────────────────────────────"
+echo "────────────────────────────────────────────"
 
-# ─────────────────────── 6 · Suggested flags  ───────────────────────────
+# ───────────────────────── 6 · suggested flags ──────────────────────────
 MCU=${MCU:-atmega328p}  F_CPU=${F_CPU:-16000000UL}
 CSTD=$([[ $MODE == "--legacy" ]] && echo c11 || echo c23)
 CFLAGS="-std=$CSTD -mmcu=$MCU -DF_CPU=$F_CPU -Oz -flto -mrelax \
@@ -121,15 +121,17 @@ CFLAGS="-std=$CSTD -mmcu=$MCU -DF_CPU=$F_CPU -Oz -flto -mrelax \
 LDFLAGS="-mmcu=$MCU -Wl,--gc-sections -flto"
 
 echo
-echo "────────── Copy-&-paste build flags ──────────"
+echo "──────────── Copy-&-paste build flags ────────────"
 echo "export CFLAGS=\"$CFLAGS\""
 echo "export LDFLAGS=\"$LDFLAGS\""
-echo "──────────────────────────────────────────────"
+echo "──────────────────────────────────────────────────"
 
-# ─────────────────────── 7 · Demo build + smoke-boot ────────────────────
+# ───────────────────────── 7 · Demo build (modern) ──────────────────────
 if [[ $MODE == "--modern" && -f cross/atmega328p_gcc14.cross ]]; then
-  step "Building demo firmware with Meson"
-  meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross >/dev/null
+  step "Configuring Meson cross build"
+  meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross \
+        >/dev/null
+  step "Compiling firmware"
   ninja -C build >/dev/null
   ELF=$(find build -name '*.elf' | head -1)
   step "Smoke-booting demo in QEMU (2 s) → $ELF"
@@ -142,4 +144,4 @@ else
 fi
 
 echo
-echo "══════════ setup.sh finished – happy hacking! ══════════"
+echo "════════════════ setup.sh finished – happy hacking! ════════════════"

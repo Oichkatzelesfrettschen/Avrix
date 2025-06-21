@@ -45,6 +45,35 @@ Feel free to flesh out any chapter; CI auto-publishes to GitHub Pages.
 
 ---
 
+## 2 · Dev helpers
+
+```bash
+sudo add-apt-repository -y universe
+sudo add-apt-repository -y multiverse
+sudo apt update
+sudo apt install -y meson ninja-build doxygen python3-sphinx \
+                    python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
+                    nodejs npm
+pip3 install --user breathe exhale sphinx-rtd-theme
+npm  install  -g   prettier
+```
+
+---
+
+## 3 · Recommended flags (ATmega328P)
+
+```bash
+export MCU=atmega328p
+CFLAGS="-std=c23 -mmcu=$MCU -DF_CPU=16000000UL -Oz -flto -mrelax \
+        -ffunction-sections -fdata-sections -mcall-prologues"
+LDFLAGS="-mmcu=$MCU -Wl,--gc-sections -flto"
+
+# GCC-14 bonus
+CFLAGS="$CFLAGS --icf=safe -fipa-pta"
+```
+
+---
+
 ### 🔗  Related Meson options not yet in README
 
 | Option                 | Default | What it toggles                          |
