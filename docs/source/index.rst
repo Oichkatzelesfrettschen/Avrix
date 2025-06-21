@@ -39,13 +39,12 @@ Contents
    :maxdepth: 2
    :caption: Reference
 
-   hardware               <!-- PCB walk-through & schematics           -->
-   toolchain              <!-- GCC-14 / Clang-20 cross-file guide      -->
-   monograph              <!-- All subsystems in one deep-dive         -->
-   filesystem             <!-- TinyLog-4 design & API                   -->
-   fuses                  <!-- AVR lock-/boot-fuse cheat-sheet          -->
-   roadmap-qemu-avr       <!-- QEMU board status & future work          -->
-   contributing           <!-- Code-size rules, CI, coding style        -->
+   hardware
+   toolchain
+   monograph
+   filesystem
+   fuses
+   roadmap-qemu-avr
 
 -------------------------------------------------
 Indices & tables

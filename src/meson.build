@@ -81,6 +81,7 @@ install_headers(
   '../include/door.h',
   '../include/memguard.h',
   '../include/nk_task.h',
+  '../include/task.h',
   '../include/nk_fs.h',
   '../include/romfs.h',
   '../include/eepfs.h',
