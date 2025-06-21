@@ -92,3 +92,38 @@ install_headers(
   '../include/nk_superlock.h',
   subdir : 'avrix'
 )
+
+# ───────────────────────── 5. Flash helper  ───────────────────────────
+# The kernel itself is a static library.  For convenience, convert the
+# demo ELF to Intel HEX and invoke ``avrdude``.  This target is gated by
+# a cross build and requires ``avr-objcopy`` / ``avrdude`` to be present.
+
+if meson.is_cross_build()
+  objcopy = find_program('avr-objcopy', required: false)
+  avrdude = find_program('avrdude', required: false)
+
+  if objcopy.found() and avrdude.found()
+    demo_elf = meson.project_build_root() / 'unix0.elf'
+
+    hex_out = custom_target(
+      'firmware_hex',
+      input  : demo_elf,
+      output : 'firmware.hex',
+      command: [objcopy, '-O', 'ihex', '@INPUT@', '@OUTPUT@']
+    )
+
+    custom_target(
+      'flash',
+      input  : hex_out,
+      output : 'flash.stamp',
+      command: [
+        avrdude,
+        '-c', get_option('flash_programmer'),
+        '-p', 'm328p',
+        '-P', get_option('flash_port'),
+        '-U', 'flash:w:@INPUT@'
+      ],
+      console : true
+    )
+  endif
+endif
