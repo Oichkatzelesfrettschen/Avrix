@@ -48,6 +48,7 @@ Contents
    monograph
    filesystem
    slip_networking
+   memguard
    fuses
    api/library_root
    roadmap-qemu-avr
