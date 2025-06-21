@@ -106,7 +106,7 @@ static void panic_stack_overflow(void)
     DDRB  |= _BV(PB5);
     for (;;){
         PORTB ^= _BV(PB5);
-        for (volatile uint32_t d = 0; d < 40000; ++d);
+        for (volatile uint16_t d = 0; d < 40000; ++d);
     }
 }
 

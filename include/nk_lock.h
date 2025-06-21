@@ -6,9 +6,13 @@
  *  • nk_slock   – feature matrix: DAG + Beatty-lattice fairness
  *
  *  Word-size-aware Beatty step:
- *      16-bit   → 1657u  =  φ × 2¹⁰
- *      32-bit   → 1695400ul = φ × 2²⁶   (avoids 32-bit overflow wrap)
+ *      16-bit   → 1657u          = φ × 2¹⁰
+ *      32-bit   → 1657u × 1024u  = φ × 2²⁰   (avoids 32-bit wrap)
  *  Chosen at **compile-time**; no run-time penalty.
+ *
+ *  Portability: ``NK_LOCK_ADDR`` must reside in the lower I/O space
+ *  (``≤ 0x3F``) for single-cycle access. 32‑bit AVR parts multiply
+ *  ``NK_LATTICE_STEP`` by ``1024`` via ``NK_LATTICE_SCALE``.
  *─────────────────────────────────────────────────────────────────────────*/
 
 #ifndef NK_LOCK_H
@@ -16,6 +20,12 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
+/* Default lock byte maps to GPIOR0 for 1-cycle access.        */
+#ifndef NK_LOCK_ADDR
+#  define NK_LOCK_ADDR 0x2C
+#endif
+_Static_assert(NK_LOCK_ADDR <= 0x3F, "lock must be in lower I/O");
 
 /* Feature toggles: default to disabled unless specified by build system */
 #ifndef NK_ENABLE_QLOCK
@@ -75,20 +85,22 @@ static inline void nk_qlock_unlock(nk_qlock_t *q)          { __atomic_fetch_add(
  *==============================================================*/
 #if NK_ENABLE_LATTICE
 
+#  define NK_LATTICE_STEP 1657u
 #  if   NK_WORD_BITS == 32
-#    define NK_LATTICE_STEP  1695400ul      /* φ·2²⁶, fits 32-bit */
+#    define NK_LATTICE_SCALE 1024u
      typedef uint32_t        nk_ticket_t;
-#  else /* 16-bit */
-#    define NK_LATTICE_STEP  1657u          /* φ·2¹⁰, fits 16-bit */
+#  else
+#    define NK_LATTICE_SCALE 1u
      typedef uint16_t        nk_ticket_t;
 #  endif
+#  define NK_LATTICE_DELTA (NK_LATTICE_STEP * NK_LATTICE_SCALE)
 
 static volatile nk_ticket_t nk_lattice_ticket = 0;
 
 /* Return *monotonically increasing* ticket; ℤₘ wrap is harmless */
 static inline nk_ticket_t nk_next_ticket(void)
 {
-    return (nk_lattice_ticket += NK_LATTICE_STEP);
+    return (nk_lattice_ticket += NK_LATTICE_DELTA);
 }
 #endif /* LATTICE */
 
@@ -110,7 +122,7 @@ static inline void nk_slock_init(nk_slock_t *s)
     nk_flock_init(&s->base);
 #   if NK_ENABLE_LATTICE
     /* initial ticket so the first waiter wins immediately */
-    s->owner = NK_LATTICE_STEP;
+    s->owner = NK_LATTICE_DELTA;
 #   endif
 }
 
@@ -133,7 +145,7 @@ static inline void nk_slock_lock(nk_slock_t *s)
 static inline void nk_slock_unlock(nk_slock_t *s)
 {
 #   if NK_ENABLE_LATTICE
-    s->owner += NK_LATTICE_STEP;            /* next ticket wins   */
+    s->owner += NK_LATTICE_DELTA;            /* next ticket wins   */
 #   endif
     nk_flock_unlock(&s->base);
 }
