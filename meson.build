@@ -22,10 +22,16 @@ project(
   ]
 )
 
-if host_machine.cpu_family() != 'avr'
-  inc = include_directories('include', 'compat')
-else
+## Include directories
+#
+# Host builds should use compatibility headers that emulate the AVR
+# environment.  Cross builds for AVR rely on the real toolchain
+# headers instead.  This prevents host-only builds from requiring an
+# AVR toolchain while ensuring cross builds are unaffected.
+if meson.is_cross_build() or host_machine.cpu_family() == 'avr'
   inc = include_directories('include')
+else
+  inc = include_directories('include', 'compat')
 endif
 
 subdir('src')
@@ -50,6 +56,7 @@ doc_doxygen = custom_target(
     console : true,
     build_always_stale : true,
     build_by_default : false,
+)
 
 doxy_conf = configure_file(
     input  : 'Doxyfile.in',
