@@ -1,6 +1,8 @@
+<!-- coding: utf-8 -->
 ````markdown
-**Project codename:** **Avrix** (styled as **AVR-unIX**). In the documentation the kernel is also referred to as **µ-UNIX**.
 # Avrix: µ-UNIX for AVR 🍋  
+**Project codename:** **Avrix** (styled as **AVR-unIX**).
+In the documentation the kernel is also referred to as **µ-UNIX**.
 *A ≤ 10 kB C23 nanokernel, wear-levelled log-FS, and lock / RPC suite for the Arduino Uno R3.*
 
 
