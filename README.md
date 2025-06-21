@@ -201,7 +201,7 @@ meson setup build --cross-file cross/atmega328p_gcc14.cross \
 * **Nano-kernel** < 10 kB – 1 kHz pre-emptive round-robin
 * **TinyLog-4** – wear-levelled EEPROM log (420 B flash)
 * **Door RPC** – zero-copy Cap’n-Proto slab, ≈ 1 µs RTT
-* **Spin-locks** – TAS / quaternion / Beatty-lattice flavours
+* **Unified spinlock** – merges BKL and DAG/Lattice approaches with backward‑compatible aliases
 * **Fixed-point Q8.8** helpers
 * **Full QEMU board model** (`arduino-uno`) wired into CI
 
