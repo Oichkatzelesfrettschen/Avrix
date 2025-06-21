@@ -6,12 +6,12 @@
 
 FROM ubuntu:24.04
 
-RUN apt-get -qq update && \
-    apt-get -yqq install --no-install-recommends \
+RUN apt-get -qq update
+RUN apt-get -yqq install --no-install-recommends \
         gcc-avr avr-libc binutils-avr qemu-system-misc \
         meson ninja-build make git ca-certificates \
-        python3-pip && \
-    rm -rf /var/lib/apt/lists/*
+        python3-pip
+RUN rm -rf /var/lib/apt/lists/*
 
 WORKDIR /avrix
 COPY . /avrix

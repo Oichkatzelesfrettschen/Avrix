@@ -57,16 +57,24 @@ Package: gcc-avr avr-libc binutils-avr
 Pin: release o=Debian,a=sid
 Pin-Priority: 100
 EOF
+    if ! have_repo "deb.debian.org/debian sid"; then
+      echo "[error] failed to add sid repo; falling back to legacy toolchain" >&2
+      MODE="--legacy"
+    fi
   fi
 else
   add-apt-repository -y universe
+  if ! have_repo "universe"; then
+    echo "[error] failed to add 'universe' repo; falling back to legacy toolchain" >&2
+    MODE="--legacy"
+  fi
 fi
 apt-get -qq update
 
 # ───────────────────────── 2 · packages ─────────────────────────────────
-TOOLCHAIN=gcc-avr   # will resolve to 14.x (sid) or 7.3 (ubuntu)
+TOOLCHAIN_PKG=gcc-avr   # will resolve to 14.x (sid) or 7.3 (ubuntu)
 BASE_PKGS=(
-  "$TOOLCHAIN" avr-libc binutils-avr avrdude gdb-avr
+  "$TOOLCHAIN_PKG" avr-libc binutils-avr avrdude gdb-avr
   qemu-system-misc  simavr
 )
 
