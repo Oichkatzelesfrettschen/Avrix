@@ -164,6 +164,18 @@ For a *legacy* build drop ``--icf`` / ``-fipa-pta`` and switch
         -Dflash_port=/dev/ttyACM0 -Dflash_programmer=arduino
 
 ``cross/atmega328p_clang20.cross`` is provided for LLVM 20 users.
+``cross/atmega32.cross`` and ``cross/atmega128.cross`` extend the
+selection to DIP‐40 and larger ATmega128 boards.
+
+.. code-block:: bash
+
+   meson setup build32  --wipe --cross-file cross/atmega32.cross
+   meson setup build128 --wipe --cross-file cross/atmega128.cross
+
+``atmega32.cross`` mirrors the ``328p`` flags, merely changing the MCU
+type. ``atmega128.cross`` enables extra hardening flags such as
+``-fstack-protector-strong`` and ``-D_FORTIFY_SOURCE=2`` while printing
+memory usage at link time.
 
 ----------------------------------------------------------------------
 7 · Documentation targets
