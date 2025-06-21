@@ -55,3 +55,38 @@ Limitations
 * Entirely RAM-backed; contents vanish on reset.
 * Flat directory only—no support for subdirectories or indirect blocks.
 
+
+ROMFS (Flash)
+-------------
+
+The ROMFS implementation stores directories and file data directly in
+program memory.  Every directory entry and file descriptor occupies
+four bytes and resides in flash, allowing complex trees without
+allocating SRAM.  A directory points either to a list of child entries
+or to a file descriptor.  The root directory included with the
+repository demonstrates three levels of nesting::
+
+   /
+   ├── README.TXT
+   ├── etc/
+   │   └── config.txt
+   └── usr/
+       └── bin/
+           └── hello
+
+Access files via :c:func:`romfs_open` and copy bytes with
+:c:func:`romfs_read`.  The data is fetched using ``LPM`` instructions on
+AVR and simple pointer indirection on the host.  No dynamic memory is
+required.
+
+EEPROM Filesystem
+=================
+Small calibration values or user settings may be baked into EEPROM at
+programming time. The ``eepfs`` API mirrors ``romfs`` but uses the
+``eeprom_read_*`` routines for retrieval.
+
+.. code-block:: c
+
+   const eepfs_file_t *ef = eepfs_open("/sys/message.txt");
+   char msg[12];
+   eepfs_read(ef, 0, msg, sizeof msg);

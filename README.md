@@ -108,6 +108,53 @@ scripts/
 
 ### ✔️  After these land…
 
+---
+
+## 10 · Example: FS demo
+
+```bash
+meson setup build --cross-file cross/atmega328p_gcc14.cross
+meson compile -C build fs_demo_hex
+simavr -m atmega328p build/examples/fs_demo.elf
+```
+
+Creates two files in TinyLog-4, reads them back, prints via UART (view
+with the QEMU serial console or a USB-UART dongle).
+
+### ROMFS demo
+
+```bash
+meson setup build --cross-file cross/atmega328p_gcc14.cross
+meson compile -C build romfs_demo_hex
+simavr -m atmega328p build/examples/romfs_demo.elf
+```
+
+Demonstrates the flash-resident read-only filesystem.
+
+### EEPROM FS demo
+
+```bash
+meson setup build --cross-file cross/atmega328p_gcc14.cross
+meson compile -C build romfs_demo_hex
+simavr -m atmega328p build/tests/romfs_test
+```
+
+Shows both ROM and EEPROM backed stores working in tandem.
+
+---
+
+Use `setup.sh` or the manual commands above to install the compiler
+before configuring Meson.
+
+## Performance checks with clang-tidy
+
+The repository ships `optimize.sh`, a convenience wrapper around
+``clang-tidy``. The script runs the ``performance-*`` checks over every
+source file in ``src``. Execute it once ``clang-tidy`` is installed:
+
+```bash
+./optimize.sh
+```
 * **On-device debugging** becomes two-step:
   `avr-gdb build/unix0.elf --eval-command="target remote :4242"`
 * CI matrix gains `flash-real-unox` job flashing a real board via GitHub-hosted

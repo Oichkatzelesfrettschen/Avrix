@@ -80,6 +80,7 @@ test('q8_8_mul_boundaries', fp_exe)
 fs_test_src  = ['fs_test.c', 'sim.c'] + extra_src
 flock_src    = ['flock_stress.c', 'sim.c'] + extra_src
 spin_src     = ['spin_test.c', 'sim.c'] + extra_src
+romfs_src    = ['romfs_test.c', 'sim.c'] + extra_src
 
 if native_mode
   fs_exe = executable(
@@ -106,10 +107,18 @@ if native_mode
     c_args              : common_cflags,
     native              : true
   )
+  romfs_exe = executable(
+    'romfs_test',
+    romfs_src,
+    link_with           : libfs,
+    include_directories : inc_list,
+    c_args              : common_cflags,
+    native              : true
+  )
 else
   fs_exe = executable(
     'fs_test',
-    ['fs_test.c', meson.project_source_root() / 'src/fs.c'],
+    ['fs_test.c', meson.project_source_root() / 'src/fs.c'] + extra_src,
     link_with           : libavrix,
     include_directories : inc_list,
     c_args              : common_cflags
@@ -123,7 +132,14 @@ else
   )
   spin_exe = executable(
     'spin_test',
-    'spin_test.c',
+    ['spin_test.c'] + extra_src,
+    link_with           : libavrix,
+    include_directories : inc_list,
+    c_args              : common_cflags
+  )
+  romfs_exe = executable(
+    'romfs_test',
+    ['romfs_test.c'] + extra_src,
     link_with           : libavrix,
     include_directories : inc_list,
     c_args              : common_cflags
@@ -133,3 +149,4 @@ endif
 test('fs_basic',    fs_exe)
 test('flock_stress', flock_exe)
 test('spin_lock',    spin_exe)
+test('romfs_basic',  romfs_exe)

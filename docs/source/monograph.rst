@@ -179,6 +179,8 @@ Component
 Nanokernel            7600      320
 Spin-locks (full)       548       12
 TinyLog-4 FS            420       10
+ROMFS (flash)           300        0
+EEPFS (eeprom)          250        0
 Doors RPC             1000      200
 **Total kernel**  **9568** **542**
 User budget        ≥ 18 000  ≥ 1500
@@ -257,8 +259,9 @@ Glossary
 ----------------------------------------------------------------------
 
 ``nk_*``   nanokernel primitive  
-``Door``   descriptor-based RPC  
-``TinyLog-4`` EEPROM log (4-byte record)  
+``Door``   descriptor-based RPC
+``TinyLog-4`` EEPROM log (4-byte record)
+``ROMFS``  flash-resident read-only filesystem
 ``FDO``    feedback-directed optimisation (PGO)
 
 ----------------------------------------------------------------------
