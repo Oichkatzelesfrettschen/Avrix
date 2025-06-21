@@ -4,7 +4,11 @@ Avrix — µ-UNIX for the Arduino Uno R3 (ATmega328P)
 
 **Avrix** is a ≤ 10 kB C23 nanokernel with a wear-levelled EEPROM log-FS,
 zero-copy “Door” RPC, and a lock suite tuned for the AVR **ATmega328P**
-found on the *Arduino Uno R3*.  
+found on the *Arduino Uno R3*.
+The unified ``nk_superlock`` couples a global *Big Kernel Lock* with optional
+real-time bypass (``*_lock_rt`` / ``*_unlock_rt``).  Encoding helpers snapshot
+its copy-on-write matrix for transport.  The
+``tests/unified_spinlock_test.c`` target demonstrates typical usage.
 All source, schematics, and build artefacts are cross-compiled on a modern
 desktop, then unit-tested inside QEMU’s ``arduino-uno`` machine model.
 
