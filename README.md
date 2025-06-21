@@ -128,6 +128,16 @@ meson compile -C build flash           # flash over /dev/ttyACM0
 
 For LLVM: use `cross/atmega328p_clang20.cross`.
 
+### 4A · Custom toolchain prefix
+
+Set `AVR_PREFIX` when the AVR tools live outside `/usr/bin`.  Use the
+helper script to regenerate the cross file and point Meson to it:
+
+```bash
+AVR_PREFIX=/opt/avr/bin ./cross/gen_avr_cross.sh
+meson setup build --wipe --cross-file cross/avr_m328p.txt
+```
+
 ---
 
 ## 5 · Verify install
