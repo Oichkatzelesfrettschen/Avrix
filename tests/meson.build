@@ -60,14 +60,9 @@ if not meson.is_cross_build()
 endif
 
 # Helper: always build the test binary for the host CPU ----------------
-build_test = (name : str, srcs : list, link_target) =>
-  executable(
-    name,
-    srcs,
-    include_directories : inc_list,
-    link_with           : link_target,
-    c_args              : common_cflags,
-    native              : true)
+# Build a test executable for the host CPU using consistent flags.
+# Meson 1.3 does not support arrow functions, so we invoke
+# `executable()` directly each time instead of wrapping it.
 
 # Extra stub source for host-only builds
 extra_src = []
@@ -89,7 +84,13 @@ tests = [
 ]
 
 foreach t : tests
-  exe = build_test(t.get(0), t.get(1) + extra_src, link_target)
+  exe = executable(
+    t.get(0),
+    t.get(1) + extra_src,
+    include_directories : inc_list,
+    link_with           : link_target,
+    c_args              : common_cflags,
+    native              : true)
   test(t.get(0), exe)
 endforeach
 
