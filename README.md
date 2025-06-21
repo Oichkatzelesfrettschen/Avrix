@@ -20,12 +20,14 @@ In the documentation the kernel is also referred to as **µ-UNIX**.
 sudo ./setup.sh --modern     # GCC-14 + QEMU smoke-boot   (recommended)
 # or
 sudo ./setup.sh --legacy     # GCC-7.3 only – bare minimum
+# add --no-python if you are offline
 ````
 
 `setup.sh` automatically
 
 * pins **Debian-sid** `gcc-avr-14` (falls back to Ubuntu 7.3 if sid is blocked),
 * installs QEMU ≥ 8.2 + Meson + docs & analysis helpers,
+* `--no-python` skips the docs helpers for offline installs,
 * **builds** the firmware, boots it in QEMU (`arduino-uno` machine),
 * prints MCU-specific **CFLAGS / LDFLAGS** you can paste into any Makefile.
 
@@ -123,6 +125,7 @@ Legacy build? Replace `-std=c23` with `-std=c11` and drop the two GCC-14 extras.
 meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross
 meson compile -C build
 qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
+meson compile -C build flash           # flash over /dev/ttyACM0
 ```
 
 For LLVM: use `cross/atmega328p_clang20.cross`.
@@ -215,7 +218,7 @@ The container compiles the firmware, emits `avrix.img`, then boots QEMU.
 
 | Gap                                       | Why it matters                                 | Proposed fix                                        |
 | ----------------------------------------- | ---------------------------------------------- | --------------------------------------------------- |
-| **Real-board flash script**               | newcomers still need the `avrdude` incantation | add `scripts/flash.sh` → auto-detect `/dev/ttyACM*` |
+| **Real-board flash helper**               | newcomers still need the `avrdude` incantation | `meson compile -C build flash` flashes the Uno |
 | **tmux-dev launcher**                     | 4-pane session exists only in docs             | ship `scripts/tmux-dev.sh`                          |
 | **On-device GDB stub**                    | “printf + LED” is clumsy                       | gate tiny `avr-gdbstub` behind `-DDEBUG_GDB`        |
 | **Static-analysis CI**                    | cppcheck runs locally only                     | add `cppcheck/clang-tidy` GitHub job                |

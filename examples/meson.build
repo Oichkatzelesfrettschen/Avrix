@@ -16,6 +16,15 @@ romfs_demo = executable(
   install: false
 )
 
+slip_demo = executable(
+  'slip_demo',
+  'slip_demo.c',
+  include_directories: inc,
+  link_with: libavrix,
+  c_args: ['-Wall', '-Wextra'],
+  install: false
+)
+
 # Convert ELF to Intel HEX for use with simavr or avrdude
 objcopy = find_program('avr-objcopy', required: false)
 if objcopy.found()
@@ -27,4 +36,8 @@ if objcopy.found()
     command: [objcopy, '-O', 'ihex', '@INPUT@', '@OUTPUT@'],
     input: romfs_demo,
     output: 'romfs_demo.hex')
+  custom_target('slip_demo_hex',
+    command: [objcopy, '-O', 'ihex', '@INPUT@', '@OUTPUT@'],
+    input: slip_demo,
+    output: 'slip_demo.hex')
 endif

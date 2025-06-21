@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: MIT
+ * See LICENSE file in the repository root for full license information.
+ */
+
 #include "nk_superlock.h"
 
 /* Global Big Kernel Lock shared across all superlock instances. */

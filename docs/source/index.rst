@@ -21,15 +21,15 @@ From the *build* directory you can build the individual generators:
 
    meson compile -C build doc-doxygen   # C API reference                (build/docs/doxygen/html)
    meson compile -C build doc-sphinx    # User / dev manual             (build/docs)
-   meson compile -C build doc           # Aggregates both when present
+   meson compile -C build doc           # Runs Doxygen → Sphinx and fails on warnings
 
 *Hints*
 
-* ``doc-doxygen`` requires **Doxygen** ≥ 1.9 with XML export enabled.  
+* ``doc-doxygen`` requires **Doxygen** ≥ 1.9 with XML export enabled.
+  ``dot`` from Graphviz is optional; diagrams are built when available.
 * ``doc-sphinx`` needs **Sphinx**, **Breathe** and **Exhale**
   (``pip install breathe exhale sphinx-rtd-theme``).
-* The aggregated ``doc`` target is created only when at least one
-  generator has been found by Meson.
+* ``doc`` is available only when at least one documentation tool was found.
 
 -------------------------------------------------
 Contents
@@ -43,6 +43,7 @@ Contents
    toolchain
    monograph
    filesystem
+   slip_networking
    fuses
    roadmap-qemu-avr
 

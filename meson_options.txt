@@ -1,2 +1,7 @@
 option('avr_inc_dir', type: 'string', value: '',
        description: 'Path to AVR libc headers (fallback to standard locations)')
+
+option('flash_port', type: 'string', value: '/dev/ttyACM0',
+       description: 'Serial device for avrdude')
+option('flash_programmer', type: 'string', value: 'arduino',
+       description: 'Programmer string for avrdude')

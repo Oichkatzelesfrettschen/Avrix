@@ -6,12 +6,13 @@
 #
 #  Usage
 #  ─────
-#        sudo ./setup.sh [--modern|--legacy]
+#        sudo ./setup.sh [--modern|--legacy] [--no-python]
 #
 #        --modern   (default) → gcc-avr 14.x from a Debian-sid pin
 #                              + QEMU + Meson + docs + analysis goodies
 #        --legacy              → gcc-avr 7.3 from Ubuntu *universe* only
 #                              (skips QEMU build + firmware demo)
+#        --no-python           → skip Sphinx/Prettier install
 #
 #  Steps
 #  ─────
@@ -38,10 +39,15 @@ trap 'echo -e "\n[error] setup aborted 🚨" >&2' ERR
 [[ $(id -u) -eq 0 ]] || { echo "Run as root." >&2; exit 1; }
 export DEBIAN_FRONTEND=noninteractive
 
-MODE="${1:---modern}"
-case "$MODE" in --modern|--legacy|"") ;; *)
-  echo "Usage: sudo ./setup.sh [--modern|--legacy]" >&2; exit 1 ;;
-esac
+MODE="--modern"
+SKIP_PYTHON=0
+for arg in "$@"; do
+  case "$arg" in
+    --modern|--legacy) MODE="$arg" ;;
+    --no-python) SKIP_PYTHON=1 ;;
+    *) echo "Usage: sudo ./setup.sh [--modern|--legacy] [--no-python]" >&2; exit 1 ;;
+  esac
+done
 
 step() { printf '\n\033[1;36m[%s]\033[0m %s\n' "$(date +%H:%M:%S)" "$*"; }
 have_repo()     { grep -RHq "$1" /etc/apt/*sources* 2>/dev/null; }
@@ -54,12 +60,12 @@ BASE_PKGS=(
 )
 
 # Extra utilities installed only in modern mode
-EXTRA_PKGS=(
-  meson ninja-build doxygen python3-sphinx python3-pip python3-venv
-  cloc cscope exuberant-ctags cppcheck graphviz nodejs npm
-)
+EXTRA_PKGS=(meson ninja-build doxygen cloc cscope exuberant-ctags \
+            cppcheck graphviz nodejs npm)
+PY_PKGS=(python3-sphinx python3-pip python3-venv)
+(( SKIP_PYTHON == 0 )) && EXTRA_PKGS+=("${PY_PKGS[@]}")
 
-step "Selected mode: $MODE"
+step "Selected mode: $MODE (python $([[ $SKIP_PYTHON -eq 1 ]] && echo skipped || echo enabled))"
 
 # ───────────────────────── 0 · base tools ───────────────────────────────
 step "Refreshing APT indices"
@@ -102,9 +108,9 @@ apt-get -qq update
 PACKAGES=("${BASE_PKGS[@]}")
 [[ $MODE == "--modern" ]] && PACKAGES+=("${EXTRA_PKGS[@]}")
 
-step "Installing ${#BASE_PKGS[@]} packages (this can take a while)"
+step "Installing ${#PACKAGES[@]} packages (this can take a while)"
 MISSING_PKGS=()
-for p in "${BASE_PKGS[@]}"; do
+for p in "${PACKAGES[@]}"; do
   dpkg -s "$p" &>/dev/null || MISSING_PKGS+=("$p")
 done
 if (( ${#MISSING_PKGS[@]} )); then
@@ -116,14 +122,15 @@ if (( ${#MISSING_PKGS[@]} )); then
 fi
 
 # ───────────────────────── 3 · docs venv (modern) ───────────────────────
-if [[ $MODE == "--modern" ]]; then
+if [[ $MODE == "--modern" && $SKIP_PYTHON -eq 0 ]]; then
   DOC_VENV=/opt/avrix-docs
   if [[ ! -d $DOC_VENV ]]; then
     step "Creating Python venv for Sphinx → $DOC_VENV"
     python3 -m venv "$DOC_VENV"
   fi
   step "Installing Sphinx extensions"
-  "$DOC_VENV/bin/pip" install -q --upgrade pip breathe exhale sphinx-rtd-theme
+  "$DOC_VENV/bin/pip" install -q --upgrade pip breathe exhale sphinx-rtd-theme \
+    || { echo "[error] pip install failed" >&2; exit 1; }
   npm install -g --silent prettier
 fi
 

@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: MIT
+ * See LICENSE file in the repository root for full license information.
+ */
+
 /*───────────────────────── nk_fs.c ────────────────────────────
  * TinyLog-4  – 64-byte wear-levelled log for ATmega328P EEPROM.
  *   • 16 rows × 64 B  (1 k B total)
