@@ -33,13 +33,13 @@ fsmod       = import('fs')
 inc_list    = [inc]                       # base include dir from root
 if host_machine.cpu_family() != 'avr'
   # Host builds use stub AVR headers located in compat/avr
-  inc_list += include_directories(meson.project_source_root() / 'compat')
+  inc_list += include_directories('../compat')
 endif
 avr_opt_dir = get_option('avr_inc_dir')   # optional – user override
 
 if avr_opt_dir != '' and fsmod.is_dir(avr_opt_dir)
   inc_list += include_directories(avr_opt_dir)
-else
+elif meson.is_cross_build()
   sys_avr = '/usr/lib/avr/include'
   if fsmod.is_dir(sys_avr)
     inc_list += include_directories(sys_avr)
@@ -176,3 +176,21 @@ test('flock_stress', flock_exe)
 test('spin_lock',    spin_exe)
 test('superlock_basic', superlock_exe)
 test('romfs_basic',  romfs_exe)
+
+# ───────────────────── 4. Spinlock ISR test via simavr ───────────────
+if meson.is_cross_build()
+  simavr = find_program('simavr', required: false)
+  if simavr.found()
+    spinlock_isr_exe = executable(
+      'spinlock_isr',
+      'spinlock_test.c',
+      link_with           : libavrix,
+      include_directories : inc_list,
+      c_args              : common_cflags
+    )
+    test('spinlock_isr',
+         simavr,
+         args : ['-m', host_machine.cpu(), spinlock_isr_exe],
+         is_parallel : false)
+  endif
+endif
