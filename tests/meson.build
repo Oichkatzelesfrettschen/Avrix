@@ -31,6 +31,10 @@ test('check-docs',
 # ───────────────────── 1. Include-path negotiation ───────────────────
 fsmod       = import('fs')
 inc_list    = [inc]                       # base include dir from root
+if host_machine.cpu_family() != 'avr'
+  # Host builds use stub AVR headers located in compat/avr
+  inc_list += include_directories(meson.project_source_root() / 'compat')
+endif
 avr_opt_dir = get_option('avr_inc_dir')   # optional – user override
 
 if avr_opt_dir != '' and fsmod.is_dir(avr_opt_dir)
