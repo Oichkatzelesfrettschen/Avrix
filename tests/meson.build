@@ -33,7 +33,7 @@ fsmod       = import('fs')
 inc_list    = [inc]                       # base include dir from root
 if host_machine.cpu_family() != 'avr'
   # Host builds use stub AVR headers located in compat/avr
-  inc_list += include_directories(meson.project_source_root() / 'compat')
+  inc_list += include_directories('../compat')
 endif
 avr_opt_dir = get_option('avr_inc_dir')   # optional – user override
 
@@ -49,7 +49,7 @@ endif
 # Host builds (non-AVR) need stub replacements for <avr/io.h> symbols.
 extra_src = []
 if host_machine.cpu_family() != 'avr'
-  extra_src += meson.project_source_root() / 'src/avr_stub.c'
+  extra_src += '../src/avr_stub.c'
 endif
 
 common_cflags = [
@@ -136,7 +136,7 @@ if native_mode
 else
   fs_exe = executable(
     'fs_test',
-    ['fs_test.c', meson.project_source_root() / 'src/fs.c'] + extra_src,
+    ['fs_test.c', '../src/fs.c'] + extra_src,
     link_with           : libavrix,
     include_directories : inc_list,
     c_args              : common_cflags

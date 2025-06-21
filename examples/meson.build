@@ -28,3 +28,27 @@ if objcopy.found()
     input: romfs_demo,
     output: 'romfs_demo.hex')
 endif
+
+opt_cflags = [
+  '-Wall', '-Wextra', '-Os',
+  '-ffunction-sections', '-fdata-sections',
+  '-fno-stack-protector'
+]
+
+ned = executable(
+  'ned',
+  'ned.c',
+  include_directories: inc,
+  link_with: libavrix,
+  c_args: opt_cflags,
+  install: false
+)
+
+vini = executable(
+  'vini',
+  'vini.c',
+  include_directories: inc,
+  link_with: libavrix,
+  c_args: opt_cflags,
+  install: false
+)
