@@ -1,0 +1,25 @@
+#ifndef EEPROM_WRAP_H
+#define EEPROM_WRAP_H
+
+/**
+ * @file eeprom_wrap.h
+ * @brief Helpers for converting EEPROM offsets to pointers.
+ */
+
+#include <stdint.h>
+#include <stddef.h>
+
+/** Convert an EEPROM offset to a mutable byte pointer. */
+static inline uint8_t *ee_ptr(uint16_t off)
+{
+    return (uint8_t *)(uintptr_t)off;
+}
+
+/** Convert an EEPROM offset to a const byte pointer. */
+static inline const uint8_t *ee_cptr(uint16_t off)
+{
+    return (const uint8_t *)(uintptr_t)off;
+}
+
+#endif /* EEPROM_WRAP_H */
+
