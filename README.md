@@ -213,7 +213,22 @@ Creates two files in TinyLog-4, reads them back, prints via UART.
 
 ---
 
-## 11 · Dockerized QEMU test
+## 11 · Running the test-suite
+
+```bash
+meson test -C build --print-errorlogs
+```
+
+Tests using the host CPU run directly. Cross builds leverage **simavr** so the
+AVR binaries execute in simulation. Ensure `simavr` is installed and available
+in your `$PATH`.
+
+The `spinlock_isr` case stresses the DAG-based spinlock under a 1 kHz timer
+interrupt using `simavr`.  It runs automatically when cross compiling.
+
+---
+
+## 12 · Dockerized QEMU test
 
 ```bash
 docker build -t avrix-qemu docker
@@ -224,7 +239,7 @@ The container compiles the firmware, emits `avrix.img`, then boots QEMU.
 
 ---
 
-## 12 · Gap & friction backlog
+## 13 · Gap & friction backlog
 
 | Gap                                       | Why it matters                                 | Proposed fix                                        |
 | ----------------------------------------- | ---------------------------------------------- | --------------------------------------------------- |
