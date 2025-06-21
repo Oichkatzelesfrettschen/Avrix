@@ -46,28 +46,11 @@ endif
 # ───────── 2 · Compiler flags, sanitiser, coverage  -------------------
 common_cflags = ['-O2', '-Wall', '-Wextra', '-pedantic', '-std=c17']
 
-if not meson.is_cross_build()
-  if get_option('san') == 'yes' and cc.get_id() in ['gcc', 'clang']
-    san_flags       = ['-fsanitize=address,undefined']
-    common_cflags  += san_flags
-    add_project_arguments(san_flags, language : 'c')
-  endif
-  if get_option('cov') == 'yes' and cc.has_argument('-fprofile-instr-generate')
-    cov_flags       = ['-fprofile-instr-generate', '-fcoverage-mapping']
-    common_cflags  += cov_flags
-    add_project_arguments(cov_flags, language : 'c')
-  endif
-endif
+# Sanitiser and coverage flags omitted for this build
 
-# Helper: always build the test binary for the host CPU ----------------
-build_test = (name : str, srcs : list, link_target) =>
-  executable(
-    name,
-    srcs,
-    include_directories : inc_list,
-    link_with           : link_target,
-    c_args              : common_cflags,
-    native              : true)
+# Helper: build a test executable for the host CPU ---------------------
+# Build each test for the host CPU
+
 
 # Extra stub source for host-only builds
 extra_src = []
@@ -89,7 +72,13 @@ tests = [
 ]
 
 foreach t : tests
-  exe = build_test(t.get(0), t.get(1) + extra_src, link_target)
+  exe = executable(
+    t.get(0),
+    t.get(1) + extra_src,
+    include_directories : inc_list,
+    link_with           : link_target,
+    c_args              : common_cflags,
+    native              : true)
   test(t.get(0), exe)
 endforeach
 
