@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: MIT
+ * See LICENSE file in the repository root for full license information.
+ */
+
 /*──────────────────────────── door.c ─────────────────────────────
    µ-UNIX “Doors” — zero-copy RPC for the ATmega328P nanokernel
    -------------------------------------------------------------

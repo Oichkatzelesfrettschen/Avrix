@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: MIT
+ * See LICENSE file in the repository root for full license information.
+ */
+
 /*═══════════════════════════════════════════════════════════════════
  * nk_task.c – tiny pre-emptive scheduler for ATmega328P
  *
