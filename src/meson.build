@@ -25,7 +25,8 @@ kernel_src = files(
   'nk_fs.c',
   'kalloc.c',
   'context_switch.S',  # hand-written AVR ASM
-  'switch_task.S'
+  'switch_task.S',
+  'door_entry.S'
 )
 
 portable_src = files(   # no <avr/...>
@@ -37,7 +38,8 @@ avr_only_src = files(
   'door.c',
   'task.c',
   'nk_fs.c',
-  'kalloc.c'
+  'kalloc.c',
+  'door_entry.S'
 )
 
 # ───────────────────────── 2. libavrix / libavrix_host ───────────────

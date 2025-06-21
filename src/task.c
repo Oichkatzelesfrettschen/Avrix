@@ -33,8 +33,9 @@ static struct {
     .quantum = NK_QUANTUM_MS
 };
 
-/* Door RPC descriptors (defined in door.c) ----------------------*/
-extern door_t door_vec[NK_MAX_TASKS][DOOR_SLOTS];
+/* Door RPC descriptors (one vector per task) ---------------------*/
+door_t door_vec[NK_MAX_TASKS][DOOR_SLOTS]
+    __attribute__((section(".noinit")));
 
 /* Optional guarded stacks ---------------------------------------*/
 #if NK_OPT_STACK_GUARD
@@ -144,6 +145,9 @@ static inline void atomic_schedule(void)
 
 void nk_init(void)
 {
+#if DOOR_SLOTS > 0
+    memset(door_vec, 0, sizeof(door_vec));
+#endif
 #if NK_OPT_STACK_GUARD
     for (nk_stack_t *s = nk_stacks; s < nk_stacks + NK_MAX_TASKS; ++s) {
         s->guard_lo = STACK_GUARD_PATTERN;
@@ -186,6 +190,10 @@ bool nk_task_create(nk_tcb_t *tcb,
         .deps        = 0,
         .sleep_ticks = 0
     };
+
+#if DOOR_SLOTS > 0
+    memset(door_vec[nk_sched.count], 0, sizeof(door_vec[0]));
+#endif
 
     cli();
     nk_sched.tasks[nk_sched.count++] = tcb;
