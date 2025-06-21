@@ -96,6 +96,7 @@ install_headers(
   '../include/eeprom_wrap.h',
   '../include/kalloc.h',
   '../include/nk_superlock.h',
+  '../include/nk_spinlock.h',
   '../include/tty.h',
   '../include/slip.h',
   '../include/ipv4.h',
