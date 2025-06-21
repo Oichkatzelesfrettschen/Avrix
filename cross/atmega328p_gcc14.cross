@@ -1,1 +1,55 @@
-avr_m328p.txt
+# cross/atmega328p_gcc14.cross - GCC 14 toolchain for Arduino Uno R3
+# Target : ATmega328P @ 16 MHz, 32 kB Flash, 2 kB SRAM
+# Focus  : absolute minimum flash/RAM footprint with full C23 support.
+
+[binaries]
+c           = 'avr-gcc'
+ar          = 'avr-ar'
+strip       = 'avr-strip'
+objcopy     = 'avr-objcopy'
+size        = 'avr-size'
+exe_wrapper = 'true'        # Meson test-runner stub
+
+[host_machine]
+system      = 'baremetal'
+cpu_family  = 'avr'
+cpu         = 'atmega328p'
+endian      = 'little'
+
+[properties]
+needs_exe_wrapper = true
+
+c_args = [
+  '-std=c23', '-mmcu=atmega328p', '-DF_CPU=16000000UL',
+
+  # size / code-gen tweaks
+  '-Oz', '-flto',
+  '-mrelax', '-mcall-prologues',
+  '-fdata-sections', '-ffunction-sections',
+  '-fmerge-constants', '-fmerge-all-constants',
+  '-fno-ident',
+
+  # strip unused run-time features
+  '-fno-exceptions', '-fno-rtti',
+  '-fno-unwind-tables', '-fno-asynchronous-unwind-tables',
+  '-fno-stack-protector',
+]
+
+c_link_args = [
+  '-mmcu=atmega328p', '-flto',
+  '-Wl,--gc-sections',
+  '-Wl,--icf=safe',        # identical-code folding
+  '-Wl,--relax',           # linker relaxation pass
+]
+
+[built-in options]
+c_std           = 'c23'
+optimization    = 'z'       # maps to -Oz
+warning_level   = 2
+strip           = true
+default_library = 'none'
+b_staticpic     = false
+
+[project options]
+profile = false             # toggle PGO via “meson configure -Dprofile=true”
+
