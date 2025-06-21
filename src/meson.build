@@ -26,7 +26,7 @@ kernel_src = files(
   'romfs.c',
   'eepfs.c',
   'kalloc.c',
-  'nk_superlock.c',
+  'nk_spinlock.c',
   'context_switch.S',  # hand-written AVR ASM
   'switch_task.S',
   'door_entry.S'
@@ -37,7 +37,7 @@ portable_src = files(   # no <avr/...>
   'fs.c',
   'romfs.c',
   'eepfs.c',
-  'nk_superlock.c'
+  'nk_spinlock.c'
 )
 
 avr_only_src = []
@@ -89,6 +89,6 @@ install_headers(
   '../include/eepfs.h',
   '../include/eeprom_wrap.h',
   '../include/kalloc.h',
-  '../include/nk_superlock.h',
+  '../include/nk_spinlock.h', '../include/nk_superlock.h',
   subdir : 'avrix'
 )
