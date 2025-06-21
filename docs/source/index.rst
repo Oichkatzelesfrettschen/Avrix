@@ -43,6 +43,7 @@ Contents
    toolchain
    monograph
    filesystem
+   slip_networking
    fuses
    roadmap-qemu-avr
 
