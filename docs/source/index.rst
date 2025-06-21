@@ -44,6 +44,7 @@ Contents
    monograph
    filesystem
    fuses
+   api/library_root
    roadmap-qemu-avr
 
 -------------------------------------------------
