@@ -1,14 +1,26 @@
-# cross/atmega328p_clang20.cross - LLVM/Clang 20 toolchain
-# Needs:  sudo add-apt-repository ppa:llvm-team/llvm
-#         sudo apt install clang-20 llvm-20 lld-20
+# ────────────────────────────────────────────────────────────────────────
+# cross/atmega328p_clang20.cross ― LLVM/Clang 20 AVR tool-chain profile
+#
+# Prerequisites (Ubuntu 22.04 +):
+#   sudo add-apt-repository ppa:llvm-team/llvm
+#   sudo apt install clang-20 llvm-20 lld-20
+#
+#   # Optional: AVR binutils for size/objdump utilities
+#   sudo apt install binutils-avr
+#
+# Notes
+#   • Clang 20 r557xxx adds full AVR relaxation + Thin-LTO; we exploit both.
+#   • `needs_exe_wrapper = true` silences Meson’s “bare-metal” warnings.
+#   • The linker switches assume **lld-avr** ≥ 20, which supports safe ICF.
+# ────────────────────────────────────────────────────────────────────────
 
 [binaries]
 c           = 'clang-20'
 ar          = 'llvm-ar-20'
 strip       = 'llvm-strip-20'
 objcopy     = 'llvm-objcopy-20'
-size        = 'avr-size'          # GNU size still fine
-exe_wrapper = 'true'
+size        = 'avr-size'          # GNU tool is perfectly compatible
+exe_wrapper = 'true'              # No runner for bare-metal images
 
 [host_machine]
 system      = 'baremetal'
@@ -20,26 +32,31 @@ endian      = 'little'
 needs_exe_wrapper = true
 
 c_args = [
+  # MCU + language mode
   '--target=avr',
   '-mmcu=atmega328p',
   '-std=c23',
   '-DF_CPU=16000000UL',
 
-  # size / optimisation
-  '-Oz', '-flto',                # Thin-LTO by default
-  '-mrelax-all',
+  # Code-size / optimisation flags
+  '-Oz',                       # size-first optimisation
+  '-flto=thin',                # Thin-LTO gives better link-time visibility
+  '-mrelax-all',               # allow instruction relaxation
   '-fdata-sections', '-ffunction-sections',
   '-fmerge-all-constants',
+
+  # C runtime trims
   '-fno-exceptions', '-fno-rtti',
-  '-fno-unwind-tables', '-fno-asynchronous-unwind-tables',
+  '-fno-unwind-tables', '-fno-asynchronous-unwind-tables'
 ]
 
 c_link_args = [
-  '--target=avr', '-mmcu=atmega328p',
+  '--target=avr',
+  '-mmcu=atmega328p',
   '-flto',
-  '-Wl,--gc-sections',
-  '-Wl,--icf=safe',
-  '-fuse-ld=lld',                # lld-avr (LLVM 20) supports ICF
+  '-Wl,--gc-sections',         # drop unused sections
+  '-Wl,--icf=safe',            # identical code-folding (lld ≥ 20)
+  '-fuse-ld=lld'               # use LLVM’s AVR-aware linker
 ]
 
 [built-in options]
@@ -49,4 +66,3 @@ warning_level   = 2
 strip           = true
 default_library = 'none'
 b_staticpic     = false
-
