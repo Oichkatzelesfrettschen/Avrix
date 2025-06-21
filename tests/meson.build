@@ -33,7 +33,7 @@ fsmod       = import('fs')
 inc_list    = [inc]                       # base include dir from root
 if host_machine.cpu_family() != 'avr'
   # Host builds use stub AVR headers located in compat/avr
-  inc_list += include_directories(meson.project_source_root() / 'compat')
+  inc_list += include_directories('../compat')
 endif
 avr_opt_dir = get_option('avr_inc_dir')   # optional – user override
 
@@ -91,6 +91,7 @@ flock_src    = ['flock_stress.c', 'sim.c'] + extra_src
 spin_src     = ['spin_test.c', 'sim.c'] + extra_src
 romfs_src    = ['romfs_test.c', 'sim.c'] + extra_src
 superlock_src = ['superlock_test.c', 'sim.c'] + extra_src
+roundtrip_src = ['fs_roundtrip.c', 'sim.c'] + extra_src
 
 if native_mode
   fs_exe = executable(
@@ -133,6 +134,14 @@ if native_mode
     c_args              : common_cflags,
     native              : true
   )
+  roundtrip_exe = executable(
+    'fs_roundtrip',
+    roundtrip_src,
+    link_with           : libfs,
+    include_directories : inc_list,
+    c_args              : common_cflags,
+    native              : true
+  )
 else
   fs_exe = executable(
     'fs_test',
@@ -169,6 +178,13 @@ else
     include_directories : inc_list,
     c_args              : common_cflags
   )
+  roundtrip_exe = executable(
+    'fs_roundtrip',
+    ['fs_roundtrip.c', meson.project_source_root() / 'src/fs.c'] + extra_src,
+    link_with           : libavrix,
+    include_directories : inc_list,
+    c_args              : common_cflags
+  )
 endif
 
 test('fs_basic',    fs_exe)
@@ -176,3 +192,4 @@ test('flock_stress', flock_exe)
 test('spin_lock',    spin_exe)
 test('superlock_basic', superlock_exe)
 test('romfs_basic',  romfs_exe)
+test('fs_roundtrip', roundtrip_exe)
