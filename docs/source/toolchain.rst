@@ -169,7 +169,9 @@ For a *legacy* build drop ``--icf`` / ``-fipa-pta`` and switch
 
    meson compile -C build doc-doxygen   # API reference
    meson compile -C build doc-sphinx    # user manual
-   meson compile -C build doc           # both of the above
+   meson compile -C build doc           # sequential build; warnings fail
+
+``dot`` from Graphviz is detected automatically to produce call graphs.
 
 6 A · Docker image
 ------------------
