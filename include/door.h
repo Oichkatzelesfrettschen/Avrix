@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: MIT
+ * See LICENSE file in the repository root for full license information.
+ */
+
 /*────────────────────────── door.h ────────────────────────────
    µ-UNIX — Descriptor-based RPC (“Doors”) for ATmega328P
    -------------------------------------------------------------

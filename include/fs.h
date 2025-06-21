@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: MIT
+ * See LICENSE file in the repository root for full license information.
+ */
+
 #ifndef AVR_FS_H
 #define AVR_FS_H
 
@@ -47,13 +51,7 @@ int  fs_open(const char *name, file_t *f);
 int  fs_write(file_t *f, const void *buf, uint16_t len);
 int  fs_read(file_t *f, void *buf, uint16_t len);
 /**
- * List all valid filenames in the flat directory.
- *
- * \param[out] out  Array with ``FS_NUM_INODES`` elements for storing names.
- * \return          Number of entries copied into ``out``.
- */
-/**
- * Populate *buf* with a newline separated list of valid filenames.
+ * Populate *buf* with a newline-separated list of valid filenames.
  *
  * The resulting string is always NUL terminated.  Names exceeding
  * ``len`` are truncated to fit.  The directory is flat so at most

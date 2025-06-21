@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: MIT
+ * See LICENSE file in the repository root for full license information.
+ */
+
 /*──────────────────────────────── nk_lock.h ──────────────────────────────
  * Spin-lock primitives for µ-UNIX on AVR.
  *

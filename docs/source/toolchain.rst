@@ -16,6 +16,7 @@ them. If you only care about “it just works”, run:
 
    sudo ./setup.sh --modern      # Debian gcc-avr 14 + QEMU demo
    sudo ./setup.sh --legacy      # Ubuntu gcc-avr 7.3 only
+   # append --no-python if offline
 
 ``setup.sh`` in *modern* mode will pin the Debian-sid packages, install
 QEMU ≥ 8.2, Meson, Doxygen, Sphinx … compile a demo ELF, boot it in
@@ -122,6 +123,7 @@ See `Ask Ubuntu <https://askubuntu.com/>`_ for background.
                       nodejs npm
    pip3 install --user breathe exhale sphinx-rtd-theme
    npm  install  -g   prettier
+   # offline? use --no-python with setup.sh and skip the two lines above
 
 ----------------------------------------------------------------------
 4 · Sanity-check the install
@@ -158,6 +160,8 @@ For a *legacy* build drop ``--icf`` / ``-fipa-pta`` and switch
         --cross-file cross/atmega328p_gcc14.cross -Dc_std=c23
    meson compile -C build
    qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
+   meson compile -C build flash \
+        -Dflash_port=/dev/ttyACM0 -Dflash_programmer=arduino
 
 ``cross/atmega328p_clang20.cross`` is provided for LLVM 20 users.
 
@@ -169,7 +173,9 @@ For a *legacy* build drop ``--icf`` / ``-fipa-pta`` and switch
 
    meson compile -C build doc-doxygen   # API reference
    meson compile -C build doc-sphinx    # user manual
-   meson compile -C build doc           # both of the above
+   meson compile -C build doc           # sequential build; warnings fail
+
+``dot`` from Graphviz is detected automatically to produce call graphs.
 
 6 A · Docker image
 ------------------

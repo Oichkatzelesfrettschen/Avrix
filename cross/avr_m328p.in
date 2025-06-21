@@ -1,0 +1,65 @@
+# ────────────────────────────────────────────────────────────────────────
+# cross/avr_m328p.in — GCC-AVR 14 profile for the Arduino Uno R3
+# This is a template. Use gen_avr_cross.sh to generate avr_m328p.txt
+# with a custom AVR toolchain prefix.
+#
+#   AVR_PREFIX=/opt/avr/bin ./cross/gen_avr_cross.sh
+#
+# The default prefix is /usr/bin/.
+# ────────────────────────────────────────────────────────────────────────
+
+[binaries]
+c           = '@AVR_PREFIX@avr-gcc'
+ar          = '@AVR_PREFIX@avr-ar'
+strip       = '@AVR_PREFIX@avr-strip'
+objcopy     = '@AVR_PREFIX@avr-objcopy'
+size        = '@AVR_PREFIX@avr-size'
+exe_wrapper = 'true'                  # no runner for bare-metal tests
+
+[host_machine]
+system      = 'baremetal'
+cpu_family  = 'avr'
+cpu         = 'atmega328p'
+endian      = 'little'
+
+[properties]
+needs_exe_wrapper = true              # suppress Meson warning
+
+c_args = [
+  # MCU + language dialect
+  '-mmcu=atmega328p',
+  '-std=c23',
+  '-DF_CPU=16000000UL',
+
+  # Size-first optimisation
+  '-Oz',                               # smallest code
+  '-flto',                             # GCC 14 Thin-LTO by default
+  '-mrelax', '-mcall-prologues',       # shrink jumps & prologues
+  '-fdata-sections', '-ffunction-sections',
+  '-fmerge-all-constants',
+  '-fno-ident',                        # drop GCC version string
+
+  # Remove unused runtime features
+  '-fno-exceptions', '-fno-rtti',
+  '-fno-unwind-tables', '-fno-asynchronous-unwind-tables',
+  '-fno-stack-protector'
+]
+
+c_link_args = [
+  '-mmcu=atmega328p',
+  '-flto',
+  '-Wl,--gc-sections',                 # dead-code elimination
+  '-Wl,--icf=safe',                    # identical code folding
+  '-Wl,--relax'                        # linker relaxation pass
+]
+
+[built-in options]
+c_std           = 'c23'
+optimization    = 'z'                  # Meson alias for -Oz
+warning_level   = 2
+strip           = true
+default_library = 'none'
+b_staticpic     = false                # irrelevant on AVR
+
+[project options]
+profile         = false                # enable PGO with -Dprofile=true
