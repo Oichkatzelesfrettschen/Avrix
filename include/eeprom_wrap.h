@@ -1,5 +1,5 @@
-#ifndef EEPROM_WRAP_H
-#define EEPROM_WRAP_H
+#ifndef NK_EEPROM_WRAP_H
+#define NK_EEPROM_WRAP_H
 
 /**
  * @file eeprom_wrap.h
@@ -7,7 +7,6 @@
  */
 
 #include <stdint.h>
-#include <stddef.h>
 
 /** Convert an EEPROM offset to a mutable byte pointer. */
 static inline uint8_t *ee_ptr(uint16_t off)
@@ -21,5 +20,5 @@ static inline const uint8_t *ee_cptr(uint16_t off)
     return (const uint8_t *)(uintptr_t)off;
 }
 
-#endif /* EEPROM_WRAP_H */
+#endif /* NK_EEPROM_WRAP_H */
 
