@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: MIT
+ * See LICENSE file in the repository root for full license information.
+ */
+
 /*────────────────────────── task.h ───────────────────────────────
    µ-UNIX – Task & scheduler interface (Arduino-Uno / ATmega328P)
 

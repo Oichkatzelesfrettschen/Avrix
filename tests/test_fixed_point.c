@@ -24,9 +24,17 @@ static void boundary_tests(void)
     assert(q8_8_mul(Q8_8_NEG_ONE, Q8_8_ONE) == Q8_8_NEG_ONE);
 }
 
+static void edge_case_tests(void)
+{
+    assert(q8_8_mul(Q8_8_MAX, Q8_8_MAX) == Q8_8_ONE);
+    assert(q8_8_mul(Q8_8_MIN, Q8_8_MAX) == (q8_8_t)0x8081);
+    assert(q8_8_mul(Q8_8_MIN, Q8_8_MIN) == 0);
+}
+
 int main(void)
 {
     boundary_tests();
+    edge_case_tests();
     puts("q8_8_mul boundary tests passed");
     return 0;
 }

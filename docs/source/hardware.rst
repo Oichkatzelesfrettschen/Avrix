@@ -62,7 +62,8 @@ persistent storage.
 
 Gaps in the Datasheets
 ----------------------
-Several parameters are left unspecified in the official documentation:
+Several parameters are left unspecified in the official documentation but are
+summarised in the :doc:`monograph`:
 
 * Junction-to-ambient thermal resistance
 * Crystal ESR and oscillator startup calculations
@@ -70,12 +71,39 @@ Several parameters are left unspecified in the official documentation:
 * ADC integral and differential non-linearity figures
 * USB suspend current characteristics
 
+Measured values
+~~~~~~~~~~~~~~~
+The monograph derives the missing characteristics from empirical tests.
+Key results are reproduced below; see :doc:`fuses` for configuring the
+``BODLEVEL`` bits.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 15
+
+   * - Parameter
+     - Value
+   * - ``θ\ :sub:`JA`\`` (PDIP/TQFP)
+     - ~65 °C/W / 35 °C/W
+   * - Crystal ESR @ 16 MHz
+     - ~50 Ω
+   * - Brown-out levels
+     - 4.3 V / 2.7 V / 1.8 V
+   * - ``HBM`` / ``CDM`` ESD rating
+     - ±2 kV / ±500 V
 Optimization Notes
 ------------------
 For maximum performance, align hot loops to flash page boundaries and keep
 interrupt vectors in lower memory. For minimal power consumption, disable
 unused peripherals via the PRR register and use power-down sleep with watchdog
 wake-up.
+
+Portability Note
+----------------
+``NK_LOCK_ADDR`` must be placed in the lower I/O range (``≤ 0x3F``) so
+single-cycle ``IN``/``OUT`` instructions can access the lock byte.
+On 32‑bit AVR devices the Beatty lattice step (`NK_LATTICE_STEP`) is
+multiplied by ``1024`` via ``NK_LATTICE_SCALE`` to prevent ticket overflow.
 
 Scheduler Time Slice
 --------------------

@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: MIT
+ * See LICENSE file in the repository root for full license information.
+ */
+
 #ifndef EEPFS_H
 #define EEPFS_H
 
