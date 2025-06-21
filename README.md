@@ -187,6 +187,26 @@ meson setup build --cross-file cross/atmega328p_gcc14.cross \
 
 ---
 
+### 6A · Stack & quantum overrides
+
+```c
+#ifndef NK_STACK_SIZE
+#define NK_STACK_SIZE 128u           /* bytes per task stack */
+#endif
+#ifndef NK_QUANTUM_MS
+#define NK_QUANTUM_MS 10u            /* round-robin slice */
+#endif
+```
+
+Override at configure-time:
+
+```bash
+meson setup build --cross-file cross/atmega328p_gcc14.cross \
+                  -Dc_args="-DNK_STACK_SIZE=256 -DNK_QUANTUM_MS=5"
+```
+
+---
+
 ## 7 · Hardware target
 
 | Chip           | Role            | Clock          | Flash / SRAM | Notes               |
