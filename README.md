@@ -205,6 +205,14 @@ meson setup build --cross-file cross/atmega328p_gcc14.cross \
 * **Fixed-point Q8.8** helpers
 * **Full QEMU board model** (`arduino-uno`) wired into CI
 
+### 8A · Unified spinlock
+
+`nk_spinlock` is a **hybrid‑chimera BKL–DAG matrix** scheme that blends a
+global BKL with fine‑grained locks using copy‑on‑write state. It exposes
+real‑time lock primitives, and existing code can seamlessly adopt the new
+model via the `nk_superlock` compatibility layer.  See
+[include/nk_spinlock.h](include/nk_spinlock.h) for API details.
+
 ---
 
 ## 9 · Contributing
