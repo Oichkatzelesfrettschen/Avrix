@@ -10,7 +10,6 @@
 set -euo pipefail
 MCU=${MCU:-atmega328p}
 AVR_INC=$(realpath $(avr-gcc -print-file-name=include)/../../../../avr/include)
-[[ -e include/nk_task.h ]] || { ln -s task.h include/nk_task.h; trap 'rm -f include/nk_task.h' EXIT; }
 for f in src/*.c; do
   echo "[info] clang-tidy $f"
   clang-tidy "$f" --quiet \
