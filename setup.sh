@@ -36,9 +36,18 @@ esac
 [[ -z "$mode" || "$mode" == "--modern" ]] && mode="--modern"
 echo "[info] Selected mode: $mode"
 
+#──────────────── enable repositories ─────────────────────────────────────
+add-apt-repository -y universe
+add-apt-repository -y multiverse
+apt-get -qq update
+
 #──────────────── helpers ──────────────────────────────────────────────────
 pkg_installed() { dpkg -s "$1" &>/dev/null; }
 have_repo()     { grep -RH "$1" /etc/apt/*sources* 2>/dev/null || true; }
+
+# Select the newest Meson package available
+MESON_PKG=meson
+apt-cache show meson-1.5 >/dev/null 2>&1 && MESON_PKG=meson-1.5
 
 add_ppa_once()  { have_repo "$1" || add-apt-repository -y -n "ppa:$1"; }
 
@@ -68,17 +77,17 @@ esac
 
 # Install AVR GCC, avr-libc, binutils, avrdude, gdb, simavr and tooling.
 if ! apt-get -qq update && apt-get install -y "$best_pkg" avr-libc binutils-avr avrdude gdb-avr simavr \
-    meson ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck graphviz; then
+    "$MESON_PKG" ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck graphviz; then
     echo "Falling back to gcc-avr" >&2
     apt-get install -y gcc-avr avr-libc binutils-avr avrdude gdb-avr simavr \
-        meson ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck graphviz
+        "$MESON_PKG" ninja-build doxygen python3-sphinx cloc cscope exuberant-ctags cppcheck graphviz
 fi
 
 
 #──────────────── 2. install packages ─────────────────────────────────────
 BASE_PKGS=(
   "$TOOLCHAIN_PKG" avr-libc binutils-avr avrdude gdb-avr
-  qemu-system-misc meson ninja-build doxygen python3-sphinx python3-pip
+  qemu-system-misc "$MESON_PKG" ninja-build doxygen python3-sphinx python3-pip
   ccache cloc cscope exuberant-ctags cppcheck graphviz nodejs npm
 )
 for p in "${BASE_PKGS[@]}"; do pkg_installed "$p" || apt-get -yqq install "$p"; done

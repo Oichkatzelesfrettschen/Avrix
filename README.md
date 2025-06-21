@@ -81,6 +81,9 @@ sudo apt install -y gcc-avr avr-libc binutils-avr \
 ## 2 · Dev helpers
 
 ```bash
+sudo add-apt-repository -y universe
+sudo add-apt-repository -y multiverse
+sudo apt update
 sudo apt install -y meson ninja-build doxygen python3-sphinx \
                     python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
                     nodejs npm
