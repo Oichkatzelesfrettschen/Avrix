@@ -127,6 +127,23 @@ qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 
 For LLVM: use `cross/atmega328p_clang20.cross`.
 
+### 4A · Simavr quick test
+
+```bash
+meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross
+meson compile -C build nk_elf        # emits build/nk.elf
+simavr -m atmega328p build/nk.elf
+```
+
+View UART output with verbose mode:
+
+```bash
+simavr -m atmega328p -v build/nk.elf
+```
+
+Only the AVR core runs – external peripherals are not modelled. See the
+[simavr documentation](https://github.com/buserror/simavr/wiki) for details.
+
 ---
 
 ## 5 · Verify install
