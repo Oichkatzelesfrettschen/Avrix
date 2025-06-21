@@ -133,13 +133,14 @@ Golden-ratio ticket
 
 .. code-block:: c
 
-   #if NK_WORD_BITS == 32                          /* host tests       */
-   #  define NK_LATTICE_STEP 1695400ul   /* φ·2²⁶ */
-   #else                                           /* 16-bit AVR core  */
-   #  define NK_LATTICE_STEP 1657u       /* φ·2¹⁰ */
+   #define NK_LATTICE_STEP 1657u
+   #if NK_WORD_BITS == 32
+   #  define NK_LATTICE_SCALE 1024u
+   #else
+   #  define NK_LATTICE_SCALE 1u
    #endif
 
-   nk_ticket += NK_LATTICE_STEP;   /* single ADD/SUB */
+   nk_ticket += NK_LATTICE_STEP * NK_LATTICE_SCALE;   /* single ADD/SUB */
 
 Lock-address guard ::
 

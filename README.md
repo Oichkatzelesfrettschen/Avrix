@@ -130,6 +130,33 @@ meson compile -C build flash           # flash over /dev/ttyACM0
 
 For LLVM: use `cross/atmega328p_clang20.cross`.
 
+### 4A · Simavr quick test
+
+```bash
+meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross
+meson compile -C build nk_elf        # emits build/nk.elf
+simavr -m atmega328p build/nk.elf
+```
+
+View UART output with verbose mode:
+
+```bash
+simavr -m atmega328p -v build/nk.elf
+```
+
+Only the AVR core runs – external peripherals are not modelled. See the
+[simavr documentation](https://github.com/buserror/simavr/wiki) for details.
+
+### 4A · Custom toolchain prefix
+
+Set `AVR_PREFIX` when the AVR tools live outside `/usr/bin`.  Use the
+helper script to regenerate the cross file and point Meson to it:
+
+```bash
+AVR_PREFIX=/opt/avr/bin ./cross/gen_avr_cross.sh
+meson setup build --wipe --cross-file cross/avr_m328p.txt
+```
+
 ---
 
 ## 5 · Verify install
@@ -203,7 +230,22 @@ Creates two files in TinyLog-4, reads them back, prints via UART.
 
 ---
 
-## 11 · Dockerized QEMU test
+## 11 · Running the test-suite
+
+```bash
+meson test -C build --print-errorlogs
+```
+
+Tests using the host CPU run directly. Cross builds leverage **simavr** so the
+AVR binaries execute in simulation. Ensure `simavr` is installed and available
+in your `$PATH`.
+
+The `spinlock_isr` case stresses the DAG-based spinlock under a 1 kHz timer
+interrupt using `simavr`.  It runs automatically when cross compiling.
+
+---
+
+## 12 · Dockerized QEMU test
 
 ```bash
 docker build -t avrix-qemu docker
@@ -214,7 +256,7 @@ The container compiles the firmware, emits `avrix.img`, then boots QEMU.
 
 ---
 
-## 12 · Gap & friction backlog
+## 13 · Gap & friction backlog
 
 | Gap                                       | Why it matters                                 | Proposed fix                                        |
 | ----------------------------------------- | ---------------------------------------------- | --------------------------------------------------- |
