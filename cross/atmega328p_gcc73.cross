@@ -1,0 +1,46 @@
+# cross/atmega328p_gcc73.cross - GCC 7.3 toolchain fallback
+# Target : ATmega328P @ 16 MHz, 32 kB Flash, 2 kB SRAM
+# Focus  : reliable baseline with C11 support when GCC 14 is unavailable.
+
+[binaries]
+c           = 'avr-gcc'
+ar          = 'avr-ar'
+strip       = 'avr-strip'
+objcopy     = 'avr-objcopy'
+size        = 'avr-size'
+exe_wrapper = 'true'
+
+[host_machine]
+system      = 'baremetal'
+cpu_family  = 'avr'
+cpu         = 'atmega328p'
+endian      = 'little'
+
+[properties]
+needs_exe_wrapper = true
+
+c_args = [
+  '-std=c11', '-mmcu=atmega328p', '-DF_CPU=16000000UL',
+  '-Os', '-flto',
+  '-mrelax', '-mcall-prologues',
+  '-fdata-sections', '-ffunction-sections',
+  '-fmerge-constants',
+  '-fno-exceptions', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables'
+]
+
+c_link_args = [
+  '-mmcu=atmega328p', '-flto',
+  '-Wl,--gc-sections',
+  '-Wl,--relax'
+]
+
+[built-in options]
+c_std           = 'c11'
+optimization    = 's'
+warning_level   = 2
+strip           = true
+default_library = 'none'
+b_staticpic     = false
+
+[project options]
+profile = false

@@ -200,7 +200,7 @@ User budget        ≥ 18 000  ≥ 1500
 
 *Meson cross-file* (`cross/atmega328p_gcc14.cross`) encodes the flag set ::
 
-   meson setup build --cross-file cross/atmega328p_gcc14.cross
+   meson setup build --cross-file cross/atmega328p_gcc14.cross -Dc_std=c23
    ninja -C build
    qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 
@@ -225,11 +225,11 @@ FDO cycle ::
        runs-on: ubuntu-24.04
        strategy:
          matrix:
-           mode: ["--modern", "--legacy"]
+           config: ["modern", "legacy"]
        steps:
          - uses: actions/checkout@v4
-         - run: sudo ./setup.sh ${{ matrix.mode }}
-         - run: meson setup build --cross-file cross/atmega328p_gcc14.cross
+         - run: sudo ./setup.sh --${{ matrix.config }}
+         - run: meson setup build --cross-file cross/atmega328p_gcc14.cross -Dc_std=c23
          - run: ninja -C build
          - run: qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic &
 

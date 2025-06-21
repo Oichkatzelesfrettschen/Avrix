@@ -52,13 +52,15 @@ jobs:
       #     Legacy build needs C11; modern stays on C23.
       - name: Meson setup (cross)
         run: |
-          EXTRA_OPT=""
+          CROSS_FILE='cross/atmega328p_gcc14.cross'
+          EXTRA_OPT='-Dc_std=c23'
           if [[ "${{ matrix.config }}" == "legacy" ]]; then
-            EXTRA_OPT="-Dc_std=c11"
+            CROSS_FILE='cross/atmega328p_gcc73.cross'
+            EXTRA_OPT='-Dc_std=c11'
           fi
           meson setup build \
               --wipe \
-              --cross-file cross/atmega328p_gcc14.cross \
+              --cross-file "$CROSS_FILE" \
               $EXTRA_OPT
 
       # 3.  Compile everything (firmware + host stubs) --------------------
