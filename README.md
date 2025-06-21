@@ -82,6 +82,8 @@ meson setup build --wipe \
 meson compile -C build
 qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 ```
+For an LLVM-based build install `clang-20`, `llvm-20`, `lld-20` and use
+`cross/atmega328p_clang20.cross` instead of the GCC file.
 
 ### 4A · Docker-based QEMU image
 
