@@ -23,17 +23,25 @@ kernel_src = files(
   'door.c',
   'task.c',            # pure C
   'nk_fs.c',
+  'romfs.c',
+  'eepfs.c',
   'kalloc.c',
   'context_switch.S'   # hand-written AVR ASM
 )
 
 portable_src = files(   # no <avr/...>
   'fixed_point.c',
-  'fs.c'
+  'fs.c',
+  'romfs.c',
+  'eepfs.c'
 )
 
-avr_only_src = kernel_src + []
-avr_only_src -= portable_src       # diff yields AVR-specific set
+avr_only_src = []
+foreach s : kernel_src
+  if not portable_src.contains(s)
+    avr_only_src += s
+  endif
+endforeach
 
 # ───────────────────────── 2. libavrix / libavrix_host ───────────────
 if meson.is_cross_build()          # ==> target = AVR
@@ -78,6 +86,8 @@ install_headers(
   '../include/memguard.h',
   '../include/nk_task.h',
   '../include/nk_fs.h',
+  '../include/romfs.h',
+  '../include/eepfs.h',
   '../include/kalloc.h',
   subdir : 'avrix'
 )

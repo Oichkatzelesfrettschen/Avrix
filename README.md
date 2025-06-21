@@ -183,6 +183,26 @@ simavr -m atmega328p build/examples/fs_demo.elf
 Creates two files in TinyLog-4, reads them back, prints via UART (view
 with the QEMU serial console or a USB-UART dongle).
 
+### ROMFS demo
+
+```bash
+meson setup build --cross-file cross/atmega328p_gcc14.cross
+meson compile -C build romfs_demo_hex
+simavr -m atmega328p build/examples/romfs_demo.elf
+```
+
+Demonstrates the flash-resident read-only filesystem.
+
+### EEPROM FS demo
+
+```bash
+meson setup build --cross-file cross/atmega328p_gcc14.cross
+meson compile -C build romfs_demo_hex
+simavr -m atmega328p build/tests/romfs_test
+```
+
+Shows both ROM and EEPROM backed stores working in tandem.
+
 ---
 
 Use `setup.sh` or the manual commands above to install the compiler

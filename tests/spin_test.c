@@ -1,3 +1,5 @@
+#define _POSIX_C_SOURCE 200809L
+#define _DEFAULT_SOURCE
 #include "nk_lock.h"
 #include <signal.h>
 #include <sys/time.h>

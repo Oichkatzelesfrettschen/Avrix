@@ -3,6 +3,9 @@
 #include <stdint.h>
 #ifndef __AVR__
 extern uint8_t nk_sim_eeprom[1024];
+#define EEMEM
+#define memcpy_P memcpy
+#define memcmp_P memcmp
 static inline uint8_t eeprom_read_byte(const uint8_t *addr)
 {
     return nk_sim_eeprom[(uintptr_t)addr];
