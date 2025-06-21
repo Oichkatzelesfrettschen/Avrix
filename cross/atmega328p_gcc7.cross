@@ -1,0 +1,50 @@
+# ─── cross/atmega328p_gcc7.cross ─────────────────────────────────────
+#  Target : Arduino-Uno R3  (ATmega328P @ 16 MHz, 32 k Flash, 2 k SRAM)
+#  Compiler: gcc-avr 7.3.x  (Ubuntu archive)
+#  Focus  : legacy baseline, C11 only.
+
+[binaries]
+c           = 'avr-gcc'
+ar          = 'avr-ar'
+strip       = 'avr-strip'
+objcopy     = 'avr-objcopy'
+size        = 'avr-size'
+exe_wrapper = 'true'        # Meson test-runner stub
+
+[host_machine]
+system      = 'baremetal'
+cpu_family  = 'avr'
+cpu         = 'atmega328p'
+endian      = 'little'
+
+[properties]
+needs_exe_wrapper = true
+
+c_args = [
+  '-std=c11', '-mmcu=atmega328p', '-DF_CPU=16000000UL',
+  '-Oz', '-flto',
+  '-mrelax', '-mcall-prologues',
+  '-fdata-sections', '-ffunction-sections',
+  '-fmerge-constants',
+  '-fno-ident',
+  '-fno-exceptions', '-fno-rtti',
+  '-fno-unwind-tables', '-fno-asynchronous-unwind-tables',
+  '-fno-stack-protector'
+]
+
+c_link_args = [
+  '-mmcu=atmega328p', '-flto',
+  '-Wl,--gc-sections',
+  '-Wl,--relax'
+]
+
+[built-in options]
+c_std           = 'c11'
+optimization    = 'z'
+warning_level   = 2
+strip           = true
+default_library = 'none'
+b_staticpic     = false
+
+[project options]
+profile = false
