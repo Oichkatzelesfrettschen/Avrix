@@ -6,18 +6,18 @@
 
 FROM ubuntu:24.04
 
-RUN apt-get -qq update && \
-    apt-get -yqq install --no-install-recommends \
+RUN apt-get -qq update
+RUN apt-get -yqq install --no-install-recommends \
         gcc-avr avr-libc binutils-avr qemu-system-misc \
         meson ninja-build make git ca-certificates \
-        python3-pip && \
-    rm -rf /var/lib/apt/lists/*
+        python3-pip
+RUN rm -rf /var/lib/apt/lists/*
 
 WORKDIR /avrix
 COPY . /avrix
 
 # Build firmware using Meson and convert ELF to a raw binary.
-RUN meson setup build --wipe --cross-file cross/avr_m328p.txt || true && \
+RUN meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross || true && \
     meson compile -C build || true && \
     avr-objcopy -O binary build/unix0.elf avrix.bin && \
     truncate -s 1M avrix.img && \
