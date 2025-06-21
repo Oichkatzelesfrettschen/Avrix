@@ -3,3 +3,4 @@ build/
 docs/build/
 docs/doxygen/
 docker/avrix.img
+__pycache__/

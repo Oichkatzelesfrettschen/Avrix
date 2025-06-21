@@ -105,3 +105,21 @@ def test_recursive_parsing(tmp_path):
     refs = check_docs.parse_references(index, recursive=True)
     assert refs == ["sub", "child"]
 
+
+def test_allowed_extensions(tmp_path):
+    docs_dir = tmp_path
+    (docs_dir / "page.md").write_text("", encoding="utf-8")
+    index = docs_dir / "index.rst"
+    index.write_text(
+        """
+.. toctree::
+   page
+""",
+        encoding="utf-8",
+    )
+    refs = check_docs.parse_references(index, allowed_exts=(".rst", ".md"))
+    assert refs == ["page"]
+    missing = check_docs.check_references(
+        refs, docs_dir=docs_dir, allowed_exts=(".rst", ".md")
+    )
+    assert missing == []
