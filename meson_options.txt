@@ -5,3 +5,7 @@ option('flash_port', type: 'string', value: '/dev/ttyACM0',
        description: 'Serial device for avrdude')
 option('flash_programmer', type: 'string', value: 'arduino',
        description: 'Programmer string for avrdude')
+option('san', type: 'string', value: 'no',
+       description: 'Enable sanitizers for host tests (yes/no)')
+option('cov', type: 'string', value: 'no',
+       description: 'Enable LLVM coverage flags (yes/no)')
