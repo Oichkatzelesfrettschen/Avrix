@@ -100,8 +100,20 @@ Wear-levelled, power-fail-safe log:
 6 · Descriptor-Based RPC (“Doors”)
 ----------------------------------------------------------------------
 
-* 4 door descriptors per task in ``.noinit``.  
+* 4 door descriptors per task in ``.noinit``.
 * 128-byte shared slab (16 Cap’n-Proto words) → zero-copy.
+* ``door_vec`` vectors are initialised by ``nk_init`` for every task.
+
+Call path ::
+
+   ``door_call`` records the caller’s TID, payload length and flags
+   before invoking ``_nk_door``.  This assembly helper copies the
+   request into ``door_slab``, performs a stack switch to the callee and
+   returns once ``door_return`` is executed.  The caller then copies the
+   reply from the slab.
+
+CapnDoorSynthesis  binds the slab layout directly to Cap’n-Proto schemas
+allowing minimal marshalling overhead.
 
 ===============  ========================  Flash  SRAM  Latency (µs)
 Primitive        Foot-print
