@@ -17,7 +17,7 @@ project(
   default_options  : [
     'c_std=c23',
     'warning_level=2',
-    'optimization=z',      # maps to -Oz
+    'optimization=s',      # -Os for size optimizations
     'buildtype=release'
   ]
 )
@@ -29,7 +29,6 @@ else
 endif
 
 subdir('src')
-subdir('lib')
 subdir('examples')
 subdir('tests')
 

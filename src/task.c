@@ -18,8 +18,11 @@
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
-#include <stdckdint.h>
 #include <string.h>
+
+enum { TIMER0_PRESCALE = 64, TIMER0_HZ = 1000 };
+#define TIMER0_RELOAD ((F_CPU / TIMER0_PRESCALE / TIMER0_HZ) - 1)
+_Static_assert(TIMER0_RELOAD <= UINT8_MAX, "Timer0 reload exceeds 8-bit range");
 
 /*───────────────────── 1. Scheduler globals ─────────────────────*/
 
@@ -34,9 +37,8 @@ static struct {
     .quantum = NK_QUANTUM_MS
 };
 
-/* Door RPC slabs (defined extern in door.c) ----------------------*/
-door_t door_vec[NK_MAX_TASKS][DOOR_SLOTS]
-    __attribute__((section(".noinit")));
+/* Door RPC descriptors (defined in door.c) ----------------------*/
+extern door_t door_vec[NK_MAX_TASKS][DOOR_SLOTS];
 
 /* Optional guarded stacks ---------------------------------------*/
 #if NK_OPT_STACK_GUARD
@@ -53,8 +55,12 @@ static uint8_t nk_stacks[NK_MAX_TASKS][NK_STACK_SIZE]
     __attribute__((section(".noinit")));
 #endif
 
-/* Hand-rolled context switch (isr.S) -----------------------------*/
+/* Hand-rolled context switch (ASM) ------------------------------*/
 extern void _nk_switch_context(nk_sp_t *save_sp, nk_sp_t load_sp);
+extern void _nk_switch_task(nk_sp_t *save_sp,
+                            nk_sp_t  load_sp,
+                            uint8_t *current_ptr,
+                            uint8_t  next_tid);
 
 /*───────────────────── 2. Helper routines ───────────────────────*/
 
@@ -75,8 +81,7 @@ static uint8_t find_next_task(void)
     uint8_t bestp = 0xFF;
 
     for (uint8_t i = 0; i < nk_sched.count; ++i) {
-        uint8_t idx;
-        ckd_add(&idx, nk_sched.current, (uint8_t)(i + 1));
+        uint8_t idx = nk_sched.current + (uint8_t)(i + 1);
         idx %= nk_sched.count;
 
         nk_tcb_t *t = nk_sched.tasks[idx];
@@ -128,9 +133,8 @@ static void switch_to(uint8_t next)
     if (from->state == NK_RUNNING)
         from->state = NK_READY;
     to->state       = NK_RUNNING;
-    nk_sched.current = next;
 
-    _nk_switch_context(&from->sp, to->sp);
+    _nk_switch_task(&from->sp, to->sp, &nk_sched.current, next);
 }
 
 static inline void atomic_schedule(void)
@@ -142,7 +146,7 @@ static inline void atomic_schedule(void)
 
 /*───────────────────── 3. Public API  ───────────────────────────*/
 
-void nk_init(void)
+void scheduler_init(void)
 {
 #if NK_OPT_STACK_GUARD
     for (nk_stack_t *s = nk_stacks; s < nk_stacks + NK_MAX_TASKS; ++s) {
@@ -150,12 +154,20 @@ void nk_init(void)
         s->guard_hi = STACK_GUARD_PATTERN;
     }
 #endif
-    /* 1 kHz tick: 16 MHz / 64 / 250 */
+    /* 1 kHz tick using Timer0 in CTC mode */
     TCCR0A = _BV(WGM01);
     TCCR0B = _BV(CS01) | _BV(CS00);
-    OCR0A  = (uint8_t)(F_CPU / 64 / 1000 - 1);
+    OCR0A  = (uint8_t)TIMER0_RELOAD;
     TIMSK0 = _BV(OCIE0A);
 }
+
+#if defined(__GNUC__)
+void nk_sched_init(void) __attribute__((alias("scheduler_init")));
+void nk_init(void)    __attribute__((alias("scheduler_init")));
+#else
+void nk_sched_init(void) { scheduler_init(); }
+void nk_init(void)    { scheduler_init(); }
+#endif
 
 bool nk_task_create(nk_tcb_t *tcb,
                     nk_task_fn entry,
@@ -199,12 +211,20 @@ bool nk_task_add(nk_tcb_t *t, void (*e)(void),
     __attribute__((alias("nk_task_create")));
 
 /* Start the scheduler (never returns) --------------------------------*/
-void nk_start(void)
+void scheduler_run(void)
 {
     sei();
     switch_to(find_next_task());
     __builtin_unreachable();
 }
+
+#if defined(__GNUC__)
+void nk_sched_run(void) __attribute__((alias("scheduler_run")));
+void nk_start(void) __attribute__((alias("scheduler_run")));
+#else
+static inline void nk_sched_run(void) { scheduler_run(); }
+static inline void nk_start(void) { scheduler_run(); }
+#endif
 
 void nk_yield(void)
 {
@@ -255,8 +275,27 @@ void nk_task_signal(uint8_t tid)
 }
 #endif /* DAG */
 
-/*───────────────────── 4. 1 kHz timer ISR ───────────────────────*/
-ISR(TIMER0_COMPA_vect, ISR_NAKED)
+/*───────────────────── 4. Timer tick & ISR ──────────────────────*/
+static void context_switch(void)
+{
+    update_sleep_timers();
+    if (--nk_sched.quantum == 0) {
+        nk_sched.quantum = NK_QUANTUM_MS;
+        switch_to(find_next_task());
+    }
+}
+
+ISR(TIMER0_COMPA_vect)
+{
+    context_switch();
+}
+
+/*────────────── Door service ISR – server-side dispatch ─────────────*/
+#ifndef DOORSERV_vect
+#  define DOORSERV_vect _VECTOR(32)
+#endif
+
+ISR(DOORSERV_vect, ISR_NAKED)
 {
     asm volatile(
         "push  r24            \n\t"
@@ -264,11 +303,7 @@ ISR(TIMER0_COMPA_vect, ISR_NAKED)
         "push  r24            \n\t"
         ::: "memory");
 
-    update_sleep_timers();
-    if (--nk_sched.quantum == 0) {
-        nk_sched.quantum = NK_QUANTUM_MS;
-        switch_to(find_next_task());
-    }
+    switch_to(find_next_task());
 
     asm volatile(
         "pop   r24            \n\t"
