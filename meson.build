@@ -48,29 +48,24 @@ doc_doxygen = []
 doxygen = find_program('doxygen', required : false)
 if doxygen.found()
 
-doc_doxygen = custom_target(
-    'doc-doxygen',
-    input  : 'Doxyfile',
-    output : 'doxygen.stamp',
-    command : [doxygen, '@INPUT@'],
-    console : true,
-    build_always_stale : true,
-    build_by_default : false,
-)
+  graphviz = find_program('dot', required : false)
 
-doxy_conf = configure_file(
+  doxy_conf = configure_file(
     input  : 'Doxyfile.in',
     output : 'Doxyfile',
     configuration : {
-      'OUTPUT_DIR' : meson.current_build_dir() / 'docs/doxygen'
+      'OUTPUT_DIR' : meson.current_build_dir() / 'docs/doxygen',
+      'HAVE_DOT'   : graphviz.found() ? 'YES' : 'NO'
     }
   )
+
   doc_doxygen = custom_target(
     'doc-doxygen',
-    command         : [doxygen, doxy_conf],
-    output          : 'docs/doxygen/html/index.html',
-    build_by_default: false
-
+    command           : [doxygen, doxy_conf],
+    output            : 'docs/doxygen/html/index.html',
+    console           : true,
+    build_always_stale: true,
+    build_by_default  : false,
   )
   doc_targets += doc_doxygen
 endif
@@ -82,13 +77,14 @@ if sphinx.found()
     'doc-sphinx',
     command : [
       sphinx,
+      '-W',  # treat warnings as errors
       '-D',
       'breathe_projects.avrix=@0@'.format(
         meson.current_source_dir() / 'docs/doxygen/xml'
       ),
       meson.current_source_dir() / 'docs/source',   # input dir
       meson.current_build_dir()  / 'docs',          # output dir
-      '-a', '-q'                                    # rebuild all, quiet
+      '-a', '-q'
     ],
     depends : doc_doxygen
   )
@@ -97,5 +93,5 @@ endif
 
 ## 3.  Aggregator ######################################################
 if doc_targets.length() > 0
-  alias_target('doc', doc_targets)   # `meson compile doc` builds all docs
+  run_target('doc', command : ['true'], depends : doc_targets)
 endif

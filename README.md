@@ -20,12 +20,14 @@ In the documentation the kernel is also referred to as **µ-UNIX**.
 sudo ./setup.sh --modern     # GCC-14 + QEMU smoke-boot   (recommended)
 # or
 sudo ./setup.sh --legacy     # GCC-7.3 only – bare minimum
+# add --no-python if you are offline
 ````
 
 `setup.sh` automatically
 
 * pins **Debian-sid** `gcc-avr-14` (falls back to Ubuntu 7.3 if sid is blocked),
 * installs QEMU ≥ 8.2 + Meson + docs & analysis helpers,
+* `--no-python` skips the docs helpers for offline installs,
 * **builds** the firmware, boots it in QEMU (`arduino-uno` machine),
 * prints MCU-specific **CFLAGS / LDFLAGS** you can paste into any Makefile.
 
@@ -123,6 +125,7 @@ Legacy build? Replace `-std=c23` with `-std=c11` and drop the two GCC-14 extras.
 meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross
 meson compile -C build
 qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
+meson compile -C build flash           # flash over /dev/ttyACM0
 ```
 
 For LLVM: use `cross/atmega328p_clang20.cross`.
@@ -143,6 +146,16 @@ simavr -m atmega328p -v build/nk.elf
 
 Only the AVR core runs – external peripherals are not modelled. See the
 [simavr documentation](https://github.com/buserror/simavr/wiki) for details.
+
+### 4A · Custom toolchain prefix
+
+Set `AVR_PREFIX` when the AVR tools live outside `/usr/bin`.  Use the
+helper script to regenerate the cross file and point Meson to it:
+
+```bash
+AVR_PREFIX=/opt/avr/bin ./cross/gen_avr_cross.sh
+meson setup build --wipe --cross-file cross/avr_m328p.txt
+```
 
 ---
 
@@ -217,7 +230,22 @@ Creates two files in TinyLog-4, reads them back, prints via UART.
 
 ---
 
-## 11 · Dockerized QEMU test
+## 11 · Running the test-suite
+
+```bash
+meson test -C build --print-errorlogs
+```
+
+Tests using the host CPU run directly. Cross builds leverage **simavr** so the
+AVR binaries execute in simulation. Ensure `simavr` is installed and available
+in your `$PATH`.
+
+The `spinlock_isr` case stresses the DAG-based spinlock under a 1 kHz timer
+interrupt using `simavr`.  It runs automatically when cross compiling.
+
+---
+
+## 12 · Dockerized QEMU test
 
 ```bash
 docker build -t avrix-qemu docker
@@ -228,11 +256,11 @@ The container compiles the firmware, emits `avrix.img`, then boots QEMU.
 
 ---
 
-## 12 · Gap & friction backlog
+## 13 · Gap & friction backlog
 
 | Gap                                       | Why it matters                                 | Proposed fix                                        |
 | ----------------------------------------- | ---------------------------------------------- | --------------------------------------------------- |
-| **Real-board flash script**               | newcomers still need the `avrdude` incantation | add `scripts/flash.sh` → auto-detect `/dev/ttyACM*` |
+| **Real-board flash helper**               | newcomers still need the `avrdude` incantation | `meson compile -C build flash` flashes the Uno |
 | **tmux-dev launcher**                     | 4-pane session exists only in docs             | ship `scripts/tmux-dev.sh`                          |
 | **On-device GDB stub**                    | “printf + LED” is clumsy                       | gate tiny `avr-gdbstub` behind `-DDEBUG_GDB`        |
 | **Static-analysis CI**                    | cppcheck runs locally only                     | add `cppcheck/clang-tidy` GitHub job                |
