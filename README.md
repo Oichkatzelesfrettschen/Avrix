@@ -118,6 +118,17 @@ meson compile -C build
 qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 ```
 
+### 4A · Docker-based QEMU image
+
+```bash
+docker build -t avrix-qemu docker
+docker run --rm -it avrix-qemu
+```
+
+The container compiles the firmware, creates `avrix.img` from the ELF
+and boots `qemu-system-avr` with the emulated ATmega16U2 USB bridge
+enabled for a faithful Uno R3 experience.
+
 ---
 
 ## 5 · Verify install
@@ -208,5 +219,15 @@ environment variable selects the target AVR chip.
 
 Happy hacking — the whole OS still fits in **less flash than one JPEG emoji** 🐜
 
+## 11 · Dockerized QEMU test
+
+Spin up a pre-configured QEMU environment using ``docker/Dockerfile``.
+The container compiles the firmware and launches ``qemu-system-avr`` so
+the full board model can be exercised without any host dependencies:
+
+```bash
+docker build -t avrix-qemu docker
+docker run --rm -it avrix-qemu
 ```
-```
+This produces ``avrix.img`` alongside the ELF to simplify further
+experimentation.

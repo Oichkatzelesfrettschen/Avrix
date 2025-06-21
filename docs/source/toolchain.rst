@@ -148,6 +148,17 @@ Documentation targets:
    meson compile -C build doc-doxygen
    meson compile -C build doc-sphinx
 
+6 A · Docker image
+------------------
+
+Create an isolated environment via ``docker/Dockerfile``::
+
+   docker build -t avrix-qemu docker
+   docker run --rm -it avrix-qemu
+
+The container builds the firmware, generates ``avrix.img`` and launches
+``qemu-system-avr`` with the USB bridge enabled.
+
 ----------------------------------------------------------------------
 7 · Handy APT queries
 ----------------------------------------------------------------------
