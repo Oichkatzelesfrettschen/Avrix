@@ -49,17 +49,19 @@ jobs:
         run: sudo ./setup.sh --${{ matrix.config }}
 
       # 2.  Configure cross-build  ----------------------------------------
-      #     Legacy build needs C11; modern stays on C23.
+      #     Select the cross-file matching the compiler version.
       - name: Meson setup (cross)
         run: |
-          EXTRA_OPT=""
-          if [[ "${{ matrix.config }}" == "legacy" ]]; then
-            EXTRA_OPT="-Dc_std=c11"
+          if [[ "${{ matrix.mode }}" == "--legacy" ]]; then
+            CROSS_FILE=cross/atmega328p_gcc7.cross
+          else
+            CROSS_FILE=cross/atmega328p_gcc14.cross
+          else
+           EXTRA_OPT="-Dc_std=c11"; then
           fi
           meson setup build \
               --wipe \
-              --cross-file cross/atmega328p_gcc14.cross \
-              $EXTRA_OPT
+              --cross-file "$CROSS_FILE"
 
       # 3.  Compile everything (firmware + host stubs) --------------------
       - name: Compile all targets
