@@ -13,6 +13,11 @@ int main(void)
     assert(n > 0);
     printf("romfs:%s\n", buf);
 
+    // Test reading with offset beyond file size
+    int out_of_bounds_offset = 1024; // Large offset, likely beyond file size
+    n = romfs_read(f, out_of_bounds_offset, buf, sizeof buf - 1);
+    assert(n == 0);
+
     // Negative test cases for romfs_open
     const romfs_file_t *nf1 = romfs_open("/etc/config/does_not_exist.txt");
     assert(nf1 == NULL);
