@@ -44,8 +44,20 @@ case "$MODE" in --modern|--legacy|"") ;; *)
 esac
 
 step() { printf '\n\033[1;36m[%s]\033[0m %s\n' "$(date +%H:%M:%S)" "$*"; }
-pkg_installed() { dpkg -s "$1" &>/dev/null; }
 have_repo()     { grep -RHq "$1" /etc/apt/*sources* 2>/dev/null; }
+
+# Base toolchain packages installed in both modes
+TOOLCHAIN_PKG=gcc-avr
+BASE_PKGS=(
+  "$TOOLCHAIN_PKG" avr-libc binutils-avr avrdude gdb-avr
+  qemu-system-misc simavr
+)
+
+# Extra utilities installed only in modern mode
+EXTRA_PKGS=(
+  meson ninja-build doxygen python3-sphinx python3-pip python3-venv
+  cloc cscope exuberant-ctags cppcheck graphviz nodejs npm
+)
 
 step "Selected mode: $MODE"
 
@@ -87,22 +99,12 @@ fi
 apt-get -qq update
 
 # ───────────────────────── 2 · packages ─────────────────────────────────
-TOOLCHAIN_PKG=gcc-avr   # will resolve to 14.x (sid) or 7.3 (ubuntu)
-BASE_PKGS=(
-  "$TOOLCHAIN_PKG" avr-libc binutils-avr avrdude gdb-avr
-  qemu-system-misc  simavr
-)
-
-if [[ $MODE == "--modern" ]]; then
-  BASE_PKGS+=(
-    meson ninja-build doxygen python3-sphinx python3-pip python3-venv
-    cloc cscope exuberant-ctags cppcheck graphviz nodejs npm
-  )
-fi
+PACKAGES=("${BASE_PKGS[@]}")
+[[ $MODE == "--modern" ]] && PACKAGES+=("${EXTRA_PKGS[@]}")
 
 step "Installing ${#BASE_PKGS[@]} packages (this can take a while)"
 for p in "${BASE_PKGS[@]}"; do
-  pkg_installed "$p" || apt-get -yqq install "$p" || {
+  pkg_installed "$p" || apt-get -qq update && apt-get -yqq install "$p" || {
     echo "[error] package installation failed: $p" >&2
     exit 1
   }

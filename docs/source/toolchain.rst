@@ -155,7 +155,7 @@ For a *legacy* build drop ``--icf`` / ``-fipa-pta`` and switch
 .. code-block:: bash
 
    meson setup build --wipe \
-        --cross-file cross/atmega328p_gcc14.cross
+        --cross-file cross/atmega328p_gcc14.cross -Dc_std=c23
    meson compile -C build
    qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 

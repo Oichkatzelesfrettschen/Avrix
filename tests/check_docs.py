@@ -1,210 +1,175 @@
-Below is a **drop-in replacement** for `tests/check_docs.py`.
-It removes merge artefacts, deduplicates imports, unifies CLI options and adds
-a few convenience features (quiet mode, multi-extension support).
-
-```python
 #!/usr/bin/env python3
-"""
-check_docs.py – fail the build if any Sphinx ``.. toctree::`` entry points
-to a non-existent document.
+"""Verify that all Sphinx toctree references resolve to existing files."""
 
-Usage examples
-──────────────
-    # CI / Meson target (non-recursive: only index.rst)
-    python3 tests/check_docs.py --docs-dir docs/source
-
-    # Local check, follow nested toctrees, accept .rst and .md pages
-    python3 tests/check_docs.py -r -e .rst -e .md -q
-Exit status: 0 = OK · 1 = missing refs · 2 = fatal error.
-"""
 from __future__ import annotations
 
-import argparse
-import sys
 from pathlib import Path
-from typing import Iterator, List, Set, Tuple
+import sys
+import argparse
 
-# ── defaults relative to the repository root ─────────────────────────────
+# Paths ---------------------------------------------------------------------
+# Documentation source directory and main index file.
 DEFAULT_DOCS_DIR = Path(__file__).resolve().parents[1] / "docs" / "source"
+# Alias for backwards-compatibility with older tests
+DOCS_DIR = DEFAULT_DOCS_DIR
+DEFAULT_INDEX_FILE = DEFAULT_DOCS_DIR / "index.rst"
 
 
-# ── internal helpers ─────────────────────────────────────────────────────
+def parse_references(
+    index_path: Path,
+    *,
+    recursive: bool = False,
+    allowed_exts: tuple[str, ...] = (".rst",),
+    _seen: set[Path] | None = None,
+) -> list[str]:
+    """Return references from all ``.. toctree::`` blocks within *index_path*.
 
+    The parser intentionally ignores directive options such as ``:maxdepth:``
+    and supports multiple toctree blocks.  When *recursive* is ``True`` the
+    parser will follow references to other ``.rst`` files and accumulate their
+    references as well.
+    """
+    refs: list[str] = []
+    inside = False
+    indent: int | None = None
 
-def _iter_toctree_refs(rst_file: Path) -> Iterator[str]:
-    """Yield every raw entry inside all ``.. toctree::`` blocks."""
-    inside, base_indent = False, None
-    for line in rst_file.read_text(encoding="utf-8").splitlines():
+    if _seen is None:
+        _seen = {index_path.resolve()}
+
+    for line in index_path.read_text(encoding="utf-8").splitlines():
         stripped = line.lstrip()
-
         if stripped.startswith(".. toctree::"):
-            inside, base_indent = True, None
+            inside = True
+            indent = None
             continue
         if not inside:
             continue
-
-        if not stripped or stripped.startswith(":"):
-            # blank / option line
+        if not stripped:
+            # Blank lines are ignored within toctree blocks.
             continue
-        if base_indent is None:
-            base_indent = len(line) - len(stripped)
-        elif len(line) - len(stripped) < base_indent:
-            # dedent → block ends
+        if stripped.startswith(":"):
+            # Directive option (e.g., ``:maxdepth:``).
+            continue
+        if indent is None:
+            indent = len(line) - len(stripped)
+        elif len(line) - len(stripped) < indent:
+            # Dedent marks the end of the toctree block.
             inside = False
+            indent = None
             continue
-
-        yield stripped.split("<!--", 1)[0].strip()  # drop inline comments
-
-
-def _walk_refs(
-    root: Path,
-    *,
-    docs_dir: Path,
-    recursive: bool,
-    exts: Tuple[str, ...],
-    seen: Set[Path] | None = None,
-) -> List[str]:
-    """Collect refs from *root* (and optionally its children)."""
-    seen = seen or set()
-    root = root.resolve()
-    if root in seen:
-        return []
-    seen.add(root)
-
-    refs: List[str] = []
-    for ref in _iter_toctree_refs(root):
-        refs.append(ref)
-        if not recursive:
-            continue
-
-        # try to resolve the reference to a file we can open
-        for ext in exts:
-            child = docs_dir / (ref if ref.endswith(ext) else f"{ref}{ext}")
-            if child.exists():
+        refs.append(stripped)
+        if recursive:
+            # Pick the first existing target using the allowed extensions.
+            target: Path | None = None
+            for ext in allowed_exts:
+                cand = index_path.parent / (
+                    stripped if stripped.endswith(ext) else f"{stripped}{ext}"
+                )
+                if cand.exists():
+                    target = cand
+                    break
+            if target is None:
+                # Fall back to the first extension regardless of existence.
+                ext = allowed_exts[0]
+                target = index_path.parent / (
+                    stripped if stripped.endswith(ext) else f"{stripped}{ext}"
+                )
+            real = target.resolve()
+            if target.exists() and real not in _seen:
+                _seen.add(real)
                 refs.extend(
-                    _walk_refs(
-                        child,
-                        docs_dir=docs_dir,
+                    parse_references(
+                        target,
                         recursive=True,
-                        exts=exts,
-                        seen=seen,
+                        allowed_exts=allowed_exts,
+                        _seen=_seen,
                     )
                 )
-                break
+
     return refs
 
 
-def _missing_paths(
-    refs: List[str],
+def check_references(
+    refs: list[str],
     *,
-    docs_dir: Path,
-    exts: Tuple[str, ...],
-) -> List[Path]:
-    """Return every referenced file that cannot be found."""
-    missing: List[Path] = []
+    docs_dir: Path | None = None,
+    allowed_exts: tuple[str, ...] = (".rst",),
+) -> list[Path]:
+    """Return any document paths that do not exist within *docs_dir*."""
+    docs_dir = DOCS_DIR if docs_dir is None else docs_dir
+    missing: list[Path] = []
     for ref in refs:
-        # reference may include an extension already
-        if Path(ref).suffix:
+        if any(ref.endswith(ext) for ext in allowed_exts):
             candidate = docs_dir / ref
             if not candidate.exists():
                 missing.append(candidate)
-        else:
-            # try any allowed extension
-            for ext in exts:
-                if (docs_dir / f"{ref}{ext}").exists():
-                    break
-            else:
-                missing.append(docs_dir / f"{ref}{exts[0]}")
+            continue
+        # Try each allowed extension and stop at the first existing one.
+        found = False
+        for ext in allowed_exts:
+            candidate = docs_dir / f"{ref}{ext}"
+            if candidate.exists():
+                found = True
+                break
+        if not found:
+            # None of the candidates exist; report the first for consistency.
+            missing.append(docs_dir / f"{ref}{allowed_exts[0]}")
     return missing
 
 
-# ── CLI / entry-point ────────────────────────────────────────────────────
+def main(argv: list[str] | None = None) -> int:
+    """Entry point for command-line usage."""
 
-
-def _build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument(
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
         "--docs-dir",
         type=Path,
         default=DEFAULT_DOCS_DIR,
-        help="Documentation *source* directory (default: %(default)s)",
+        help="Directory containing documentation sources",
     )
-    p.add_argument(
+    parser.add_argument(
         "--index-file",
         type=Path,
-        help="Root file to scan (default: <docs-dir>/index.rst)",
+        help="Index file to parse (defaults to <docs-dir>/index.rst)",
     )
-    p.add_argument(
+    parser.add_argument(
         "-r",
         "--recursive",
         action="store_true",
-        help="Recursively follow references in nested toctree blocks.",
+        help="Recursively scan referenced files",
     )
-    p.add_argument(
-        "-e",
+    parser.add_argument(
         "--ext",
-        action="append",
+        "--extensions",
+        dest="ext",
+        nargs="+",
         default=[".rst"],
-        metavar=".EXT",
-        help="Accepted file extension (repeatable, default: .rst).",
+        help="Allowed file extensions for document references",
     )
-    p.add_argument(
-        "-q",
-        "--quiet",
-        action="store_true",
-        help="Suppress success message.",
-    )
-    return p
 
+    args = parser.parse_args(argv)
 
-def main(argv: list[str] | None = None) -> int:
-    try:
-        args = _build_parser().parse_args(argv)
-        docs_dir = args.docs_dir.resolve()
-        index = (args.index_file or docs_dir / "index.rst").resolve()
+    docs_dir = args.docs_dir
+    index_file = args.index_file or docs_dir / "index.rst"
+    allowed_exts = tuple(args.ext)
 
-        if not index.exists():
-            print(f"[fatal] index file not found: {index}", file=sys.stderr)
-            return 2
-
-        # normalise extensions
-        exts = tuple(ext if ext.startswith(".") else f".{ext}" for ext in args.ext)
-
-        refs = _walk_refs(
-            index,
-            docs_dir=docs_dir,
-            recursive=args.recursive,
-            exts=exts,
-        )
-        missing = _missing_paths(refs, docs_dir=docs_dir, exts=exts)
-
-        if missing:
-            print("\nMissing documentation pages:")
-            for path in missing:
-                print(f"  • {path.relative_to(docs_dir)}")
-            print(f"\n✖ {len(missing)} unresolved reference(s).")
-            return 1
-
-        if not args.quiet:
-            print("✓ All toctree references resolve.")
-        return 0
-
-    except Exception as exc:  # noqa: BLE001
-        print(f"[fatal] unexpected error: {exc}", file=sys.stderr)
+    if not index_file.exists():
+        print(f"Index file not found: {index_file}", file=sys.stderr)
         return 2
+
+    refs = parse_references(
+        index_file,
+        recursive=args.recursive,
+        allowed_exts=allowed_exts,
+    )
+    if missing := check_references(
+        refs, docs_dir=docs_dir, allowed_exts=allowed_exts
+    ):
+        for path in missing:
+            print(f"Missing file: {path}", file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-```
-
-### What changed?
-
-* **No merge markers** or duplicate imports (`argparse` appeared twice).
-* `--docs-dir`, `--index-file`, multi-`--ext` and `--quiet` CLI flags.
-* Single recursive walker with a `seen` set → avoids infinite loops.
-* Missing files grouped in a tidy list with relative paths.
-* Distinct exit codes: `0=OK`, `1=missing refs`, `2=fatal/usage`.
-
-Copy the file into `tests/check_docs.py`; the existing Meson target
-(`test('check-docs', python, args : files('check_docs.py'), …)`) will just work.
