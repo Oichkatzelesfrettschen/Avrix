@@ -98,6 +98,13 @@ interrupt vectors in lower memory. For minimal power consumption, disable
 unused peripherals via the PRR register and use power-down sleep with watchdog
 wake-up.
 
+Portability Note
+----------------
+``NK_LOCK_ADDR`` must be placed in the lower I/O range (``≤ 0x3F``) so
+single-cycle ``IN``/``OUT`` instructions can access the lock byte.
+On 32‑bit AVR devices the Beatty lattice step (`NK_LATTICE_STEP`) is
+multiplied by ``1024`` via ``NK_LATTICE_SCALE`` to prevent ticket overflow.
+
 Scheduler Time Slice
 --------------------
 ``scheduler_init()`` programs Timer/Counter0 for a 1\,kHz tick in
