@@ -103,12 +103,17 @@ PACKAGES=("${BASE_PKGS[@]}")
 [[ $MODE == "--modern" ]] && PACKAGES+=("${EXTRA_PKGS[@]}")
 
 step "Installing ${#BASE_PKGS[@]} packages (this can take a while)"
+MISSING_PKGS=()
 for p in "${BASE_PKGS[@]}"; do
-  pkg_installed "$p" || apt-get -qq update && apt-get -yqq install "$p" || {
-    echo "[error] package installation failed: $p" >&2
+  dpkg -s "$p" &>/dev/null || MISSING_PKGS+=("$p")
+done
+if (( ${#MISSING_PKGS[@]} )); then
+  apt-get -qq update
+  apt-get -yqq install "${MISSING_PKGS[@]}" || {
+    echo "[error] package installation failed: ${MISSING_PKGS[*]}" >&2
     exit 1
   }
-done
+fi
 
 # ───────────────────────── 3 · docs venv (modern) ───────────────────────
 if [[ $MODE == "--modern" ]]; then
