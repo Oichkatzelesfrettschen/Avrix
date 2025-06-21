@@ -45,6 +45,7 @@ Contents
    filesystem
    slip_networking
    fuses
+   api/library_root
    roadmap-qemu-avr
 
 -------------------------------------------------
