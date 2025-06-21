@@ -74,6 +74,28 @@ CFLAGS="$CFLAGS --icf=safe -fipa-pta"
 
 ---
 
+## 4 · Build & run
+
+```bash
+meson setup build --wipe \
+      --cross-file cross/atmega328p_gcc14.cross
+meson compile -C build
+qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
+```
+
+### 4A · Docker-based QEMU image
+
+```bash
+docker build -t avrix-qemu docker
+docker run --rm -it avrix-qemu
+```
+
+The container compiles the firmware, creates `avrix.img` from the ELF
+and boots `qemu-system-avr` with the emulated ATmega16U2 USB bridge
+enabled for a faithful Uno R3 experience.
+
+---
+
 ### 🔗  Related Meson options not yet in README
 
 | Option                 | Default | What it toggles                          |
@@ -167,5 +189,15 @@ sprawl in check as features pile up.
 
 *Pull requests welcomed — keep each under 1 kB flash, please!* 🐜
 
+## 11 · Dockerized QEMU test
+
+Spin up a pre-configured QEMU environment using ``docker/Dockerfile``.
+The container compiles the firmware and launches ``qemu-system-avr`` so
+the full board model can be exercised without any host dependencies:
+
+```bash
+docker build -t avrix-qemu docker
+docker run --rm -it avrix-qemu
 ```
-```
+This produces ``avrix.img`` alongside the ELF to simplify further
+experimentation.

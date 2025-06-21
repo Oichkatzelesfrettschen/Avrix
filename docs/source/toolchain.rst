@@ -149,6 +149,17 @@ For a *legacy* build drop ``--icf`` / ``-fipa-pta`` and switch
    meson compile -C build doc-sphinx    # user manual
    meson compile -C build doc           # both of the above
 
+6 A · Docker image
+------------------
+
+Create an isolated environment via ``docker/Dockerfile``::
+
+   docker build -t avrix-qemu docker
+   docker run --rm -it avrix-qemu
+
+The container builds the firmware, generates ``avrix.img`` and launches
+``qemu-system-avr`` with the USB bridge enabled.
+
 ----------------------------------------------------------------------
 8 · APT cheat-sheet
 ----------------------------------------------------------------------
