@@ -16,6 +16,7 @@ them. If you only care about “it just works”, run:
 
    sudo ./setup.sh --modern      # Debian gcc-avr 14 + QEMU demo
    sudo ./setup.sh --legacy      # Ubuntu gcc-avr 7.3 only
+   # append --no-python if offline
 
 ``setup.sh`` in *modern* mode will pin the Debian-sid packages, install
 QEMU ≥ 8.2, Meson, Doxygen, Sphinx … compile a demo ELF, boot it in
@@ -122,6 +123,7 @@ See `Ask Ubuntu <https://askubuntu.com/>`_ for background.
                       nodejs npm
    pip3 install --user breathe exhale sphinx-rtd-theme
    npm  install  -g   prettier
+   # offline? use --no-python with setup.sh and skip the two lines above
 
 ----------------------------------------------------------------------
 4 · Sanity-check the install
