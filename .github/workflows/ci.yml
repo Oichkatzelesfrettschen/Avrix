@@ -59,6 +59,8 @@ jobs:
               --wipe \
               --cross-file cross/atmega328p_gcc14.cross \
               $EXTRA_OPT
+          # meson setup build --wipe \
+          #     --cross-file cross/atmega328p_clang20.cross 
 
       # 3.  Compile everything (firmware + host stubs) --------------------
       - name: Compile all targets

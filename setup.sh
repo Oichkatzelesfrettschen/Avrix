@@ -127,9 +127,11 @@ echo "export LDFLAGS=\"$LDFLAGS\""
 echo "──────────────────────────────────────────────────"
 
 # ───────────────────────── 7 · Demo build (modern) ──────────────────────
-if [[ $MODE == "--modern" && -f cross/atmega328p_gcc14.cross ]]; then
+if [[ $MODE == "--modern" && ( -f cross/atmega328p_gcc14.cross || -f cross/atmega328p_clang20.cross ) ]]; then
   step "Configuring Meson cross build"
-  meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross \
+  CROSS_FILE=cross/atmega328p_gcc14.cross
+  [[ -f cross/atmega328p_clang20.cross ]] && CROSS_FILE=cross/atmega328p_clang20.cross
+  meson setup build --wipe --cross-file "$CROSS_FILE" \
         >/dev/null
   step "Compiling firmware"
   ninja -C build >/dev/null

@@ -78,7 +78,8 @@ CFLAGS="$CFLAGS --icf=safe -fipa-pta"
 
 ```bash
 meson setup build --wipe \
-      --cross-file cross/atmega328p_gcc14.cross
+      --cross-file cross/atmega328p_gcc14.cross  # GCC 14
+# meson setup build --cross-file cross/atmega328p_clang20.cross  # Clang 20
 meson compile -C build
 qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 ```
@@ -109,6 +110,8 @@ Invoke e.g.
 ```bash
 meson setup build -Duip=true -Dfs=tinyfsj \
                   --cross-file cross/atmega328p_gcc14.cross
+# meson setup build -Duip=true -Dfs=tinyfsj \
+#                  --cross-file cross/atmega328p_clang20.cross
 ````
 
 ---
@@ -136,6 +139,7 @@ scripts/
 
 ```bash
 meson setup build --cross-file cross/atmega328p_gcc14.cross
+# meson setup build --cross-file cross/atmega328p_clang20.cross
 meson compile -C build fs_demo_hex
 simavr -m atmega328p build/examples/fs_demo.elf
 ```
@@ -147,6 +151,7 @@ with the QEMU serial console or a USB-UART dongle).
 
 ```bash
 meson setup build --cross-file cross/atmega328p_gcc14.cross
+# meson setup build --cross-file cross/atmega328p_clang20.cross
 meson compile -C build romfs_demo_hex
 simavr -m atmega328p build/examples/romfs_demo.elf
 ```
@@ -157,6 +162,7 @@ Demonstrates the flash-resident read-only filesystem.
 
 ```bash
 meson setup build --cross-file cross/atmega328p_gcc14.cross
+# meson setup build --cross-file cross/atmega328p_clang20.cross
 meson compile -C build romfs_demo_hex
 simavr -m atmega328p build/tests/romfs_test
 ```
