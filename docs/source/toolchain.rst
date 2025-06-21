@@ -158,6 +158,8 @@ For a *legacy* build drop ``--icf`` / ``-fipa-pta`` and switch
         --cross-file cross/atmega328p_gcc14.cross -Dc_std=c23
    meson compile -C build
    qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
+   meson compile -C build flash \
+        -Dflash_port=/dev/ttyACM0 -Dflash_programmer=arduino
 
 ``cross/atmega328p_clang20.cross`` is provided for LLVM 20 users.
 
