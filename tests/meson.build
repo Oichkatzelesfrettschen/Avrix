@@ -54,8 +54,11 @@ endif
 
 common_cflags = [
   '-O2', '-Wall', '-Wextra', '-pedantic',
-  '-std=c17',                # host compiler, C23 not required
-  '-march=native'
+  '-std=c17'
+]
+avr_cflags = [
+  '-Os', '-Wall', '-Wextra', '-pedantic',
+  '-std=c11'
 ]
 
 # Convenience: TRUE when tests *must* be compiled for the host
@@ -176,3 +179,19 @@ test('flock_stress', flock_exe)
 test('spin_lock',    spin_exe)
 test('superlock_basic', superlock_exe)
 test('romfs_basic',  romfs_exe)
+
+simavr = find_program('simavr', required : false)
+if simavr.found() and meson.is_cross_build()
+  fs_simavr_exe = executable(
+    'fs_simavr_basic',
+    ['fs_simavr_basic.c', meson.project_source_root() / 'src/fs.c'],
+    include_directories : inc_list,
+    c_args              : avr_cflags
+  )
+  test(
+    'fs_simavr_basic',
+    simavr,
+    args : ['-m', 'atmega328p', fs_simavr_exe],
+    is_parallel : false
+  )
+endif
