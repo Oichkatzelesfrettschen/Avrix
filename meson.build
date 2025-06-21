@@ -41,7 +41,17 @@ doc_doxygen = []
 ## 1.  Doxygen (API reference) ########################################
 doxygen = meson.get_compiler('c').find_program('doxygen', required : false)
 if doxygen.found()
-  doxy_conf = configure_file(
+
+doc_doxygen = custom_target(
+    'doc-doxygen',
+    input  : 'Doxyfile',
+    output : 'doxygen.stamp',
+    command : [doxygen, '@INPUT@'],
+    console : true,
+    build_always_stale : true,
+    build_by_default : false,
+
+doxy_conf = configure_file(
     input  : 'Doxyfile.in',
     output : 'Doxyfile',
     configuration : {
@@ -53,6 +63,7 @@ if doxygen.found()
     command         : [doxygen, doxy_conf],
     output          : 'docs/doxygen/html/index.html',
     build_by_default: false
+
   )
   doc_targets += doc_doxygen
 endif
