@@ -139,6 +139,8 @@ For a *legacy* build drop ``--icf`` / ``-fipa-pta`` and switch
    meson compile -C build
    qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 
+``cross/atmega328p_clang20.cross`` is provided for LLVM 20 users.
+
 ----------------------------------------------------------------------
 7 · Documentation targets
 ----------------------------------------------------------------------

@@ -198,11 +198,16 @@ User budget        ≥ 18 000  ≥ 1500
 11 · Tool-chain & Build
 ----------------------------------------------------------------------
 
-*Meson cross-file* (`cross/atmega328p_gcc14.cross`) encodes the flag set ::
+*Meson cross-file* (`cross/atmega328p_gcc14.cross` or
+`cross/atmega328p_clang20.cross`) encodes the flag set ::
 
    meson setup build --cross-file cross/atmega328p_gcc14.cross
+   # meson setup build --cross-file cross/atmega328p_clang20.cross
    ninja -C build
    qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
+
+Alternatively install ``clang-20`` and use
+``cross/atmega328p_clang20.cross`` for an LLVM-based build.
 
 FDO cycle ::
 
@@ -226,7 +231,8 @@ FDO cycle ::
        steps:
          - uses: actions/checkout@v4
          - run: sudo ./setup.sh ${{ matrix.mode }}
-         - run: meson setup build --cross-file cross/atmega328p_gcc14.cross
+        - run: meson setup build --cross-file cross/atmega328p_gcc14.cross
+        # - run: meson setup build --cross-file cross/atmega328p_clang20.cross
          - run: ninja -C build
          - run: qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic &
 

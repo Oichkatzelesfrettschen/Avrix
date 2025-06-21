@@ -19,7 +19,7 @@ From the *build* directory you can build the individual generators:
 
 .. code-block:: bash
 
-   meson compile -C build doc-doxygen   # C API reference                (docs/doxygen/html)
+   meson compile -C build doc-doxygen   # C API reference                (build/docs/doxygen/html)
    meson compile -C build doc-sphinx    # User / dev manual             (build/docs)
    meson compile -C build doc           # Aggregates both when present
 
