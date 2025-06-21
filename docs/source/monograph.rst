@@ -92,18 +92,28 @@ Wear-levelled, power-fail-safe log:
    fs_create("boot.bin",   1);
    fs_create("config.txt", 1);
 
-   char names[FS_NUM_INODES][FS_MAX_NAME + 1];
-   int n = fs_list(names);
-
-   for (int i = 0; i < n; ++i)
-       printf("%s\n", names[i]);
+   char buf[FS_NUM_INODES * (FS_MAX_NAME + 1)];
+   fs_list(buf, sizeof(buf));
+   printf("%s", buf);
 
 ----------------------------------------------------------------------
 6 · Descriptor-Based RPC (“Doors”)
 ----------------------------------------------------------------------
 
-* 4 door descriptors per task in ``.noinit``.  
+* 4 door descriptors per task in ``.noinit``.
 * 128-byte shared slab (16 Cap’n-Proto words) → zero-copy.
+* ``door_vec`` vectors are initialised by ``nk_init`` for every task.
+
+Call path ::
+
+   ``door_call`` records the caller’s TID, payload length and flags
+   before invoking ``_nk_door``.  This assembly helper copies the
+   request into ``door_slab``, performs a stack switch to the callee and
+   returns once ``door_return`` is executed.  The caller then copies the
+   reply from the slab.
+
+CapnDoorSynthesis  binds the slab layout directly to Cap’n-Proto schemas
+allowing minimal marshalling overhead.
 
 ===============  ========================  Flash  SRAM  Latency (µs)
 Primitive        Foot-print
@@ -127,10 +137,18 @@ Lock type        Notes
 Full (DAG+Lat)   cycle-safe + no starvation    +84   +548 B  12 B
 ===============  ============================  ======  =====  ====
 
-Golden-ratio ticket ::
+Golden-ratio ticket
+~~~~~~~~~~~~~~~~~~~
 
-   #define NK_LATTICE_STEP  1657u   /* φ·2¹⁰ for 16-bit counters */
-   nk_ticket += NK_LATTICE_STEP;
+.. code-block:: c
+
+   #if NK_WORD_BITS == 32
+   #  define NK_LATTICE_STEP 1695400ul   /* φ·2²⁶ → 32-bit lattice */
+   #else
+   #  define NK_LATTICE_STEP 1657u       /* φ·2¹⁰ → 16-bit lattice */
+   #endif
+
+   nk_ticket += NK_LATTICE_STEP;  /* single ADD/SUB instruction */
 
 _Lock address guard_ ::
 
@@ -161,6 +179,8 @@ Component
 Nanokernel            7600      320
 Spin-locks (full)       548       12
 TinyLog-4 FS            420       10
+ROMFS (flash)           300        0
+EEPFS (eeprom)          250        0
 Doors RPC             1000      200
 **Total kernel**  **9568** **542**
 User budget        ≥ 18 000  ≥ 1500
@@ -178,11 +198,16 @@ User budget        ≥ 18 000  ≥ 1500
 11 · Tool-chain & Build
 ----------------------------------------------------------------------
 
-*Meson cross-file* (`cross/atmega328p_gcc14.cross`) encodes the flag set ::
+*Meson cross-file* (`cross/atmega328p_gcc14.cross` or
+`cross/atmega328p_clang20.cross`) encodes the flag set ::
 
    meson setup build --cross-file cross/atmega328p_gcc14.cross
+   # meson setup build --cross-file cross/atmega328p_clang20.cross
    ninja -C build
    qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
+
+Alternatively install ``clang-20`` and use
+``cross/atmega328p_clang20.cross`` for an LLVM-based build.
 
 FDO cycle ::
 
@@ -200,10 +225,14 @@ FDO cycle ::
    jobs:
      build:
        runs-on: ubuntu-24.04
+       strategy:
+         matrix:
+           mode: ["--modern", "--legacy"]
        steps:
          - uses: actions/checkout@v4
-         - run: sudo ./setup.sh --modern
-         - run: meson setup build --cross-file cross/atmega328p_gcc14.cross
+         - run: sudo ./setup.sh ${{ matrix.mode }}
+        - run: meson setup build --cross-file cross/atmega328p_gcc14.cross
+        # - run: meson setup build --cross-file cross/atmega328p_clang20.cross
          - run: ninja -C build
          - run: qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic &
 
@@ -236,8 +265,9 @@ Glossary
 ----------------------------------------------------------------------
 
 ``nk_*``   nanokernel primitive  
-``Door``   descriptor-based RPC  
-``TinyLog-4`` EEPROM log (4-byte record)  
+``Door``   descriptor-based RPC
+``TinyLog-4`` EEPROM log (4-byte record)
+``ROMFS``  flash-resident read-only filesystem
 ``FDO``    feedback-directed optimisation (PGO)
 
 ----------------------------------------------------------------------

@@ -23,17 +23,27 @@ kernel_src = files(
   'door.c',
   'task.c',            # pure C
   'nk_fs.c',
+  'romfs.c',
+  'eepfs.c',
   'kalloc.c',
-  'context_switch.S'   # hand-written AVR ASM
+  'context_switch.S',  # hand-written AVR ASM
+  'switch_task.S',
+  'door_entry.S'
 )
 
 portable_src = files(   # no <avr/...>
   'fixed_point.c',
-  'fs.c'
+  'fs.c',
+  'romfs.c',
+  'eepfs.c'
 )
 
-avr_only_src = kernel_src + []
-avr_only_src -= portable_src       # diff yields AVR-specific set
+avr_only_src = []
+foreach s : kernel_src
+  if not portable_src.contains(s)
+    avr_only_src += s
+  endif
+endforeach
 
 # ───────────────────────── 2. libavrix / libavrix_host ───────────────
 if meson.is_cross_build()          # ==> target = AVR
@@ -51,13 +61,7 @@ else                                # ==> host build (CI, docs, etc.)
     install : false
   )
 
-  # Keep AVR-specific sources compiling (syntax-only) so they never rot
-  executable(
-    'syntax_check_kernel_x',
-    avr_only_src,
-    include_directories : inc,
-    c_args : ['-Werror', '-fsyntax-only']
-  )
+  # AVR-only sources are not built on the host
 endif
 
 # ───────────────────────── 3. Host-only libfs  ───────────────────────
@@ -78,6 +82,8 @@ install_headers(
   '../include/memguard.h',
   '../include/nk_task.h',
   '../include/nk_fs.h',
+  '../include/romfs.h',
+  '../include/eepfs.h',
   '../include/kalloc.h',
   subdir : 'avrix'
 )

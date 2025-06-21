@@ -3,9 +3,6 @@
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 
-#define EE_PTR(a)  ((uint8_t *)(uintptr_t)(a))   /* NOLINT(performance-no-int-to-ptr) */
-#define EE_CPTR(a) ((const uint8_t *)(uintptr_t)(a)) /* NOLINT(performance-no-int-to-ptr) */
-
 /* TinyLog-4 layout constants */
 #define NK_ROWS       16u
 #define NK_ROW_SIZE   64u
@@ -54,16 +51,16 @@ static uint16_t addr_for(uint8_t row, uint8_t idx) {
 static void erase_row(uint8_t row) {
     uint16_t base = (uint16_t)row * NK_ROW_SIZE;
     for (uint8_t i = 0; i < NK_ROW_SIZE; ++i)
-        eeprom_update_byte(EE_PTR(base + i), 0xFF);
+        eeprom_update_byte(ee_ptr(base + i), 0xFF);
 }
 
 static void open_next_row(void) {
     uint8_t next = (nk_row + 1) & 0x0F;
     erase_row(next);
-    uint8_t seq = eeprom_read_byte(EE_CPTR(addr_for(nk_row, 15) + ROW_SEQ_OFF));
+    uint8_t seq = eeprom_read_byte(ee_cptr(addr_for(nk_row, 15) + ROW_SEQ_OFF));
     seq++;
-    eeprom_update_byte(EE_PTR(next * NK_ROW_SIZE + ROW_SEQ_OFF), seq);
-    eeprom_update_byte(EE_PTR(next * NK_ROW_SIZE + ROW_TAG_OFF), TAG_ROW);
+    eeprom_update_byte(ee_ptr(next * NK_ROW_SIZE + ROW_SEQ_OFF), seq);
+    eeprom_update_byte(ee_ptr(next * NK_ROW_SIZE + ROW_TAG_OFF), TAG_ROW);
     nk_row = next;
     nk_idx = 0;
 }
@@ -73,8 +70,8 @@ void nk_fs_init(void) {
     nk_row = 0;
     for (uint8_t r = 0; r < NK_ROWS; ++r) {
         uint16_t hdr = addr_for(r, 15);
-        if (eeprom_read_byte(EE_CPTR(hdr + 3)) == TAG_ROW) {
-            uint8_t seq = eeprom_read_byte(EE_CPTR(hdr + 2));
+        if (eeprom_read_byte(ee_cptr(hdr + 3)) == TAG_ROW) {
+            uint8_t seq = eeprom_read_byte(ee_cptr(hdr + 2));
             if ((int8_t)(seq - latest_seq) > 0) {
                 latest_seq = seq;
                 nk_row = r;
@@ -84,10 +81,10 @@ void nk_fs_init(void) {
     nk_idx = 0;
     for (uint8_t i = 0; i < 15; ++i) {
         uint16_t a = addr_for(nk_row, i);
-        uint8_t t = eeprom_read_byte(EE_CPTR(a));
-        uint8_t d0 = eeprom_read_byte(EE_CPTR(a + 1));
-        uint8_t d1 = eeprom_read_byte(EE_CPTR(a + 2));
-        uint8_t c  = eeprom_read_byte(EE_CPTR(a + 3));
+        uint8_t t = eeprom_read_byte(ee_cptr(a));
+        uint8_t d0 = eeprom_read_byte(ee_cptr(a + 1));
+        uint8_t d1 = eeprom_read_byte(ee_cptr(a + 2));
+        uint8_t c  = eeprom_read_byte(ee_cptr(a + 3));
         if (c != calc_crc(t, d0, d1)) {
             nk_idx = i;
             return;
@@ -99,11 +96,11 @@ void nk_fs_init(void) {
 static bool write_rec(uint8_t tag, uint8_t d0, uint8_t d1) {
     uint16_t a = addr_for(nk_row, nk_idx);
     uint8_t crc = calc_crc(tag, d0, d1);
-    eeprom_update_byte(EE_PTR(a), tag);
-    eeprom_update_byte(EE_PTR(a + 1), d0);
-    eeprom_update_byte(EE_PTR(a + 2), d1);
-    eeprom_update_byte(EE_PTR(a + 3), crc);
-    if (eeprom_read_byte(EE_CPTR(a + 3)) != crc)
+    eeprom_update_byte(ee_ptr(a), tag);
+    eeprom_update_byte(ee_ptr(a + 1), d0);
+    eeprom_update_byte(ee_ptr(a + 2), d1);
+    eeprom_update_byte(ee_ptr(a + 3), crc);
+    if (eeprom_read_byte(ee_cptr(a + 3)) != crc)
         return false;
     nk_idx++;
     if (nk_idx >= 15)
@@ -140,16 +137,18 @@ bool nk_fs_get(uint16_t key, uint16_t *val) {
     uint8_t i = nk_idx;
     do {
         if (i == 0) {
-            r = (r == 0) ? (NK_ROWS - 1) : (r - 1);
+            r = (r == 0)
+                ? (uint8_t)(NK_ROWS - 1)
+                : (uint8_t)(r - 1);
             i = 15;
         } else {
             i--;
         }
         uint16_t a = addr_for(r, i);
-        uint8_t t  = eeprom_read_byte(EE_CPTR(a));
-        uint8_t d0 = eeprom_read_byte(EE_CPTR(a + 1));
-        uint8_t d1 = eeprom_read_byte(EE_CPTR(a + 2));
-        uint8_t c  = eeprom_read_byte(EE_CPTR(a + 3));
+        uint8_t t  = eeprom_read_byte(ee_cptr(a));
+        uint8_t d0 = eeprom_read_byte(ee_cptr(a + 1));
+        uint8_t d1 = eeprom_read_byte(ee_cptr(a + 2));
+        uint8_t c  = eeprom_read_byte(ee_cptr(a + 3));
         if (c != calc_crc(t, d0, d1))
             break;
         uint16_t k = extract_key(d0, d1);

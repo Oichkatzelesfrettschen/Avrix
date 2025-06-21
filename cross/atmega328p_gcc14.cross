@@ -1,0 +1,71 @@
+# ────────────────────────────────────────────────────────────────────────
+# cross/atmega328p_gcc14.cross ― GCC-AVR 14 profile for the Arduino Uno R3
+#
+# Target MCU  : ATmega328P  @ 16 MHz, 32 kB Flash, 2 kB SRAM, 1 kB EEPROM
+# Compiler    : gcc-avr ≥ 14 (Debian Sid package, xPack, or home-built)
+# Goal        : absolute minimum Flash/RAM footprint with full C23
+#
+#  Install on Ubuntu (Debian Sid repo example):
+#    echo "deb http://ftp.debian.org/debian sid main" | sudo tee /etc/apt/sources.list.d/debian-sid.list
+#    sudo apt update
+#    sudo apt install gcc-avr binutils-avr avr-libc
+#
+#  Meson usage:
+#    meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross
+# ────────────────────────────────────────────────────────────────────────
+
+[binaries]
+c           = 'avr-gcc'
+ar          = 'avr-ar'
+strip       = 'avr-strip'
+objcopy     = 'avr-objcopy'
+size        = 'avr-size'
+exe_wrapper = 'true'                  # no runner for bare-metal tests
+
+[host_machine]
+system      = 'baremetal'
+cpu_family  = 'avr'
+cpu         = 'atmega328p'
+endian      = 'little'
+
+[properties]
+needs_exe_wrapper = true              # suppress Meson warning
+
+c_args = [
+  # MCU + language dialect
+  '-mmcu=atmega328p',
+  '-std=c23',
+  '-DF_CPU=16000000UL',
+
+  # Size-first optimisation
+  '-Oz',                               # smallest code
+  '-flto',                             # GCC 14 Thin-LTO by default
+  '-mrelax', '-mcall-prologues',       # shrink jumps & prologues
+  '-fdata-sections', '-ffunction-sections',
+  '-fmerge-all-constants',
+  '-fno-ident',                        # drop GCC version string
+
+  # Remove unused runtime features
+  '-fno-exceptions', '-fno-rtti',
+  '-fno-unwind-tables', '-fno-asynchronous-unwind-tables',
+  '-fno-stack-protector'
+]
+
+c_link_args = [
+  '-mmcu=atmega328p',
+  '-flto',
+  '-Wl,--gc-sections',                 # dead-code elimination
+  '-Wl,--icf=safe',                    # identical code folding
+  '-Wl,--relax'                        # linker relaxation pass
+]
+
+[built-in options]
+c_std           = 'c23'
+optimization    = 'z'                  # Meson alias for -Oz
+warning_level   = 2
+strip           = true
+default_library = 'none'
+b_staticpic     = false                # irrelevant on AVR
+
+[project options]
+profile         = false                # enable PGO with -Dprofile=true
