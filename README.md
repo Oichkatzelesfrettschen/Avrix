@@ -20,12 +20,14 @@ In the documentation the kernel is also referred to as **µ-UNIX**.
 sudo ./setup.sh --modern     # GCC-14 + QEMU smoke-boot   (recommended)
 # or
 sudo ./setup.sh --legacy     # GCC-7.3 only – bare minimum
+# add --no-python if you are offline
 ````
 
 `setup.sh` automatically
 
 * pins **Debian-sid** `gcc-avr-14` (falls back to Ubuntu 7.3 if sid is blocked),
 * installs QEMU ≥ 8.2 + Meson + docs & analysis helpers,
+* `--no-python` skips the docs helpers for offline installs,
 * **builds** the firmware, boots it in QEMU (`arduino-uno` machine),
 * prints MCU-specific **CFLAGS / LDFLAGS** you can paste into any Makefile.
 
