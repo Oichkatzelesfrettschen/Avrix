@@ -37,6 +37,14 @@ extern "C" {             /* header is C23-pure but callable from C++ */
 #  define NK_OPT_DAG_WAIT  0
 #endif
 
+/* Per-task stack size in bytes and scheduler quantum in ms */
+#ifndef NK_STACK_SIZE
+#  define NK_STACK_SIZE 128u
+#endif
+#ifndef NK_QUANTUM_MS
+#  define NK_QUANTUM_MS 10u
+#endif
+
 _Static_assert(NK_MAX_TASKS <= 8,
                "NK_MAX_TASKS > 8 breaks SRAM budget");
 
