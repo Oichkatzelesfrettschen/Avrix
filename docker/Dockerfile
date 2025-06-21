@@ -17,7 +17,7 @@ WORKDIR /avrix
 COPY . /avrix
 
 # Build firmware using Meson and convert ELF to a raw binary.
-RUN meson setup build --wipe --cross-file cross/avr_m328p.txt || true && \
+RUN meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross || true && \
     meson compile -C build || true && \
     avr-objcopy -O binary build/unix0.elf avrix.bin && \
     truncate -s 1M avrix.img && \
