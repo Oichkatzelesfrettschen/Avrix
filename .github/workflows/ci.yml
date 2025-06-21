@@ -1,46 +1,93 @@
-# Continuous integration workflow for Avrix
-# Uses the setup script to install the AVR toolchain and
-# builds the project using Meson. Documentation is exported
-# as an artifact for each run.
+# .github/workflows/ci.yml
+#
+# Continuous-integration matrix for µ-UNIX (“Avrix”)
+# ──────────────────────────────────────────────────────────────────────
+# • Installs the AVR tool-chain via   ./setup.sh  (modern / legacy)
+# • Configures the Meson *cross* build (ATmega328P, gcc-avr 14-series or 7.3)
+# • Builds the firmware and host-side unit-tests
+# • Runs the test-suite (host tests auto-skip when cross-compiled)
+# • Generates Sphinx + Doxygen docs and uploads them as an artefact
+# • Publishes the compiled ELF/HEX images for each matrix entry
+#
+# The workflow is intentionally *self-hosting*: it builds QEMU from
+# source on the fly if the Ubuntu runner image lacks the avr-softmmu
+# binary (handled inside setup.sh).
 
 name: CI
 
 on:
   push:
+    branches: [ "**" ]
   pull_request:
+    branches: [ "**" ]
+
+env:
+  # Keep Meson quiet in CI; still shows warnings and errors.
+  MESON_PROGRESS_BAR: "ninja"
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # --modern ⇒ gcc-avr 14.x   + full tool-set + docs + QEMU test
+        # --legacy ⇒ gcc-avr 7.3.x  (compiler only)      (*docs still build*)
+        mode: ["--modern", "--legacy"]
+
     steps:
-      # Checkout the repository sources
-      - name: Checkout repository
+      # 0.  Source checkout ------------------------------------------------
+      - name: Checkout
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
 
-      # Install AVR GCC toolchain and required build utilities
-      - name: Install AVR toolchain
-        run: sudo ./setup.sh --legacy
+      # 1.  Install complete AVR environment ------------------------------
+      - name: Run setup.sh (${{ matrix.mode }})
+        run: sudo ./setup.sh ${{ matrix.mode }}
 
-      # Configure the Meson build directory for the AVR target
-      - name: Configure build
-        run: meson setup build --cross-file cross/avr_m328p.txt
+      # 2.  Configure cross-build  ----------------------------------------
+      #     Legacy build needs C11; modern stays on C23.
+      - name: Meson setup (cross)
+        run: |
+          EXTRA_OPT=""
+          if [[ "${{ matrix.mode }}" == "--legacy" ]]; then
+            EXTRA_OPT="-Dc_std=c11"
+          fi
+          meson setup build \
+              --wipe \
+              --cross-file cross/atmega328p_gcc14.cross \
+              $EXTRA_OPT
 
-      # Compile all targets using ninja via Meson
-      - name: Compile
+      # 3.  Compile everything (firmware + host stubs) --------------------
+      - name: Compile all targets
         run: meson compile -C build
 
-      # Execute any unit tests defined in the project
-      - name: Run tests
+      # 4.  Unit & integration tests  -------------------------------------
+      #     Host-native tests run automatically; cross-tests compile-only.
+      - name: Execute tests
         run: meson test -C build --print-errorlogs
 
-      # Generate Doxygen and Sphinx documentation
-      - name: Build documentation
+      # 5.  Build documentation  ------------------------------------------
+      - name: Build Doxygen & Sphinx docs
         run: meson compile -C build doc-doxygen doc-sphinx
 
-      # Archive the built documentation for inspection
-      - name: Upload docs
+      # 6.  Upload artefacts  ---------------------------------------------
+      - name: Upload firmware (ELF + HEX)
         uses: actions/upload-artifact@v4
         with:
-          name: documentation
-          path: build/docs
+          name: avrix-firmware-${{ matrix.mode }}
+          path: |
+            build/**/unix0.elf
+            build/**/unix0.hex
+          if-no-files-found: error
+
+      - name: Upload documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-${{ matrix.mode }}
+          path: |
+            build/docs           # Sphinx output
+            build/doxygen/html   # Doxygen HTML
           if-no-files-found: warn

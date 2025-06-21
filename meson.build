@@ -17,7 +17,7 @@ project(
   default_options  : [
     'c_std=c23',
     'warning_level=2',
-    'optimization=z',      # maps to -Oz
+    'optimization=s',      # -Os for size optimizations
     'buildtype=release'
   ]
 )
@@ -29,7 +29,6 @@ else
 endif
 
 subdir('src')
-subdir('lib')
 subdir('examples')
 subdir('tests')
 
@@ -37,31 +36,39 @@ subdir('tests')
 # Build only if the tools exist; aggregate into a single `meson doc`.
 
 doc_targets = []
+doc_doxygen = []
 
 ## 1.  Doxygen (API reference) ########################################
 doxygen = find_program('doxygen', required : false)
 if doxygen.found()
-  doc_targets += run_target(
+  doc_doxygen = run_target(
     'doc-doxygen',
     command : [
       'sh', '-c',
       'cd @0@ && @1@ Doxyfile'.format(meson.current_source_dir(), doxygen.path())
     ]
   )
+  doc_targets += doc_doxygen
 endif
 
 ## 2.  Sphinx (User manual) ###########################################
 sphinx = find_program('sphinx-build', required : false)
 if sphinx.found()
-  doc_targets += run_target(
+  doc_sphinx = run_target(
     'doc-sphinx',
     command : [
       sphinx,
+      '-D',
+      'breathe_projects.avrix=@0@'.format(
+        meson.current_source_dir() / 'docs/doxygen/xml'
+      ),
       meson.current_source_dir() / 'docs/source',   # input dir
       meson.current_build_dir()  / 'docs',          # output dir
       '-a', '-q'                                    # rebuild all, quiet
-    ]
+    ],
+    depends : doc_doxygen
   )
+  doc_targets += doc_sphinx
 endif
 
 ## 3.  Aggregator ######################################################

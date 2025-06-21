@@ -44,3 +44,25 @@ Program the 328P with:
            -U efuse:w:0x05:m
 
 Adjust ``0xD5`` if you select a different brown-out threshold.
+
+Reading and verifying fuses with avrdude
+---------------------------------------
+
+Before modifying anything, dump the current fuse and lock bytes:
+
+.. code-block:: bash
+
+   avrdude -c avrisp -p m328p \
+           -U lfuse:r:-:i \
+           -U hfuse:r:-:i \
+           -U efuse:r:-:i \
+           -U lock:r:-:i
+
+The last value reports the lock bits.  After programming, read back the
+lock byte to confirm it equals ``0x0F``:
+
+.. code-block:: bash
+
+   avrdude -c avrisp -p m328p -U lock:r:-:i
+
+This verifies that the boot section is protected.
