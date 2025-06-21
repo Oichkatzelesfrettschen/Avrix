@@ -1,6 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
-#include "nk_lock.h"
+#include "nk_spinlock.h"
 #include <signal.h>
 #include <sys/time.h>
 #include <stdint.h>
@@ -44,8 +44,8 @@ int main(void)
     struct itimerval tv = { {0, 1000}, {0, 1000} };
     setitimer(ITIMER_REAL, &tv, NULL);
 
-    nk_slock_t lock;
-    nk_slock_init(&lock);
+    nk_spinlock_t lock = NK_SPINLOCK_STATIC_INIT;
+    nk_spinlock_init(&lock);
 
     const unsigned loops = 2000000u; /* two million iterations */
     void *begin_brk = sbrk(0);
@@ -53,8 +53,8 @@ int main(void)
 
     for (unsigned i = 0; i < loops; ++i) {
         uint64_t t0 = rdcycles();
-        nk_slock_lock(&lock);
-        nk_slock_unlock(&lock);
+        nk_spinlock_lock(&lock, 0);
+        nk_spinlock_unlock(&lock);
         uint64_t dt = rdcycles() - t0;
         if (dt > worst)
             worst = dt;
