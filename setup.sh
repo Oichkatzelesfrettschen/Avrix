@@ -87,6 +87,10 @@ EOF
   fi
 else
   add-apt-repository -y universe
+  if [[ $? -ne 0 ]]; then
+    echo "[error] add-apt-repository failed" >&2
+    exit 1
+  fi
   if ! have_repo "universe"; then
     echo "[error] failed to add 'universe' repo; falling back to legacy toolchain" >&2
     MODE="--legacy"
@@ -98,9 +102,13 @@ apt-get -qq update
 PACKAGES=("${BASE_PKGS[@]}")
 [[ $MODE == "--modern" ]] && PACKAGES+=("${EXTRA_PKGS[@]}")
 
-step "Installing ${#PACKAGES[@]} packages (this can take a while)"
-apt-get -qq update
-apt-get -yqq install "${PACKAGES[@]}"
+step "Installing ${#BASE_PKGS[@]} packages (this can take a while)"
+for p in "${BASE_PKGS[@]}"; do
+  pkg_installed "$p" || apt-get -qq update && apt-get -yqq install "$p" || {
+    echo "[error] package installation failed: $p" >&2
+    exit 1
+  }
+done
 
 # ───────────────────────── 3 · docs venv (modern) ───────────────────────
 if [[ $MODE == "--modern" ]]; then
