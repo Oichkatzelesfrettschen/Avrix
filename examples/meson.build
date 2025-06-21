@@ -44,9 +44,12 @@ endif
 
 opt_cflags = [
   '-Wall', '-Wextra', '-Os',
-  '-ffunction-sections', '-fdata-sections',
-  '-fno-stack-protector'
+  '-ffunction-sections', '-fdata-sections'
 ]
+
+if host_machine.cpu_family() == 'avr'
+  opt_cflags += ['-fno-stack-protector']
+endif
 
 ned = executable(
   'ned',

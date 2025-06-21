@@ -35,7 +35,7 @@ inc_list = [inc]
 
 if host_machine.cpu_family() != 'avr'
   # host/CI needs stubbed <avr/...> headers
-  inc_list += include_directories('../compat')
+  inc_list += include_directories(meson.project_source_root() / 'compat')
 endif
 
 opt_avr_inc = get_option('avr_inc_dir')
