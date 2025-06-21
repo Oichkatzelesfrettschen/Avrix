@@ -85,6 +85,7 @@ install_headers(
   '../include/nk_fs.h',
   '../include/romfs.h',
   '../include/eepfs.h',
+  '../include/eeprom_wrap.h',
   '../include/kalloc.h',
   subdir : 'avrix'
 )

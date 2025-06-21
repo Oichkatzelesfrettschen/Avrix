@@ -1,93 +1,92 @@
 # .github/workflows/ci.yml
 #
-# Continuous-integration matrix for µ-UNIX (“Avrix”)
-# ──────────────────────────────────────────────────────────────────────
-# • Installs the AVR tool-chain via   ./setup.sh  (modern / legacy)
-# • Configures the Meson *cross* build (ATmega328P, gcc-avr 14-series or 7.3)
-# • Builds the firmware and host-side unit-tests
-# • Runs the test-suite (host tests auto-skip when cross-compiled)
-# • Generates Sphinx + Doxygen docs and uploads them as an artefact
-# • Publishes the compiled ELF/HEX images for each matrix entry
+# µ-UNIX (Avrix) Continuous-Integration pipeline
+# ──────────────────────────────────────────────
+# • Installs the AVR tool-chain via  ./setup.sh  (modern | legacy)
+# • Configures an out-of-tree **cross** build for ATmega328P
+# • Compiles firmware + host-side unit-tests
+# • Executes the full test-suite (host tests auto-skip when cross-compiled)
+# • Builds Doxygen + Sphinx documentation
+# • Uploads   ▸ firmware images  (ELF + Intel-HEX)
+#             ▸ HTML documentation  as workflow artefacts
 #
-# The workflow is intentionally *self-hosting*: it builds QEMU from
-# source on the fly if the Ubuntu runner image lacks the avr-softmmu
-# binary (handled inside setup.sh).
+#   NOTE: `setup.sh` will build `qemu-system-avr` from source when the
+#         runner image lacks it, making the workflow completely self-hosting.
 
 name: CI
 
 on:
   push:
-    branches: [ "**" ]
+    branches: [ '**' ]
   pull_request:
-    branches: [ "**" ]
+    branches: [ '**' ]
 
 env:
-  # Keep Meson quiet in CI; still shows warnings and errors.
-  MESON_PROGRESS_BAR: "ninja"
+  # Compact Meson output in CI while still surfacing warnings
+  MESON_PROGRESS_BAR: ninja
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest          # 24.04 LTS runner image (2025-06)
     strategy:
       fail-fast: false
       matrix:
-        # --modern ⇒ gcc-avr 14.x   + full tool-set + docs + QEMU test
-        # --legacy ⇒ gcc-avr 7.3.x  (compiler only)      (*docs still build*)
-        mode: ["--modern", "--legacy"]
+        config: [ modern, legacy ]  # modern = gcc-avr-14 , legacy = gcc-avr-7.3
 
     steps:
-      # 0.  Source checkout ------------------------------------------------
-      - name: Checkout
+      # ── 0 · Checkout ────────────────────────────────────────────────────
+      - name: Checkout sources
         uses: actions/checkout@v4
         with:
-          submodules: recursive
           fetch-depth: 1
+          submodules: recursive
 
-      # 1.  Install complete AVR environment ------------------------------
-      - name: Run setup.sh (${{ matrix.mode }})
-        run: sudo ./setup.sh ${{ matrix.mode }}
+      # ── 1 · Tool-chain install ─────────────────────────────────────────
+      - name: Install AVR tool-chain
+        run: sudo ./setup.sh --${{ matrix.config }}
 
-      # 2.  Configure cross-build  ----------------------------------------
-      #     Legacy build needs C11; modern stays on C23.
-      - name: Meson setup (cross)
+      # ── 2 · Meson configure (cross build) ──────────────────────────────
+      - name: Configure Meson cross-build
         run: |
-          EXTRA_OPT=""
-          if [[ "${{ matrix.mode }}" == "--legacy" ]]; then
-            EXTRA_OPT="-Dc_std=c11"
+          if [[ "${{ matrix.config }}" == "legacy" ]]; then
+              CROSS_FILE="cross/atmega328p_gcc7.cross"
+              C_STD="c11"
+          else
+              CROSS_FILE="cross/atmega328p_gcc14.cross"
+              C_STD="c23"
           fi
-          meson setup build \
-              --wipe \
-              --cross-file cross/atmega328p_gcc14.cross \
-              $EXTRA_OPT
 
-      # 3.  Compile everything (firmware + host stubs) --------------------
-      - name: Compile all targets
+          meson setup build --wipe \
+                --cross-file "${CROSS_FILE}" \
+                -Dc_std="${C_STD}"
+
+      # ── 3 · Compile ────────────────────────────────────────────────────
+      - name: Compile targets
         run: meson compile -C build
 
-      # 4.  Unit & integration tests  -------------------------------------
-      #     Host-native tests run automatically; cross-tests compile-only.
-      - name: Execute tests
+      # ── 4 · Test ───────────────────────────────────────────────────────
+      - name: Run test-suite
         run: meson test -C build --print-errorlogs
 
-      # 5.  Build documentation  ------------------------------------------
-      - name: Build Doxygen & Sphinx docs
+      # ── 5 · Documentation ──────────────────────────────────────────────
+      - name: Build documentation (Sphinx & Doxygen)
         run: meson compile -C build doc-doxygen doc-sphinx
 
-      # 6.  Upload artefacts  ---------------------------------------------
-      - name: Upload firmware (ELF + HEX)
+      # ── 6 · Artefacts ──────────────────────────────────────────────────
+      - name: Upload firmware images
         uses: actions/upload-artifact@v4
         with:
-          name: avrix-firmware-${{ matrix.mode }}
-          path: |
-            build/**/unix0.elf
-            build/**/unix0.hex
+          name: firmware-${{ matrix.config }}
           if-no-files-found: error
+          path: |
+            build/**/*.elf
+            build/**/*.hex
 
-      - name: Upload documentation
+      - name: Upload HTML documentation
         uses: actions/upload-artifact@v4
         with:
-          name: docs-${{ matrix.mode }}
-          path: |
-            build/docs           # Sphinx output
-            build/doxygen/html   # Doxygen HTML
+          name: docs-${{ matrix.config }}
           if-no-files-found: warn
+          path: |
+            build/docs/**           # Sphinx (meson target doc-sphinx)
+            build/doxygen/html/**   # Doxygen (meson target doc-doxygen)

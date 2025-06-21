@@ -133,3 +133,4 @@ static inline void nk_slock_unlock(nk_slock_t *s)
 #define nk_slock_rel  nk_slock_unlock
 
 #endif /* NK_LOCK_H */
+

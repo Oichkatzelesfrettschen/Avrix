@@ -20,7 +20,12 @@ python = import('python').find_installation('python3')
 
 test('check-docs',
      python,
-     args    : files('check_docs.py'),
+     args    : [
+       files('check_docs.py'),
+       '--docs-dir', meson.project_source_root() / 'docs/source',
+       '--index-file', meson.project_source_root() / 'docs/source/index.rst',
+       '--recursive',
+     ],
      workdir : meson.project_source_root())
 
 # ───────────────────── 1. Include-path negotiation ───────────────────

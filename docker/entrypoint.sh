@@ -7,7 +7,7 @@
 set -e
 
 if [ ! -e build/unix0.elf ]; then
-    meson setup build --wipe --cross-file cross/avr_m328p.txt
+    meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross
     meson compile -C build
     avr-objcopy -O binary build/unix0.elf avrix.bin
     truncate -s 1M avrix.img
