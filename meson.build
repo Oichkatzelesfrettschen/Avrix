@@ -41,12 +41,14 @@ doc_doxygen = []
 ## 1.  Doxygen (API reference) ########################################
 doxygen = find_program('doxygen', required : false)
 if doxygen.found()
-  doc_doxygen = run_target(
+  doc_doxygen = custom_target(
     'doc-doxygen',
-    command : [
-      'sh', '-c',
-      'cd @0@ && @1@ Doxyfile'.format(meson.current_source_dir(), doxygen.path())
-    ]
+    input  : 'Doxyfile',
+    output : 'doxygen.stamp',
+    command : [doxygen, '@INPUT@'],
+    console : true,
+    build_always_stale : true,
+    build_by_default : false,
   )
   doc_targets += doc_doxygen
 endif
