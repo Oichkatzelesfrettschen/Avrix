@@ -82,7 +82,9 @@ link_full     = meson.is_cross_build() ? libfs : libavrix
 
 # ────────────────────── 3. Unit-tests definitions  ──────────────────
 tests = [
-  ['test_fixed_point',   ['test_fixed_point.c']   + extra_src],
+  ['test_fixed_point',   ['test_fixed_point.c',
+                          meson.project_source_root() / 'src/fixed_point.c']
+                         + extra_src],
   ['fs_test',            ['fs_test.c', 'sim.c']   + extra_src],
   ['flock_stress',       ['flock_stress.c', 'sim.c'] + extra_src],
   ['spin_test',          ['spin_test.c', 'sim.c'] + extra_src],
@@ -96,18 +98,19 @@ foreach t : tests
   test(t[0], exe)
 endforeach
 
-# ────────────────────── 4. simavr smoke-test (cross only) ───────────
+# ────────────────────── 4. simavr smoke-test (AVR builds) ───────────
 #
 # Cross-compiled suite runs *one* flash image inside simavr to catch
-# stray AVR-only code-paths.  Host build skips this unconditionally.
+# stray AVR-only code paths. Host builds skip this.
 
-if meson.is_cross_build()
+if target_machine.cpu_family() == 'avr'
   simavr = find_program('simavr', required : false)
   if simavr.found()
     simavr_exe = executable(
       'fs_simavr_basic',
-      ['fs_simavr_basic.c', meson.project_source_root() / 'src/fs.c'] + extra_src,
+      ['fs_simavr_basic.c'],
       include_directories : inc_list,
+      link_with           : libavrix,
       c_args              : ['-Os', '-std=c11', '-Wall', '-Wextra', '-pedantic']
     )
 
