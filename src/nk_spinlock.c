@@ -2,7 +2,7 @@
  * See LICENSE file in the repository root for full license information.
  */
 
-#include "nk_superlock.h"
+#include "nk_spinlock.h"
 
 /* Global Big Kernel Lock shared across all superlock instances. */
 /* This spinlock composes all DAG/Lattice features of the base lock. */

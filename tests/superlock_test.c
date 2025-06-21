@@ -1,4 +1,4 @@
-#include "nk_superlock.h"
+#include "nk_spinlock.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdbool.h>

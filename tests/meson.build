@@ -47,12 +47,12 @@ endif
 common_cflags = ['-O2', '-Wall', '-Wextra', '-pedantic', '-std=c17']
 
 if not meson.is_cross_build()
-  if get_option('san') == 'yes' and cc.get_id() in ['gcc', 'clang']
+  if get_option('san') and cc.get_id() in ['gcc', 'clang']
     san_flags       = ['-fsanitize=address,undefined']
     common_cflags  += san_flags
     add_project_arguments(san_flags, language : 'c')
   endif
-  if get_option('cov') == 'yes' and cc.has_argument('-fprofile-instr-generate')
+  if get_option('cov') and cc.has_argument('-fprofile-instr-generate')
     cov_flags       = ['-fprofile-instr-generate', '-fcoverage-mapping']
     common_cflags  += cov_flags
     add_project_arguments(cov_flags, language : 'c')
@@ -60,15 +60,6 @@ if not meson.is_cross_build()
 endif
 
 # Helper: always build the test binary for the host CPU ----------------
-build_test = (name : str, srcs : list, link_target) =>
-  executable(
-    name,
-    srcs,
-    include_directories : inc_list,
-    link_with           : link_target,
-    c_args              : common_cflags,
-    native              : true)
-
 # Extra stub source for host-only builds
 extra_src = []
 if host_machine.cpu_family() != 'avr'
@@ -83,13 +74,19 @@ tests = [
   ['fs_test',          ['fs_test.c',        'sim.c']],
   ['flock_stress',     ['flock_stress.c',   'sim.c']],
   ['spin_test',        ['spin_test.c',      'sim.c']],
-  ['superlock_test',   ['superlock_test.c', 'sim.c']],
+  ['spinlock_test',   ['superlock_test.c', 'sim.c']],
   ['romfs_test',       ['romfs_test.c',     'sim.c']],
   ['fs_roundtrip',     ['fs_roundtrip.c',   'sim.c']],
 ]
 
 foreach t : tests
-  exe = build_test(t.get(0), t.get(1) + extra_src, link_target)
+  exe = executable(
+    t.get(0),
+    t.get(1) + extra_src,
+    include_directories : inc_list,
+    link_with           : link_target,
+    c_args              : common_cflags,
+    native              : true)
   test(t.get(0), exe)
 endforeach
 

@@ -1,3 +1,5 @@
+option('san', type: 'boolean', value: false, description: 'Enable Address/UB Sanitizers')
+option('cov', type: 'boolean', value: false, description: 'Enable coverage flags')
 option('avr_inc_dir', type: 'string', value: '',
        description: 'Path to AVR libc headers (fallback to standard locations)')
 
