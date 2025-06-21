@@ -124,4 +124,3 @@ static inline void nk_slock_unlock(nk_slock_t *s)
     nk_flock_unlock(&s->base);
 }
 
-#endif /* NK_LOCK_H */

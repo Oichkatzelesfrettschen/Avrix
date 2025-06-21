@@ -206,6 +206,9 @@ User budget        ≥ 18 000  ≥ 1500
    ninja -C build
    qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 
+Alternatively install ``clang-20`` and use
+``cross/atmega328p_clang20.cross`` for an LLVM-based build.
+
 FDO cycle ::
 
    meson configure build -Dprofile=true   # pass 1 (collect)
