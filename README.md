@@ -201,9 +201,13 @@ meson setup build --cross-file cross/atmega328p_gcc14.cross \
 * **Nano-kernel** < 10 kB – 1 kHz pre-emptive round-robin
 * **TinyLog-4** – wear-levelled EEPROM log (420 B flash)
 * **Door RPC** – zero-copy Cap’n-Proto slab, ≈ 1 µs RTT
-* **Spin-locks** – TAS / quaternion / Beatty-lattice flavours
+* **Unified spinlock** – Big Kernel Lock with DAG/Lattice flavours
 * **Fixed-point Q8.8** helpers
 * **Full QEMU board model** (`arduino-uno`) wired into CI
+
+The unified spinlock acts as the kernel's central locking primitive.
+It implements the Big Kernel Lock and can operate in DAG or lattice
+configurations to ensure consistent concurrency semantics.
 
 ---
 
