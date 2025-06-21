@@ -1,4 +1,6 @@
 ````markdown
+**Project codename:** **Avrix** (styled as **AVR-unIX**). In the documentation the kernel is also referred to as **µ-UNIX**.
+
 
 | Gap / friction point                     | Why it matters                                   | Proposed fix (PR welcome!)                    |
 |------------------------------------------|--------------------------------------------------|----------------------------------------------|

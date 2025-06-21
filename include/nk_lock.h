@@ -11,7 +11,9 @@
  *  Chosen at **compile-time**; no run-time penalty.
  *─────────────────────────────────────────────────────────────────────────*/
 
-#pragma once
+#ifndef NK_LOCK_H
+#define NK_LOCK_H
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -123,5 +125,11 @@ static inline void nk_slock_unlock(nk_slock_t *s)
 #   endif
     nk_flock_unlock(&s->base);
 }
+
+/* Compatibility aliases --------------------------------------------------*/
+#define nk_flock_acq  nk_flock_lock
+#define nk_flock_rel  nk_flock_unlock
+#define nk_slock_acq(l, node)  nk_slock_lock(l)
+#define nk_slock_rel  nk_slock_unlock
 
 #endif /* NK_LOCK_H */
