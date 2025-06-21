@@ -53,8 +53,8 @@ int main(void)
 
     for (unsigned i = 0; i < loops; ++i) {
         uint64_t t0 = rdcycles();
-        nk_slock_acq(&lock, 0);
-        nk_slock_rel(&lock);
+        nk_slock_lock(&lock);
+        nk_slock_unlock(&lock);
         uint64_t dt = rdcycles() - t0;
         if (dt > worst)
             worst = dt;

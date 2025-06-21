@@ -15,7 +15,7 @@ project(
   version          : '0.1.0',
   license          : 'MIT',
   default_options  : [
-    'c_std=c23',
+    'c_std=c2x',
     'warning_level=2',
     'optimization=s',      # -Os for size optimizations
     'buildtype=release'
@@ -39,7 +39,7 @@ doc_targets = []
 doc_doxygen = []
 
 ## 1.  Doxygen (API reference) ########################################
-doxygen = meson.get_compiler('c').find_program('doxygen', required : false)
+doxygen = find_program('doxygen', required : false)
 if doxygen.found()
 
 doc_doxygen = custom_target(
@@ -50,6 +50,7 @@ doc_doxygen = custom_target(
     console : true,
     build_always_stale : true,
     build_by_default : false,
+)
 
 doxy_conf = configure_file(
     input  : 'Doxyfile.in',

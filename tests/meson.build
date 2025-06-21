@@ -86,6 +86,7 @@ fs_test_src  = ['fs_test.c', 'sim.c'] + extra_src
 flock_src    = ['flock_stress.c', 'sim.c'] + extra_src
 spin_src     = ['spin_test.c', 'sim.c'] + extra_src
 romfs_src    = ['romfs_test.c', 'sim.c'] + extra_src
+superlock_src = ['superlock_test.c', 'sim.c'] + extra_src
 
 if native_mode
   fs_exe = executable(
@@ -107,6 +108,14 @@ if native_mode
   spin_exe = executable(
     'spin_test',
     spin_src,
+    link_with           : libfs,
+    include_directories : inc_list,
+    c_args              : common_cflags,
+    native              : true
+  )
+  superlock_exe = executable(
+    'superlock_test',
+    superlock_src,
     link_with           : libfs,
     include_directories : inc_list,
     c_args              : common_cflags,
@@ -142,6 +151,13 @@ else
     include_directories : inc_list,
     c_args              : common_cflags
   )
+  superlock_exe = executable(
+    'superlock_test',
+    ['superlock_test.c'] + extra_src,
+    link_with           : libavrix,
+    include_directories : inc_list,
+    c_args              : common_cflags
+  )
   romfs_exe = executable(
     'romfs_test',
     ['romfs_test.c'] + extra_src,
@@ -154,4 +170,5 @@ endif
 test('fs_basic',    fs_exe)
 test('flock_stress', flock_exe)
 test('spin_lock',    spin_exe)
+test('superlock_basic', superlock_exe)
 test('romfs_basic',  romfs_exe)
