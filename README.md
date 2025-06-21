@@ -1,4 +1,3 @@
-<!-- coding: utf-8 -->
 ````markdown
 # Avrix: µ-UNIX for AVR 🍋  
 **Project codename:** **Avrix** (styled as **AVR-unIX**).
