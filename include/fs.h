@@ -1,3 +1,7 @@
+/* SPDX-License-Identifier: MIT
+ * See LICENSE file in the repository root for full license information.
+ */
+
 #ifndef AVR_FS_H
 #define AVR_FS_H
 
