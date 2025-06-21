@@ -79,12 +79,15 @@ wake-up.
 
 Scheduler Time Slice
 --------------------
-Timer/Counter0 generates a context switch interrupt every millisecond. The
-CTC mode uses ``OCR0A = 249`` with a prescaler of ``64`` at ``F_CPU =
-16\,MHz``. Each task therefore receives a 1\,ms time slice before the next
-ready task runs. ``scheduler_run()`` enables the timer and global
-interrupts before handing control to the first task. The scheduler combines
-round‑robin preemption with a
+``scheduler_init()`` programs Timer/Counter0 for a 1\,kHz tick in
+Clear Timer on Compare mode. ``OCR0A`` is calculated as
+``F_CPU / 64 / 1000 - 1`` and is compile-time checked to fit the
+8‑bit timer. With prescaler ``64`` this yields an interrupt every
+millisecond. The ``TIMER0_COMPA_vect`` handler invokes
+``context_switch()`` so each task receives a 1\,ms quantum.
+``scheduler_run()`` enables the timer and global interrupts before
+handing control to the first task.
+The scheduler combines round‑robin preemption with a
 priority search and DAG dependency tracking reminiscent of the
 ``SMF‑Meets‑Minix‑Reserrection‑DAG‑meets‑Beaatty`` hybrid. Tasks may be
 blocked on outstanding dependencies and are rescheduled automatically when
