@@ -15,6 +15,17 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* Feature toggles: default to disabled unless specified by build system */
+#ifndef NK_ENABLE_QLOCK
+#  define NK_ENABLE_QLOCK 0
+#endif
+#ifndef NK_ENABLE_LATTICE
+#  define NK_ENABLE_LATTICE 0
+#endif
+#ifndef NK_ENABLE_DAG
+#  define NK_ENABLE_DAG 0
+#endif
+
 /*--------------------------------------------------------------*
  * 0.  Build-time detection
  *--------------------------------------------------------------*/

@@ -1,4 +1,5 @@
-# µ-UNIX for AVR  
+<!-- coding: utf-8 -->
+# µ-UNIX for AVR
 *A ≤ 10 kB C23 nanokernel, wear-levelled log-FS, and lock/RPC suite for the Arduino Uno R3.*
 
 **Quick hardware summary**
