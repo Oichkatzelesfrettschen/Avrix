@@ -193,3 +193,4 @@ test('spin_lock',    spin_exe)
 test('superlock_basic', superlock_exe)
 test('romfs_basic',  romfs_exe)
 test('fs_roundtrip', roundtrip_exe)
+
