@@ -92,6 +92,26 @@ Gives **GCC 13.2** (full C23 + ThinLTO) without touching APT.
                        avrdude gdb-avr qemu-system-misc   # gcc 7.3
 
 ----------------------------------------------------------------------
+2 D · Workaround while you wait
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If the Debian-sid cross packages are temporarily uninstallable on
+Ubuntu **Noble**, rebuild them locally from source:
+
+.. code-block:: bash
+
+   sudo add-apt-repository deb-src http://ftp.debian.org/debian sid main
+   sudo apt update
+   apt source gcc-avr
+   cd gcc-avr-14.2.0-2
+   sudo apt build-dep .
+   debuild -us -uc     # builds .deb for your host; install with dpkg -i
+
+This ``pull-and-rebuild`` approach succeeds on Noble because its
+``binutils-avr`` and ``avr-libc`` already satisfy 14.2’s build deps.
+See `Ask Ubuntu <https://askubuntu.com/>`_ for background.
+
+----------------------------------------------------------------------
 3 · Developer helpers
 ----------------------------------------------------------------------
 

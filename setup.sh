@@ -20,6 +20,17 @@
 #   3. Builds qemu-system-avr from source if the distro lacks avr-softmmu.
 #   4. Prints size-tuned **CFLAGS / LDFLAGS** for the ATmega328P.
 #   5. For --modern: configures Meson, builds a demo ELF, smoke-boots in QEMU.
+#
+#  🛠  Workaround while you wait
+#  ────────────────────────────
+#  Should the Debian-sid cross packages disappear from the mirrors,
+#  rebuild them locally:
+#     sudo add-apt-repository deb-src http://ftp.debian.org/debian sid main
+#     sudo apt update
+#     apt source gcc-avr
+#     cd gcc-avr-14.2.0-2
+#     sudo apt build-dep .
+#     debuild -us -uc     # install resulting .deb via dpkg -i
 # ════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 trap 'echo -e "\n[error] setup aborted 🚨" >&2' ERR
