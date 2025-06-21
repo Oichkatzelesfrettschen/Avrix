@@ -83,7 +83,7 @@ tests = [
   ['fs_test',          ['fs_test.c',        'sim.c']],
   ['flock_stress',     ['flock_stress.c',   'sim.c']],
   ['spin_test',        ['spin_test.c',      'sim.c']],
-  ['superlock_test',   ['superlock_test.c', 'sim.c']],
+  ['unified_spinlock_test', ['superlock_test.c', 'sim.c']],
   ['romfs_test',       ['romfs_test.c',     'sim.c']],
   ['fs_roundtrip',     ['fs_roundtrip.c',   'sim.c']],
 ]

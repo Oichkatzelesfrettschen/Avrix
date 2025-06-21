@@ -2,7 +2,7 @@
  * See LICENSE file in the repository root for full license information.
  */
 
-/*─────────────────────────── nk_superlock.h ────────────────────────────*
+/*─────────────────────────── nk_spinlock.h ─────────────────────────────*
  * Unified Big Kernel + fine grained spin-lock implementation.
  *
  *  - Built atop the ``nk_slock`` primitives
