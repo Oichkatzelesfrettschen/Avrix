@@ -1,137 +1,38 @@
-/* SPDX-License-Identifier: MIT
- * See LICENSE file in the repository root for full license information.
- */
+/* SPDX-License-Identifier: MIT */
+/* See LICENSE file in the repository root for full license information. */
 
 /*─────────────────────────── nk_superlock.h ────────────────────────────*
- * Unified Big Kernel + fine grained spin-lock implementation.
- *
- *  - Built atop the ``nk_slock`` primitives
- *  - Maintains a small copy‑on‑write matrix for speculative state
- *  - Provides a global Big Kernel Lock (BKL) for coarse serialisation
- *  - Exposes a tiny Cap’n Proto compatible snapshot structure
- */
+ * Compatibility layer.  The former "superlock" API is now provided by
+ * "nk_spinlock".  This header simply maps the old symbols to the new
+ * implementation so existing code continues to build unmodified.
+ *──────────────────────────────────────────────────────────────────────*/
 #pragma once
-#include "nk_lock.h"
-#include <stdint.h>
-#include <stddef.h>
+#include "nk_spinlock.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct {
-    nk_slock_t core;       /* base smart lock */
-    uint8_t    dag_mask;   /* dependency bitmap               */
-    uint8_t    rt_mode;    /* fine-grained real-time mode     */
-    uint32_t   matrix[4];  /* COW matrix snapshot             */
-} nk_superlock_t;
+typedef nk_spinlock_t       nk_superlock_t;
+typedef nk_spinlock_capnp_t nk_superlock_capnp_t;
 
-#define NK_SUPERLOCK_STATIC_INIT { {0}, 0u, 0u, {0, 0, 0, 0} }
+#define NK_SUPERLOCK_STATIC_INIT NK_SPINLOCK_STATIC_INIT
 
-extern nk_slock_t nk_bkl;       /* global Big Kernel Lock */
-
-static inline void nk_superlock_init(nk_superlock_t *s)
-{
-    nk_slock_init(&s->core);
-    nk_slock_init(&nk_bkl);
-    s->dag_mask = 0u;
-    s->rt_mode = 0u;
-    for (unsigned i = 0; i < 4; ++i)
-        s->matrix[i] = 0u;
-}
-
-static inline void nk_superlock_lock(nk_superlock_t *s, uint8_t mask)
-{
-    nk_slock_lock(&nk_bkl);
-    nk_slock_lock(&s->core);
-    s->dag_mask = mask;
-    s->rt_mode = 0u;
-}
-
-static inline bool nk_superlock_trylock(nk_superlock_t *s, uint8_t mask)
-{
-    if (!nk_flock_try(&nk_bkl.base))
-        return false;
-    if (!nk_flock_try(&s->core.base)) {
-        nk_flock_unlock(&nk_bkl.base);
-        return false;
-    }
-    s->dag_mask = mask;
-    s->rt_mode = 0u;
-    return true;
-}
-
-static inline void nk_superlock_unlock(nk_superlock_t *s)
-{
-    s->dag_mask = 0u;
-    s->rt_mode = 0u;
-    nk_slock_unlock(&s->core);
-    nk_slock_unlock(&nk_bkl);
-}
-
-/*--------------------------------------------------------------*
- * Real-time mode : bypass the global BKL for fine-grained locking
- *--------------------------------------------------------------*/
-static inline void nk_superlock_lock_rt(nk_superlock_t *s, uint8_t mask)
-{
-    nk_slock_lock(&s->core);
-    s->dag_mask = mask;
-    s->rt_mode = 1u;
-}
-
-static inline bool nk_superlock_trylock_rt(nk_superlock_t *s, uint8_t mask)
-{
-    if (!nk_flock_try(&s->core.base))
-        return false;
-    s->dag_mask = mask;
-    s->rt_mode = 1u;
-    return true;
-}
-
-static inline void nk_superlock_unlock_rt(nk_superlock_t *s)
-{
-    s->dag_mask = 0u;
-    s->rt_mode = 0u;
-    nk_slock_unlock(&s->core);
-}
-
-/* Cap'n Proto like structure for serialised state */
-typedef struct {
-    uint8_t  dag_mask;
-    uint32_t matrix[4];
-} nk_superlock_capnp_t;
-
-static inline void nk_superlock_encode(const nk_superlock_t *s,
-                                       nk_superlock_capnp_t *out)
-{
-    out->dag_mask = s->dag_mask;
-    for (unsigned i = 0; i < 4; ++i)
-        out->matrix[i] = s->matrix[i];
-}
-
-static inline void nk_superlock_decode(nk_superlock_t *s,
-                                       const nk_superlock_capnp_t *in)
-{
-    s->dag_mask = in->dag_mask;
-    for (unsigned i = 0; i < 4; ++i)
-        s->matrix[i] = in->matrix[i];
-}
-
-/* granular matrix update for speculative COW state */
-static inline void nk_superlock_matrix_set(nk_superlock_t *s,
-                                           unsigned idx, uint32_t val)
-{
-    if (idx < 4)
-        s->matrix[idx] = val;
-}
-
-/* shorthand aliases mirroring nk_slock API */
-#define nk_superlock_acquire(s, m)     nk_superlock_lock((s), (m))
-#define nk_superlock_release(s)        nk_superlock_unlock((s))
-#define nk_superlock_acquire_rt(s, m)  nk_superlock_lock_rt((s), (m))
-#define nk_superlock_release_rt(s)     nk_superlock_unlock_rt((s))
+#define nk_superlock_init        nk_spinlock_init
+#define nk_superlock_lock        nk_spinlock_lock
+#define nk_superlock_trylock     nk_spinlock_trylock
+#define nk_superlock_unlock      nk_spinlock_unlock
+#define nk_superlock_lock_rt     nk_spinlock_lock_rt
+#define nk_superlock_trylock_rt  nk_spinlock_trylock_rt
+#define nk_superlock_unlock_rt   nk_spinlock_unlock_rt
+#define nk_superlock_encode      nk_spinlock_encode
+#define nk_superlock_decode      nk_spinlock_decode
+#define nk_superlock_matrix_set  nk_spinlock_matrix_set
+#define nk_superlock_acquire     nk_spinlock_acquire
+#define nk_superlock_release     nk_spinlock_release
+#define nk_superlock_acquire_rt  nk_spinlock_acquire_rt
+#define nk_superlock_release_rt  nk_spinlock_release_rt
 
 #ifdef __cplusplus
 }
 #endif
-
