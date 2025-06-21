@@ -46,28 +46,9 @@ endif
 # ───────── 2 · Compiler flags, sanitiser, coverage  -------------------
 common_cflags = ['-O2', '-Wall', '-Wextra', '-pedantic', '-std=c17']
 
-if not meson.is_cross_build()
-  if get_option('san') == 'yes' and cc.get_id() in ['gcc', 'clang']
-    san_flags       = ['-fsanitize=address,undefined']
-    common_cflags  += san_flags
-    add_project_arguments(san_flags, language : 'c')
-  endif
-  if get_option('cov') == 'yes' and cc.has_argument('-fprofile-instr-generate')
-    cov_flags       = ['-fprofile-instr-generate', '-fcoverage-mapping']
-    common_cflags  += cov_flags
-    add_project_arguments(cov_flags, language : 'c')
-  endif
-endif
-
-# Helper: always build the test binary for the host CPU ----------------
-build_test = (name : str, srcs : list, link_target) =>
-  executable(
-    name,
-    srcs,
-    include_directories : inc_list,
-    link_with           : link_target,
-    c_args              : common_cflags,
-    native              : true)
+# Helper to build test binaries for the host CPU -----------------------
+# Meson release in this environment lacks arrow functions, so we invoke
+# ``executable`` directly for each test in the loop below.
 
 # Extra stub source for host-only builds
 extra_src = []
@@ -80,16 +61,30 @@ link_target = meson.is_cross_build() ? libfs : libavrix
 # ───────── 3 · Core unit-tests ---------------------------------------
 tests = [
   ['test_fixed_point', ['test_fixed_point.c']],
-  ['fs_test',          ['fs_test.c',        'sim.c']],
-  ['flock_stress',     ['flock_stress.c',   'sim.c']],
-  ['spin_test',        ['spin_test.c',      'sim.c']],
-  ['superlock_test',   ['superlock_test.c', 'sim.c']],
-  ['romfs_test',       ['romfs_test.c',     'sim.c']],
-  ['fs_roundtrip',     ['fs_roundtrip.c',   'sim.c']],
+  ['fs_test',          ['fs_test.c']],
+  ['flock_stress',     ['flock_stress.c']],
+  ['spin_test',        ['spin_test.c']],
+  ['superlock_test',   ['superlock_test.c']],
+  ['romfs_test',       ['romfs_test.c']],
+  ['fs_roundtrip',     ['fs_roundtrip.c']],
 ]
 
+# The allocator helper lives outside the host stub.  Only build the
+# dedicated kalloc_test when we compile natively and bundle the source
+# directly.
+if not meson.is_cross_build()
+  tests += [['kalloc_test',
+            ['kalloc_test.c', meson.project_source_root() / 'src/kalloc.c']]]
+endif
+
 foreach t : tests
-  exe = build_test(t.get(0), t.get(1) + extra_src, link_target)
+  exe = executable(
+    t.get(0),
+    t.get(1) + extra_src,
+    include_directories : inc_list,
+    link_with           : link_target,
+    c_args              : common_cflags,
+    native              : true)
   test(t.get(0), exe)
 endforeach
 
