@@ -1,196 +1,122 @@
-# ─── tests/meson.build ────────────────────────────────────────────────
+# ─── tests/meson.build ──────────────────────────────────────────────
 #
-# • If the *parent* build is a **cross build** (target = AVR) the test
-#   executables run on the **host** CPU.  We therefore compile them with
-#   `native: true` and link against **libfs** (portable helpers only).
+#  • Cross-build (→ AVR)  →  tests always compile **native:true**
+#    and link only against the portable helper library **libfs**.
 #
-# • If the parent build is **native** the tests link against the full
-#   `libavrix_host` stub so that we exercise as much code as possible.
+#  • Native build          →  tests link against the full host stub
+#    **libavrix** so we exercise as much code as possible.
 #
-# • A tiny Python doc-reference linter (`check_docs.py`) always runs.
+#  • A tiny Python linter (`check_docs.py`) always runs and fails the
+#    suite if any Sphinx toctree reference is dangling.
 #
-# Variables imported from the top-level meson.build:
-#     inc        → include_directories('include')
-#     libavrix   → host stub (native build only)
-#     libfs      → portable RAM-filesystem (always host)
-# ---------------------------------------------------------------------
+#  Imported from the root meson.build
+#      inc       → include_directories('include')
+#      libavrix  → host stub (native only)
+#      libfs     → RAM-filesystem helpers (always)
+#
+# --------------------------------------------------------------------
 
-# ───────────────────── 0. Doc-reference linter ───────────────────────
-python = import('python').find_installation('python3')
+python_mod = import('python')
+python     = python_mod.find_installation('python3')
+fs_mod     = import('fs')
 
-test('check-docs',
-     python,
-     args    : [
-       files('check_docs.py'),
-       '--docs-dir', meson.project_source_root() / 'docs/source',
-       '--index-file', meson.project_source_root() / 'docs/source/index.rst',
-       '--recursive',
-     ],
-     workdir : meson.project_source_root())
+# ────────────────────── 0. Documentation linter ─────────────────────
+test(
+  'check-docs',
+  python,
+  args : [
+    files('check_docs.py'),
+    '--docs-dir',  meson.project_source_root() / 'docs/source',
+    '--index-file', meson.project_source_root() / 'docs/source/index.rst',
+    '--recursive',
+  ],
+  workdir : meson.project_source_root()
+)
 
-# ───────────────────── 1. Include-path negotiation ───────────────────
-fsmod       = import('fs')
-inc_list    = [inc]                       # base include dir from root
+# ────────────────────── 1. Include-path negotiation ─────────────────
+#
+# inc_list is shared by *all* tests.
+inc_list = [inc]
+
+# A host build needs stub <avr/...> headers in compat/avr
 if host_machine.cpu_family() != 'avr'
-  # Host builds use stub AVR headers located in compat/avr
   inc_list += include_directories('../compat')
 endif
-avr_opt_dir = get_option('avr_inc_dir')   # optional – user override
 
-if avr_opt_dir != '' and fsmod.is_dir(avr_opt_dir)
-  inc_list += include_directories(avr_opt_dir)
-else
-  sys_avr = '/usr/lib/avr/include'
-  if fsmod.is_dir(sys_avr)
-    inc_list += include_directories(sys_avr)
-  endif
+# Allow user override of an installed AVR include dir
+opt_avr_inc = get_option('avr_inc_dir')   # Project option in meson_options.txt
+if opt_avr_inc != '' and fs_mod.is_dir(opt_avr_inc)
+  inc_list += include_directories(opt_avr_inc)
+elif fs_mod.is_dir('/usr/lib/avr/include')
+  inc_list += include_directories('/usr/lib/avr/include')
 endif
 
-# Host builds (non-AVR) need stub replacements for <avr/io.h> symbols.
+# ────────────────────── 2. Common compiler flags ────────────────────
+common_cflags = ['-O2', '-Wall', '-Wextra', '-pedantic', '-std=c17']
+# (Some host-only tests can be built with ASan/UBSan when CC supports it.)
+if not meson.is_cross_build() and cc.get_id() == 'gcc'
+  common_cflags += ['-fsanitize=address,undefined']
+endif
+
+native_mode = meson.is_cross_build()      # TRUE == tests build for host
+
+# Convenience helper ----------------------------------------------------------
+build_test = (name, srcs, deps) => executable(
+  name,
+  srcs,
+  include_directories : inc_list,
+  link_with            : deps,
+  c_args               : common_cflags,
+  native               : true  # always compile for host CPU
+)
+
+# Extra stub for <avr/io.h> replacement on the host
 extra_src = []
 if host_machine.cpu_family() != 'avr'
   extra_src += meson.project_source_root() / 'src/avr_stub.c'
 endif
 
-common_cflags = [
-  '-O2', '-Wall', '-Wextra', '-pedantic',
-  '-std=c17',                # host compiler, C23 not required
-  '-march=native'
+# Pick correct link target for each mode
+link_portable = libfs
+link_full     = meson.is_cross_build() ? libfs : libavrix
+
+# ────────────────────── 3. Unit-tests definitions  ──────────────────
+tests = [
+  ['test_fixed_point',   ['test_fixed_point.c']   + extra_src],
+  ['fs_test',            ['fs_test.c', 'sim.c']   + extra_src],
+  ['flock_stress',       ['flock_stress.c', 'sim.c'] + extra_src],
+  ['spin_test',          ['spin_test.c', 'sim.c'] + extra_src],
+  ['superlock_test',     ['superlock_test.c', 'sim.c'] + extra_src],
+  ['romfs_test',         ['romfs_test.c', 'sim.c'] + extra_src],
+  ['fs_roundtrip',       ['fs_roundtrip.c', 'sim.c'] + extra_src],
 ]
 
-# Convenience: TRUE when tests *must* be compiled for the host
-native_mode = meson.is_cross_build()
+foreach t : tests
+  exe = build_test(t[0], t[1], link_full)
+  test(t[0], exe)
+endforeach
 
-# ───────────────────── 2. Fixed-point boundary test ──────────────────
-fp_src = ['test_fixed_point.c'] + extra_src
+# ────────────────────── 4. simavr smoke-test (cross only) ───────────
+#
+# Cross-compiled suite runs *one* flash image inside simavr to catch
+# stray AVR-only code-paths.  Host build skips this unconditionally.
 
-if native_mode
-  fp_exe = executable(
-    'test_fixed_point',
-    fp_src,
-    link_with           : libfs,         # portable helpers only
-    include_directories : inc_list,
-    c_args              : common_cflags,
-    native              : true
-  )
-else
-  fp_exe = executable(
-    'test_fixed_point',
-    fp_src,
-    link_with           : libavrix,      # full host stub
-    include_directories : inc_list,
-    c_args              : common_cflags
-  )
+if meson.is_cross_build()
+  simavr = find_program('simavr', required : false)
+  if simavr.found()
+    simavr_exe = executable(
+      'fs_simavr_basic',
+      ['fs_simavr_basic.c', meson.project_source_root() / 'src/fs.c'] + extra_src,
+      include_directories : inc_list,
+      c_args              : ['-Os', '-std=c11', '-Wall', '-Wextra', '-pedantic']
+    )
+
+    test(
+      'fs_simavr_basic',
+      simavr,
+      args         : ['-m', 'atmega328p', simavr_exe],
+      is_parallel  : false,        # simavr is single-threaded
+      timeout      : 30
+    )
+  endif
 endif
-
-test('q8_8_mul_boundaries', fp_exe)
-
-# ───────────────────── 3. Filesystem & lock stress tests ─────────────
-fs_test_src  = ['fs_test.c', 'sim.c'] + extra_src
-flock_src    = ['flock_stress.c', 'sim.c'] + extra_src
-spin_src     = ['spin_test.c', 'sim.c'] + extra_src
-romfs_src    = ['romfs_test.c', 'sim.c'] + extra_src
-superlock_src = ['superlock_test.c', 'sim.c'] + extra_src
-roundtrip_src = ['fs_roundtrip.c', 'sim.c'] + extra_src
-
-if native_mode
-  fs_exe = executable(
-    'fs_test',
-    fs_test_src,
-    link_with           : libfs,
-    include_directories : inc_list,
-    c_args              : common_cflags,
-    native              : true
-  )
-  flock_exe = executable(
-    'flock_stress',
-    flock_src,
-    link_with           : libfs,
-    include_directories : inc_list,
-    c_args              : common_cflags,
-    native              : true
-  )
-  spin_exe = executable(
-    'spin_test',
-    spin_src,
-    link_with           : libfs,
-    include_directories : inc_list,
-    c_args              : common_cflags,
-    native              : true
-  )
-  superlock_exe = executable(
-    'superlock_test',
-    superlock_src,
-    link_with           : libfs,
-    include_directories : inc_list,
-    c_args              : common_cflags,
-    native              : true
-  )
-  romfs_exe = executable(
-    'romfs_test',
-    romfs_src,
-    link_with           : libfs,
-    include_directories : inc_list,
-    c_args              : common_cflags,
-    native              : true
-  )
-  roundtrip_exe = executable(
-    'fs_roundtrip',
-    roundtrip_src,
-    link_with           : libfs,
-    include_directories : inc_list,
-    c_args              : common_cflags,
-    native              : true
-  )
-else
-  fs_exe = executable(
-    'fs_test',
-    ['fs_test.c', meson.project_source_root() / 'src/fs.c'] + extra_src,
-    link_with           : libavrix,
-    include_directories : inc_list,
-    c_args              : common_cflags
-  )
-  flock_exe = executable(
-    'flock_stress',
-    ['flock_stress.c'] + extra_src,
-    link_with           : libavrix,
-    include_directories : inc_list,
-    c_args              : common_cflags
-  )
-  spin_exe = executable(
-    'spin_test',
-    ['spin_test.c'] + extra_src,
-    link_with           : libavrix,
-    include_directories : inc_list,
-    c_args              : common_cflags
-  )
-  superlock_exe = executable(
-    'superlock_test',
-    ['superlock_test.c'] + extra_src,
-    link_with           : libavrix,
-    include_directories : inc_list,
-    c_args              : common_cflags
-  )
-  romfs_exe = executable(
-    'romfs_test',
-    ['romfs_test.c'] + extra_src,
-    link_with           : libavrix,
-    include_directories : inc_list,
-    c_args              : common_cflags
-  )
-  roundtrip_exe = executable(
-    'fs_roundtrip',
-    ['fs_roundtrip.c', meson.project_source_root() / 'src/fs.c'] + extra_src,
-    link_with           : libavrix,
-    include_directories : inc_list,
-    c_args              : common_cflags
-  )
-endif
-
-test('fs_basic',    fs_exe)
-test('flock_stress', flock_exe)
-test('spin_lock',    spin_exe)
-test('superlock_basic', superlock_exe)
-test('romfs_basic',  romfs_exe)
-test('fs_roundtrip', roundtrip_exe)
-
