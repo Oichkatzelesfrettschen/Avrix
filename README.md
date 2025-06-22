@@ -148,6 +148,23 @@ simavr -m atmega328p build/nk.elf
 simavr -m atmega328p -v build/nk.elf
 ```
 
+*Only the AVR core runs – external peripherals are not modelled. See the [simavr documentation](https://github.com/buserror/simavr/wiki).*
+
+### 4B · Tmux development layout
+
+```bash
+./scripts/tmux-dev.sh
+```
+
+Launches a four-pane `tmux` session:
+
+1. **Build** – loops `meson compile -C build`
+2. **Serial monitor** – `screen /dev/ttyACM0`
+3. **Editor** – starts `$EDITOR` in the repo root
+4. **Shell** – spare shell for Git or tools
+
+Works on vanilla `tmux` without plugins. All panes start in the repository root.
+
 ---
 
 ## 5 · Verify install
@@ -210,14 +227,14 @@ meson setup build --cross-file cross/atmega328p_gcc14.cross \
 * **Nano-kernel** < 10 kB – 1 kHz pre-emptive round-robin
 * **TinyLog-4** – wear-levelled EEPROM log (≈ 420 B flash)
 * **Door RPC** – zero-copy Cap’n-Proto slab, ≈ 1 µs RTT
-* **Unified spinlock** – merges BKL and DAG/Lattice approaches with backward-compatible aliases; offers global BKL or fine-grained real-time locking via
-  `nk_spinlock_init`, `nk_spinlock_lock`/`trylock`, `nk_spinlock_lock_rt`/`trylock_rt`, `nk_spinlock_unlock`. Under the hood TAS, quaternion and Beatty-lattice flavours are available.
+* **Unified spinlock** – merges BKL & DAG/Lattice with backward-compatible aliases; offers global BKL or fine-grained real-time locking via
+  `nk_spinlock_init`, `nk_spinlock_lock`/`trylock`, `nk_spinlock_lock_rt`/`trylock_rt`, `nk_spinlock_unlock`. Under the hood TAS, quaternion & Beatty-lattice flavours are available.
 * **Fixed-point Q8.8** helpers
 * **Full QEMU board model** (`arduino-uno`) wired into CI
 
 ### 8A · Unified spinlock details
 
-The `nk_spinlock` is a **hybrid-chimera BKL–DAG matrix** scheme blending a global Big Kernel Lock with fine-grained spinlocks and speculative state snapshots. It provides real-time lock primitives, and legacy code can adopt it via the `nk_superlock` compatibility layer. See [include/nk\_spinlock.h](include/nk_spinlock.h) for full API.
+`nk_spinlock` is a **hybrid-chimera BKL–DAG matrix** blending a global Big Kernel Lock with fine-grained spinlocks and speculative snapshots. It provides real-time lock primitives and a backward-compat `nk_superlock` layer. See [include/nk\_spinlock.h](include/nk_spinlock.h).
 
 ---
 
