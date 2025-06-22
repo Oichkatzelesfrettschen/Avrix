@@ -126,6 +126,7 @@ meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross
 meson compile -C build
 qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 meson compile -C build flash           # flash over /dev/ttyACM0
+meson compile -C build size-gate       # fail if firmware > 30 kB
 ```
 
 For LLVM: use `cross/atmega328p_clang20.cross`.

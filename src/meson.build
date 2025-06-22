@@ -134,5 +134,15 @@ if meson.is_cross_build()
       ],
       console : true
     )
+
+    # ── Firmware size guard -----------------------------------------------
+    size_script = meson.project_source_root() / 'scripts/size_gate.py'
+    custom_target(
+      'size-gate',
+      input  : demo_elf,
+      output : 'size-gate.stamp',
+      command: [size_script, '@INPUT@'],
+      console: true
+    )
   endif
 endif

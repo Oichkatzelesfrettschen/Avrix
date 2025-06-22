@@ -64,6 +64,9 @@ jobs:
       - name: Compile targets
         run: meson compile -C build
 
+      - name: Enforce flash budget
+        run: meson compile -C build size-gate
+
       # ── 4 · Test ───────────────────────────────────────────────────────
       - name: Run test-suite
         run: meson test -C build --print-errorlogs
