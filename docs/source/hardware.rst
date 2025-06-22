@@ -102,8 +102,8 @@ Portability Note
 ----------------
 ``NK_LOCK_ADDR`` must be placed in the lower I/O range (``≤ 0x3F``) so
 single-cycle ``IN``/``OUT`` instructions can access the lock byte.
-On 32‑bit AVR devices the Beatty lattice step (`NK_LATTICE_STEP`) is
-multiplied by ``1024`` via ``NK_LATTICE_SCALE`` to prevent ticket overflow.
+On 32‑bit AVR devices the Beatty lattice increment (`NK_LATTICE_DELTA`)
+equals ``1657u * 1024u`` to prevent ticket overflow.
 
 Scheduler Time Slice
 --------------------

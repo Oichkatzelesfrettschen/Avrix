@@ -19,6 +19,8 @@
 
 /*──────────────── 1. Includes & C linkage ───────────────*/
 #include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
 #include <avr/io.h>
 
 #ifdef __cplusplus
@@ -33,6 +35,14 @@ extern "C" {             /* header is C23-pure but callable from C++ */
 
 #ifndef NK_OPT_DAG_WAIT        /* add 1 B per TCB */
 #  define NK_OPT_DAG_WAIT  0
+#endif
+
+/* Per-task stack size in bytes and scheduler quantum in ms */
+#ifndef NK_STACK_SIZE
+#  define NK_STACK_SIZE 128u
+#endif
+#ifndef NK_QUANTUM_MS
+#  define NK_QUANTUM_MS 10u
 #endif
 
 _Static_assert(NK_MAX_TASKS <= 8,
@@ -72,6 +82,9 @@ _Static_assert(sizeof(nk_tcb_t) == 8,
                "TCB must stay 8 bytes");
 #endif
 
+/** Function signature for task entry points. */
+typedef void (*nk_task_fn)(void);
+
 /*──────────────── 4. Public API ─────────────────────────*/
 
 /** Initialise scheduler, idle task & 1 kHz tick. */
@@ -83,12 +96,30 @@ static inline void nk_sched_init(void) { scheduler_init(); }
 #endif
 
 /**
+ * Create a task and add it to the run queue.
+ *
+ * @param tcb        Caller-allocated TCB
+ * @param entry      Task entry point
+ * @param prio       0 (highest) … 63 (lowest)
+ * @param stack_base Pointer to caller-supplied stack buffer
+ * @param stack_len  Buffer length in bytes
+ * @return `true` on success, `false` on failure
+ */
+bool nk_task_create(nk_tcb_t *tcb,
+                    nk_task_fn entry,
+                    uint8_t    prio,
+                    void      *stack_base,
+                    size_t     stack_len);
+
+/**
  * Add a task to the run queue.
+ *
+ * @deprecated Legacy helper kept for compatibility. Use
+ *             nk_task_create() instead.
  *
  * @param tcb       Caller-allocated TCB (zeroed)
  * @param entry     Task entry (never returns)
- * @param stack_top **Deprecated – ignored** (stacks are pre-allocated;
- *                  parameter will be removed in v0.2)
+ * @param stack_top Unused legacy parameter
  * @param prio      0 (highest) … 63 (lowest)
  * @param class     0…3 fairness channel
  */
@@ -109,6 +140,9 @@ void nk_sched_run(void) __attribute__((alias("scheduler_run"), noreturn));
 static inline void nk_sched_run(void) { scheduler_run(); }
 #endif
 
+/** Suspend the current task for `ms` milliseconds. */
+void nk_sleep(uint16_t ms);
+
 /*─ Cooperative helpers — used by locks / Doors ──────────*/
 uint8_t nk_cur_tid(void);     /**< current PID */
 void    nk_yield(void);       /**< voluntary yield */
@@ -118,8 +152,8 @@ void nk_switch_to(uint8_t tid);
 
 /*─ Optional DAG wait / signal API ───────────────────────*/
 #if NK_OPT_DAG_WAIT
-void nk_task_block (nk_tcb_t *tcb, uint8_t deps);
-void nk_task_signal(nk_tcb_t *tcb);
+void nk_task_wait(uint8_t deps);
+void nk_task_signal(uint8_t tid);
 #endif
 
 #ifdef __cplusplus
