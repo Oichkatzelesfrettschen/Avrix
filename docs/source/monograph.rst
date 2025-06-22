@@ -133,19 +133,69 @@ Golden-ratio ticket
 
 .. code-block:: c
 
-   #define NK_LATTICE_STEP 1657u
    #if NK_WORD_BITS == 32
-   #  define NK_LATTICE_SCALE 1024u
+   #  define NK_LATTICE_DELTA (1657u * 1024u)
    #else
-   #  define NK_LATTICE_SCALE 1u
+   #  define NK_LATTICE_DELTA 1657u
    #endif
 
-   nk_ticket += NK_LATTICE_STEP * NK_LATTICE_SCALE;   /* single ADD/SUB */
+   nk_ticket += NK_LATTICE_DELTA;   /* single ADD/SUB */
 
 Lock-address guard ::
 
    _Static_assert(NK_LOCK_ADDR <= 0x3F,
                   "lock must reside in lower I/O space");
+
+Unified superlock
+~~~~~~~~~~~~~~~~~
+
+``nk_superlock_t`` wraps the DAG-aware ``nk_slock_t`` with a global *Big
+Kernel Lock* (BKL) named ``nk_bkl``.  Acquiring a superlock therefore grabs
+``nk_bkl`` first and releases it last.  ``nk_superlock_init`` initialises both
+the instance and the global lock.
+
+.. code-block:: c
+
+   nk_superlock_t lock = NK_SUPERLOCK_STATIC_INIT;
+   nk_superlock_init(&lock);
+
+   nk_superlock_lock(&lock, 0x1u);
+   nk_superlock_unlock(&lock);
+
+Real-time mode
+~~~~~~~~~~~~~~
+
+Latency-critical code may bypass the BKL.  The ``*_lock_rt`` and
+``*_unlock_rt`` variants operate only on the local instance and set the
+``rt_mode`` flag while held.
+
+.. code-block:: c
+
+   nk_superlock_lock_rt(&lock, 0x2u);
+   nk_superlock_unlock_rt(&lock);
+
+   if (nk_superlock_trylock_rt(&lock, 0x3u)) {
+       nk_superlock_unlock_rt(&lock);
+   }
+
+Encoding and matrix helpers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The four-word ``matrix`` field models speculative state.  It can be
+serialised with :c:func:`nk_superlock_encode` into
+``nk_superlock_capnp_t`` and later restored with
+:c:func:`nk_superlock_decode`.  Individual entries are adjusted via
+:c:func:`nk_superlock_matrix_set`.
+
+.. code-block:: c
+
+   nk_superlock_capnp_t snap;
+   nk_superlock_encode(&lock, &snap);
+   nk_superlock_matrix_set(&lock, 2, 0xdeadbeef);
+   nk_superlock_unlock(&lock);
+   nk_superlock_decode(&lock, &snap);
+
+See ``tests/unified_spinlock_test.c`` for a complete example.
 
 ----------------------------------------------------------------------
 8 · Optimisation playbook
