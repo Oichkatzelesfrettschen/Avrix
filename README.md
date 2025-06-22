@@ -268,7 +268,7 @@ Tests using the host CPU run directly. Cross builds leverage **simavr** so the
 AVR binaries execute in simulation. Ensure `simavr` is installed and available
 in your `$PATH`.
 
-The `spinlock_isr` case stresses the DAG-based spinlock under a 1 kHz timer
+The `spinlock_isr` case stresses the unified spinlock under a 1 kHz timer
 interrupt using `simavr`.  It runs automatically when cross compiling.
 
 ---
