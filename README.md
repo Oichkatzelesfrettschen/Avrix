@@ -187,6 +187,26 @@ meson setup build --cross-file cross/atmega328p_gcc14.cross \
 
 ---
 
+### 6A · Stack & quantum overrides
+
+```c
+#ifndef NK_STACK_SIZE
+#define NK_STACK_SIZE 128u           /* bytes per task stack */
+#endif
+#ifndef NK_QUANTUM_MS
+#define NK_QUANTUM_MS 10u            /* round-robin slice */
+#endif
+```
+
+Override at configure-time:
+
+```bash
+meson setup build --cross-file cross/atmega328p_gcc14.cross \
+                  -Dc_args="-DNK_STACK_SIZE=256 -DNK_QUANTUM_MS=5"
+```
+
+---
+
 ## 7 · Hardware target
 
 | Chip           | Role            | Clock          | Flash / SRAM | Notes               |
@@ -201,9 +221,17 @@ meson setup build --cross-file cross/atmega328p_gcc14.cross \
 * **Nano-kernel** < 10 kB – 1 kHz pre-emptive round-robin
 * **TinyLog-4** – wear-levelled EEPROM log (420 B flash)
 * **Door RPC** – zero-copy Cap’n-Proto slab, ≈ 1 µs RTT
-* **Spin-locks** – TAS / quaternion / Beatty-lattice flavours
+* **Unified spinlock** – merges BKL and DAG/Lattice approaches with backward‑compatible aliases
 * **Fixed-point Q8.8** helpers
 * **Full QEMU board model** (`arduino-uno`) wired into CI
+
+### 8A · Unified spinlock
+
+`nk_spinlock` is a **hybrid‑chimera BKL–DAG matrix** scheme that blends a
+global BKL with fine‑grained locks using copy‑on‑write state. It exposes
+real‑time lock primitives, and existing code can seamlessly adopt the new
+model via the `nk_superlock` compatibility layer.  See
+[include/nk_spinlock.h](include/nk_spinlock.h) for API details.
 
 ---
 
@@ -240,7 +268,7 @@ Tests using the host CPU run directly. Cross builds leverage **simavr** so the
 AVR binaries execute in simulation. Ensure `simavr` is installed and available
 in your `$PATH`.
 
-The `spinlock_isr` case stresses the DAG-based spinlock under a 1 kHz timer
+The `spinlock_isr` case stresses the unified spinlock under a 1 kHz timer
 interrupt using `simavr`.  It runs automatically when cross compiling.
 
 ---
@@ -263,7 +291,7 @@ The container compiles the firmware, emits `avrix.img`, then boots QEMU.
 | **Real-board flash helper**               | newcomers still need the `avrdude` incantation | `meson compile -C build flash` flashes the Uno |
 | **tmux-dev launcher**                     | 4-pane session exists only in docs             | ship `scripts/tmux-dev.sh`                          |
 | **On-device GDB stub**                    | “printf + LED” is clumsy                       | gate tiny `avr-gdbstub` behind `-DDEBUG_GDB`        |
-| **Static-analysis CI**                    | cppcheck runs locally only                     | add `cppcheck/clang-tidy` GitHub job                |
+| **Static-analysis CI**                    | cppcheck runs locally only                     | ✅ `cppcheck` & `clang-tidy` GitHub job                |
 | **Binary-size guardrail**                 | flash creep goes unnoticed                     | Meson `size-gate` custom target (< 30 kB)           |
 | *(full table continues in README source)* |                                                |                                                     |
 

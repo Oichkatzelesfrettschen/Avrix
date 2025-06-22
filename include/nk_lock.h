@@ -121,6 +121,9 @@ typedef struct {
 #   endif
 } nk_slock_t;
 
+/* Zero-initialiser suitable for static storage duration */
+#define NK_SLOCK_STATIC_INIT {0}
+
 static inline void nk_slock_init(nk_slock_t *s)
 {
     nk_flock_init(&s->base);
