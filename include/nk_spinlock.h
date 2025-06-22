@@ -1,21 +1,20 @@
 /* SPDX-License-Identifier: MIT
  * See LICENSE file in the repository root for full license information.
- */
-
-/**
+ *
  * @file nk_spinlock.h
  * @brief Unified spinlock primitive combining a global Big Kernel Lock (BKL)
- *        with optional fine-grained real-time bypass, built atop nk_slock.
+ *        with optional fine-grained, real-time bypass, built atop nk_slock.
  *
- * This implementation provides:
- *   - A global Big Kernel Lock (nk_bkl) for coarse-grained serialization.
+ * Features:
+ *   - Global Big Kernel Lock (nk_bkl) for coarse-grained serialization.
  *   - Per-instance spinlocks for fine-grained locking.
- *   - Speculative copy-on-write (COW) state tracking via a small snapshot matrix.
- *   - Real-time bypass mode to skip global lock arbitration.
- *   - Cap'n Proto-compatible serialization helpers for lock state snapshots.
+ *   - Speculative copy-on-write (COW) matrix for snapshotting state.
+ *   - Real-time mode bypassing the global BKL.
+ *   - Cap’n Proto–compatible encoding/decoding of lock state.
  *
- * All operations use atomic primitives from nk_slock and enforce
- * memory ordering for correctness in SMP contexts.
+ * All operations use atomic primitives from nk_slock and enforce proper
+ * memory ordering for SMP correctness. Inline functions ensure zero
+ * call-overhead.
  */
 
 #pragma once
@@ -34,18 +33,18 @@ extern "C" {
  *  @{
  */
 
-/** @brief Underlying global Big Kernel Lock (BKL). */
+/** @brief Global Big Kernel Lock (BKL), zero-initialized at load time. */
 extern nk_slock_t nk_bkl;
 
 /**
  * @struct nk_spinlock_t
- * @brief Unified spinlock combining global and per-instance locking.
+ * @brief Composite spinlock combining global and per-instance locking.
  */
 typedef struct {
-    nk_slock_t core;      /**< Underlying smart-lock primitive.     */
-    uint8_t    dag_mask;  /**< Dependency bitmap for speculative ops. */
-    uint8_t    rt_mode;   /**< Real-time mode flag: bypass global BKL. */
-    uint32_t   matrix[4]; /**< Speculative COW state snapshot.      */
+    nk_slock_t core;       /**< Underlying smart-lock primitive.      */
+    uint8_t    dag_mask;   /**< Dependency bitmap for speculative ops. */
+    uint8_t    rt_mode;    /**< Real-time flag: bypass global BKL.    */
+    uint32_t   matrix[4];  /**< Snapshot of speculative COW state.     */
 } nk_spinlock_t;
 
 /** @brief Static initializer for nk_spinlock_t. */
@@ -54,8 +53,7 @@ typedef struct {
 
 /**
  * @brief Initialize the global Big Kernel Lock.
- *
- * Must be called once during system startup before any spinlocks are used.
+ *        Must be called once during startup before any spinlocks are used.
  */
 static inline void nk_spinlock_global_init(void)
 {
@@ -64,7 +62,7 @@ static inline void nk_spinlock_global_init(void)
 
 /**
  * @brief Initialize a spinlock instance.
- * @param[out] s Spinlock instance to initialize.
+ * @param[out] s Spinlock to initialize.
  */
 static inline void nk_spinlock_init(nk_spinlock_t *s)
 {
@@ -78,8 +76,8 @@ static inline void nk_spinlock_init(nk_spinlock_t *s)
 }
 
 /**
- * @brief Acquire the spinlock (global + core).
- * @param[in,out] s   Spinlock instance.
+ * @brief Acquire the spinlock (global BKL + core lock).
+ * @param[in,out] s    Spinlock instance.
  * @param[in]     mask Dependency mask to record.
  */
 static inline void nk_spinlock_lock(nk_spinlock_t *s, uint8_t mask)
@@ -94,15 +92,14 @@ static inline void nk_spinlock_lock(nk_spinlock_t *s, uint8_t mask)
 
 /**
  * @brief Try to acquire the spinlock without blocking.
- * @param[in,out] s   Spinlock instance.
+ * @param[in,out] s    Spinlock instance.
  * @param[in]     mask Dependency mask to record.
- * @return true if lock was acquired; false otherwise.
+ * @return true if acquired; false otherwise.
  */
 static inline bool nk_spinlock_trylock(nk_spinlock_t *s, uint8_t mask)
 {
     assert(s != NULL);
-    if (!nk_slock_trylock(&nk_bkl))
-        return false;
+    if (!nk_slock_trylock(&nk_bkl)) return false;
     if (!nk_slock_trylock(&s->core)) {
         nk_slock_unlock(&nk_bkl);
         return false;
@@ -114,7 +111,7 @@ static inline bool nk_spinlock_trylock(nk_spinlock_t *s, uint8_t mask)
 }
 
 /**
- * @brief Release the spinlock (core + global).
+ * @brief Release the spinlock (core lock + global BKL).
  * @param[in,out] s Spinlock instance.
  */
 static inline void nk_spinlock_unlock(nk_spinlock_t *s)
@@ -128,8 +125,8 @@ static inline void nk_spinlock_unlock(nk_spinlock_t *s)
 }
 
 /**
- * @brief Acquire the spinlock in real-time (bypass global BKL).
- * @param[in,out] s   Spinlock instance.
+ * @brief Acquire the spinlock in real-time mode (bypass global BKL).
+ * @param[in,out] s    Spinlock instance.
  * @param[in]     mask Dependency mask to record.
  */
 static inline void nk_spinlock_lock_rt(nk_spinlock_t *s, uint8_t mask)
@@ -143,15 +140,14 @@ static inline void nk_spinlock_lock_rt(nk_spinlock_t *s, uint8_t mask)
 
 /**
  * @brief Try to acquire the spinlock in real-time mode.
- * @param[in,out] s   Spinlock instance.
+ * @param[in,out] s    Spinlock instance.
  * @param[in]     mask Dependency mask to record.
- * @return true if lock was acquired; false otherwise.
+ * @return true if acquired; false otherwise.
  */
 static inline bool nk_spinlock_trylock_rt(nk_spinlock_t *s, uint8_t mask)
 {
     assert(s != NULL);
-    if (!nk_slock_trylock(&s->core))
-        return false;
+    if (!nk_slock_trylock(&s->core)) return false;
     atomic_thread_fence(memory_order_acquire);
     s->dag_mask = mask;
     s->rt_mode  = 1u;
@@ -173,20 +169,20 @@ static inline void nk_spinlock_unlock_rt(nk_spinlock_t *s)
 
 /**
  * @struct nk_spinlock_capnp_t
- * @brief Cap'n Proto-friendly snapshot of spinlock state.
+ * @brief Cap’n Proto–compatible snapshot of spinlock state.
  */
 typedef struct {
-    uint8_t   dag_mask; /**< Dependency mask at snapshot time. */
-    uint32_t  matrix[4];/**< Snapshot of speculative matrix state. */
+    uint8_t  dag_mask;   /**< Dependency mask at snapshot.    */
+    uint32_t matrix[4];  /**< Snapshot of speculative state.  */
 } nk_spinlock_capnp_t;
 
 /**
- * @brief Encode spinlock state into Cap'n Proto snapshot.
+ * @brief Encode spinlock state into Cap’n Proto snapshot.
  * @param[in]  s   Spinlock instance.
- * @param[out] out Snapshot structure to populate.
+ * @param[out] out Snapshot to populate.
  */
-static inline void
-nk_spinlock_encode(const nk_spinlock_t *s, nk_spinlock_capnp_t *out)
+static inline void nk_spinlock_encode(const nk_spinlock_t *s,
+                                      nk_spinlock_capnp_t *out)
 {
     assert(s != NULL && out != NULL);
     out->dag_mask = s->dag_mask;
@@ -195,12 +191,12 @@ nk_spinlock_encode(const nk_spinlock_t *s, nk_spinlock_capnp_t *out)
 }
 
 /**
- * @brief Decode spinlock state from Cap'n Proto snapshot.
+ * @brief Decode spinlock state from Cap’n Proto snapshot.
  * @param[out] s   Spinlock instance to update.
- * @param[in]  in  Snapshot structure to read.
+ * @param[in]  in  Snapshot to read.
  */
-static inline void
-nk_spinlock_decode(nk_spinlock_t *s, const nk_spinlock_capnp_t *in)
+static inline void nk_spinlock_decode(nk_spinlock_t *s,
+                                      const nk_spinlock_capnp_t *in)
 {
     assert(s != NULL && in != NULL);
     s->dag_mask = in->dag_mask;
@@ -214,11 +210,11 @@ nk_spinlock_decode(nk_spinlock_t *s, const nk_spinlock_capnp_t *in)
  * @param[in]  idx Index [0..3] in the matrix.
  * @param[in]  val Value to set.
  */
-static inline void
-nk_spinlock_matrix_set(nk_spinlock_t *s, unsigned idx, uint32_t val)
+static inline void nk_spinlock_matrix_set(nk_spinlock_t *s,
+                                          unsigned idx,
+                                          uint32_t val)
 {
-    assert(s != NULL);
-    assert(idx < 4);
+    assert(s != NULL && idx < 4);
     s->matrix[idx] = val;
 }
 
