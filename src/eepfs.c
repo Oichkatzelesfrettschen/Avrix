@@ -12,12 +12,14 @@
 #define EEPFS_FILE 1u
 #define EEPFS_DIR  2u
 
+/** Entry within an EEPROM directory table. */
 typedef struct {
     const char *name;  /* RAM -> name string in flash */
     uint8_t     type;  /* file or dir                */
     uint8_t     idx;   /* index into tables          */
 } eepfs_entry_t;
 
+/** Directory descriptor containing a list of entries. */
 typedef struct {
     const eepfs_entry_t *entries;
     uint8_t              count;
