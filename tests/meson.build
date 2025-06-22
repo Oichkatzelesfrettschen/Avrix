@@ -49,24 +49,22 @@ elif fs_mod.is_dir('/usr/lib/avr/include')
 endif
 
 # 2 · Compiler & sanitizer flags
-common_cflags   = ['-O2', '-Wall', '-Wextra', '-pedantic', '-std=c23']
+common_cflags    = ['-O2', '-Wall', '-Wextra', '-pedantic', '-std=c23']
 common_link_args = []
 
 if not meson.is_cross_build()
   if san and cc.get_id() in ['gcc', 'clang']
-    common_cflags   += ['-fsanitize=address,undefined']
-    common_link_args += ['-fsanitize=address,undefined']
+    san_flags = ['-fsanitize=address,undefined']
+    common_cflags   += san_flags
+    common_link_args += san_flags
   endif
 
   if cov and cc.has_argument('-fcoverage-mapping')
-    common_cflags   += ['-fprofile-instr-generate', '-fcoverage-mapping']
-    common_link_args += ['-fprofile-instr-generate', '-fcoverage-mapping']
+    cov_flags = ['-fprofile-instr-generate', '-fcoverage-mapping']
+    common_cflags   += cov_flags
+    common_link_args += cov_flags
   endif
 endif
-
-# Helper: always build the test binary for the host CPU.
-# Older Meson releases (<1.4) do not support arrow-function wrappers.
-# We therefore expand executable() calls directly in the loop below.
 
 # Extra stub source for host-only builds
 extra_src = []
@@ -122,6 +120,7 @@ if target_machine.cpu_family() == 'avr'
       ['fs_simavr_basic', ['fs_simavr_basic.c', meson.project_source_root() / 'src/fs.c']],
       ['spinlock_isr',    ['spinlock_isr.c',    meson.project_source_root() / 'src/nk_lock.c']],
     ]
+
     foreach s : sim_suites
       sim_exe = executable(
         s[0],
