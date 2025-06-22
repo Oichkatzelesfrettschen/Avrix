@@ -15,9 +15,9 @@
 #   libfs     → portable RAM-filesystem (always)
 # ------------------------------------------------------------------------
 
-python = import('python').find_installation('python3')
-fs_mod = import('fs')
-cc     = meson.get_compiler('c')
+python     = import('python').find_installation('python3')
+fs_mod     = import('fs')
+cc         = meson.get_compiler('c')
 
 san = get_option('san')
 cov = get_option('cov')
@@ -41,9 +41,9 @@ if host_machine.cpu_family() != 'avr'
   inc_list += include_directories('../compat')
 endif
 
-opt_avr_inc = get_option('avr_inc_dir')
-if opt_avr_inc != '' and fs_mod.is_dir(opt_avr_inc)
-  inc_list += include_directories(opt_avr_inc)
+avr_inc = get_option('avr_inc_dir')
+if avr_inc != '' and fs_mod.is_dir(avr_inc)
+  inc_list += include_directories(avr_inc)
 elif fs_mod.is_dir('/usr/lib/avr/include')
   inc_list += include_directories('/usr/lib/avr/include')
 endif
@@ -57,13 +57,14 @@ if not meson.is_cross_build()
     common_cflags   += ['-fsanitize=address,undefined']
     common_link_args += ['-fsanitize=address,undefined']
   endif
+
   if cov and cc.has_argument('-fcoverage-mapping')
     common_cflags   += ['-fprofile-instr-generate', '-fcoverage-mapping']
     common_link_args += ['-fprofile-instr-generate', '-fcoverage-mapping']
   endif
 endif
 
-# 3 · Core unit tests
+# Helper: extra stub source for host-only builds
 extra_src = []
 if host_machine.cpu_family() != 'avr'
   extra_src += meson.project_source_root() / 'src/avr_stub.c'
@@ -71,17 +72,26 @@ endif
 
 link_target = meson.is_cross_build() ? libfs : libavrix
 
+# 3 · Core unit tests
 tests = [
-  ['test_fixed_point',      ['test_fixed_point.c']],
-  ['fs_test',               ['fs_test.c',       'sim.c']],
-  ['flock_stress',          ['flock_stress.c',  'sim.c']],
-  ['spin_test',             ['spin_test.c',     'sim.c']],
-  ['unified_spinlock_test', ['unified_spinlock_test.c', 'sim.c']],
-  ['superlock_test',        ['superlock_test.c',        'sim.c']],
-  ['romfs_test',            ['romfs_test.c',    'sim.c']],
-  ['fs_roundtrip',          ['fs_roundtrip.c',  'sim.c']],
-  ['door_test',             ['door_test.c']],
+  ['test_fixed_point',        ['test_fixed_point.c']],
+  ['fs_test',                 ['fs_test.c',       'sim.c']],
+  ['flock_stress',            ['flock_stress.c',  'sim.c']],
+  ['spin_test',               ['spin_test.c',     'sim.c']],
+  ['unified_spinlock_test',   ['unified_spinlock_test.c', 'sim.c']],
+  ['superlock_test',          ['superlock_test.c',        'sim.c']],
+  ['romfs_test',              ['romfs_test.c',    'sim.c']],
+  ['fs_roundtrip',            ['fs_roundtrip.c',  'sim.c']],
+  ['door_test',               ['door_test.c']],
 ]
+
+# Include kalloc_test only for native builds
+if not meson.is_cross_build()
+  tests += [
+    ['kalloc_test',
+     ['kalloc_test.c', meson.project_source_root() / 'src/kalloc.c']]
+  ]
+endif
 
 foreach t : tests
   srcs = t[1]
@@ -100,7 +110,7 @@ foreach t : tests
   test(t[0], exe)
 endforeach
 
-# 4 · simavr smoke tests
+# 4 · simavr smoke tests (cross builds only)
 if target_machine.cpu_family() == 'avr'
   simavr = find_program('simavr', required : false)
   if simavr.found()
@@ -108,6 +118,7 @@ if target_machine.cpu_family() == 'avr'
       ['fs_simavr_basic', ['fs_simavr_basic.c', meson.project_source_root() / 'src/fs.c']],
       ['spinlock_isr',    ['spinlock_isr.c',    meson.project_source_root() / 'src/nk_lock.c']],
     ]
+
     foreach s : sim_suites
       sim_exe = executable(
         s[0],
