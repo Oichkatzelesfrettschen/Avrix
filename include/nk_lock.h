@@ -9,14 +9,14 @@
  *  • nk_qlock   – quaternion ticket   (fair)
  *  • nk_slock   – feature matrix: DAG + Beatty-lattice fairness
  *
- *  Word-size-aware Beatty step:
- *      16-bit   → 1657u          = φ × 2¹⁰
- *      32-bit   → 1657u × 1024u  = φ × 2²⁰   (avoids 32-bit wrap)
- *  Chosen at **compile-time**; no run-time penalty.
- *
- *  Portability: ``NK_LOCK_ADDR`` must reside in the lower I/O space
- *  (``≤ 0x3F``) for single-cycle access. 32‑bit AVR parts multiply
- *  ``NK_LATTICE_STEP`` by ``1024`` via ``NK_LATTICE_SCALE``.
+*  Word-size-aware Beatty increment ``NK_LATTICE_DELTA``:
+*      16-bit   → 1657u          = φ × 2¹⁰
+*      32-bit   → 1657u × 1024u  = φ × 2²⁰   (avoids 32-bit wrap)
+*  Chosen at **compile-time**; no run-time penalty.
+*
+*  Portability: ``NK_LOCK_ADDR`` must reside in the lower I/O space
+*  (``≤ 0x3F``) for single-cycle access. The value of
+*  ``NK_LATTICE_DELTA`` already accounts for the 32‑bit scale factor.
  *─────────────────────────────────────────────────────────────────────────*/
 
 #ifndef NK_LOCK_H
@@ -89,15 +89,16 @@ static inline void nk_qlock_unlock(nk_qlock_t *q)          { __atomic_fetch_add(
  *==============================================================*/
 #if NK_ENABLE_LATTICE
 
-#  define NK_LATTICE_STEP 1657u
 #  if   NK_WORD_BITS == 32
-#    define NK_LATTICE_SCALE 1024u
-     typedef uint32_t        nk_ticket_t;
+    typedef uint32_t        nk_ticket_t;
+#    define NK_LATTICE_DELTA ((nk_ticket_t)(1657u * 1024u))
 #  else
-#    define NK_LATTICE_SCALE 1u
-     typedef uint16_t        nk_ticket_t;
+    typedef uint16_t        nk_ticket_t;
+#    define NK_LATTICE_DELTA ((nk_ticket_t)1657u)
 #  endif
-#  define NK_LATTICE_DELTA (NK_LATTICE_STEP * NK_LATTICE_SCALE)
+
+_Static_assert(NK_LATTICE_DELTA <= (nk_ticket_t)-1,
+               "NK_LATTICE_DELTA exceeds ticket type range");
 
 static volatile nk_ticket_t nk_lattice_ticket = 0;
 

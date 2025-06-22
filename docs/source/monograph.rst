@@ -133,14 +133,13 @@ Golden-ratio ticket
 
 .. code-block:: c
 
-   #define NK_LATTICE_STEP 1657u
    #if NK_WORD_BITS == 32
-   #  define NK_LATTICE_SCALE 1024u
+   #  define NK_LATTICE_DELTA (1657u * 1024u)
    #else
-   #  define NK_LATTICE_SCALE 1u
+   #  define NK_LATTICE_DELTA 1657u
    #endif
 
-   nk_ticket += NK_LATTICE_STEP * NK_LATTICE_SCALE;   /* single ADD/SUB */
+   nk_ticket += NK_LATTICE_DELTA;   /* single ADD/SUB */
 
 Lock-address guard ::
 
