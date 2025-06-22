@@ -41,6 +41,7 @@ Contents
 
    hardware
    toolchain
+   tmux_dev
    monograph
    filesystem
    slip_networking

@@ -157,6 +157,22 @@ AVR_PREFIX=/opt/avr/bin ./cross/gen_avr_cross.sh
 meson setup build --wipe --cross-file cross/avr_m328p.txt
 ```
 
+### 4B · Tmux development layout
+
+```bash
+./scripts/tmux-dev.sh
+```
+
+Launches a four-pane session:
+
+1. **Build** – loops `meson compile -C build`.
+2. **Serial monitor** – opens `screen /dev/ttyACM0`.
+3. **Editor** – starts `$EDITOR` in the project root.
+4. **Shell** – spare shell for Git or tools.
+
+Works on vanilla `tmux` without plugins. All panes start in the repository
+root.
+
 ---
 
 ## 5 · Verify install
