@@ -104,13 +104,16 @@ static uint8_t find_next_task(void)
 
 #if NK_OPT_STACK_GUARD
 static void panic_stack_overflow(void) __attribute__((noreturn));
+enum { PANIC_BLINK_DELAY = 40000 };
+_Static_assert(PANIC_BLINK_DELAY < UINT16_MAX,
+               "Panic delay must fit in uint16_t");
 static void panic_stack_overflow(void)
 {
     cli();
     DDRB  |= _BV(PB5);
     for (;;){
         PORTB ^= _BV(PB5);
-        for (volatile uint16_t d = 0; d < 40000; ++d);
+        for (volatile uint16_t d = 0; d < PANIC_BLINK_DELAY; ++d);
     }
 }
 

@@ -1,16 +1,16 @@
 ````markdown
 # Avrix: µ-UNIX for AVR 🍋  
-**Project codename:** **Avrix** (styled as **AVR-unIX**).
-In the documentation the kernel is also referred to as **µ-UNIX**.
-*A ≤ 10 kB C23 nanokernel, wear-levelled log-FS, and lock / RPC suite for the Arduino Uno R3.*
+**Project codename:** **Avrix** (styled as **AVR-unIX**)  
+In documentation the kernel is also referred to as **µ-UNIX**.  
+*A ≤ 10 kB C23 nanokernel, wear-levelled TinyLog-4, and unified spinlock / Door RPC suite for the Arduino Uno R3.*
 
+| MCU               | Flash   | SRAM   | EEPROM | Clock               |
+| ----------------- | ------- | ------ | ------ | ------------------- |
+| **ATmega328P-PU** | 32 KiB  | 2 KiB  | 1 KiB  | 16 MHz              |
+| **ATmega16U2-MU** | 16 KiB  | 512 B  | 512 B  | 16 MHz → 48 MHz PLL |
 
-| MCU | Flash | SRAM | EEPROM | Clock |
-| --- | ----- | ---- | ------ | ----- |
-| **ATmega328P-PU** | 32 KiB | 2 KiB | 1 KiB | 16 MHz |
-| **ATmega16U2-MU** | 16 KiB | 512 B | 512 B | 16 MHz → 48 MHz PLL |
-
-[![CI](https://github.com/your-org/avrix/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/avrix/actions) -- *Snapshot · 20 Jun 2025 – every command below is exercised by CI against this repo and the latest `setup.sh`.*
+[![CI](https://github.com/your-org/avrix/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/avrix/actions)  
+*Snapshot · 20 Jun 2025 – every command below is exercised by CI against this repo and the latest `setup.sh`.*
 
 ---
 
@@ -23,13 +23,13 @@ sudo ./setup.sh --legacy     # GCC-7.3 only – bare minimum
 # add --no-python if you are offline
 ````
 
-`setup.sh` automatically
+`setup.sh` automatically:
 
-* pins **Debian-sid** `gcc-avr-14` (falls back to Ubuntu 7.3 if sid is blocked),
-* installs QEMU ≥ 8.2 + Meson + docs & analysis helpers,
-* `--no-python` skips the docs helpers for offline installs,
-* **builds** the firmware, boots it in QEMU (`arduino-uno` machine),
-* prints MCU-specific **CFLAGS / LDFLAGS** you can paste into any Makefile.
+* pins **Debian-sid** `gcc-avr-14` (falls back to Ubuntu 7.3 if unavailable),
+* installs QEMU ≥ 8.2, Meson, docs & analysis helpers,
+* `--no-python` skips docs helpers for offline installs,
+* **builds** firmware, boots it in QEMU (`arduino-uno` machine),
+* prints MCU-specific **CFLAGS** / **LDFLAGS** you can paste into your Makefile.
 
 ---
 
@@ -40,18 +40,16 @@ sudo ./setup.sh --legacy     # GCC-7.3 only – bare minimum
 | **Modern** | 14.2 | Debian-sid packages *or* xPack 13.x | C23, `-mrelax`, `-mcall-prologues`, smallest flash | Needs apt-pin or `$PATH` tweak  |
 | **Legacy** | 7.3  | Ubuntu *universe*                   | Zero extra setup                                   | C11 only, ≈ 8 % larger binaries |
 
-No Launchpad PPA ships AVR GCC ≥ 10 – ignore any guide that mentions `team-gcc-arm-embedded/avr`.
-
----
+*No Launchpad PPA ships AVR GCC ≥ 10 – ignore any guide that mentions `team-gcc-arm-embedded/avr`.*
 
 ### 1A · Debian-sid pin (Modern)
 
 ```bash
 echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] \
       http://deb.debian.org/debian sid main' \
-| sudo tee /etc/apt/sources.list.d/debian-sid-avr.list
+  | sudo tee /etc/apt/sources.list.d/debian-sid-avr.list
 
-sudo tee /etc/apt/preferences.d/90-avr <<'EOF'
+sudo tee /etc/apt/preferences.d/90-avr << 'EOF'
 Package: gcc-avr avr-libc binutils-avr
 Pin: release o=Debian,a=sid
 Pin-Priority: 100
@@ -70,9 +68,12 @@ curl -L \
   https://github.com/xpack-dev-tools/avr-gcc-xpack/releases/download/\
 v13.2.0-1/xpack-avr-gcc-13.2.0-1-linux-x64.tar.gz \
   -o /tmp/avr.tgz
-mkdir -p "$HOME/opt/avr" && \
-tar -C "$HOME/opt/avr" --strip-components=1 -xf /tmp/avr.tgz
-echo 'export PATH=$HOME/opt/avr/bin:$PATH' >> ~/.profile && source ~/.profile
+
+mkdir -p "$HOME/opt/avr" \
+  && tar -C "$HOME/opt/avr" --strip-components=1 -xf /tmp/avr.tgz
+
+echo 'export PATH=$HOME/opt/avr/bin:$PATH' >> ~/.profile
+source ~/.profile
 ```
 
 ### 1C · Ubuntu archive (Legacy)
@@ -99,8 +100,9 @@ sudo apt install -y clang-20 lld-20 llvm-20
 sudo apt install -y meson ninja-build doxygen python3-sphinx \
                     python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
                     nodejs npm simavr
+
 pip3 install --user breathe exhale sphinx-rtd-theme
-npm  install -g   prettier
+npm install -g prettier
 ```
 
 ---
@@ -109,13 +111,15 @@ npm  install -g   prettier
 
 ```bash
 export MCU=atmega328p
-CFLAGS="-std=c23 -mmcu=$MCU -DF_CPU=16000000UL -Oz -flto -mrelax \
-        -ffunction-sections -fdata-sections -mcall-prologues \
-        --icf=safe -fipa-pta"   # last two need GCC ≥ 14
+
+CFLAGS="-std=c23 -mmcu=$MCU -DF_CPU=16000000UL -Oz \
+        -flto -mrelax -ffunction-sections -fdata-sections \
+        -mcall-prologues --icf=safe -fipa-pta"
+
 LDFLAGS="-mmcu=$MCU -Wl,--gc-sections -flto"
 ```
 
-Legacy build? Replace `-std=c23` with `-std=c11` and drop the two GCC-14 extras.
+> For legacy: replace `-std=c23` with `-std=c11` and drop the two GCC 14 extras.
 
 ---
 
@@ -125,10 +129,10 @@ Legacy build? Replace `-std=c23` with `-std=c11` and drop the two GCC-14 extras.
 meson setup build --wipe --cross-file cross/atmega328p_gcc14.cross
 meson compile -C build
 qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
-meson compile -C build flash           # flash over /dev/ttyACM0
+meson compile -C build flash   # flashes over /dev/ttyACM0
 ```
 
-For LLVM: use `cross/atmega328p_clang20.cross`.
+*For LLVM: use `cross/atmega328p_clang20.cross`.*
 
 ### 4A · Simavr quick test
 
@@ -138,24 +142,28 @@ meson compile -C build nk_elf        # emits build/nk.elf
 simavr -m atmega328p build/nk.elf
 ```
 
-View UART output with verbose mode:
+*View UART output:*
 
 ```bash
 simavr -m atmega328p -v build/nk.elf
 ```
 
-Only the AVR core runs – external peripherals are not modelled. See the
-[simavr documentation](https://github.com/buserror/simavr/wiki) for details.
+*Only the AVR core runs – external peripherals are not modelled. See the [simavr documentation](https://github.com/buserror/simavr/wiki).*
 
-### 4A · Custom toolchain prefix
-
-Set `AVR_PREFIX` when the AVR tools live outside `/usr/bin`.  Use the
-helper script to regenerate the cross file and point Meson to it:
+### 4B · Tmux development layout
 
 ```bash
-AVR_PREFIX=/opt/avr/bin ./cross/gen_avr_cross.sh
-meson setup build --wipe --cross-file cross/avr_m328p.txt
+./scripts/tmux-dev.sh
 ```
+
+Launches a four-pane `tmux` session:
+
+1. **Build** – loops `meson compile -C build`
+2. **Serial monitor** – `screen /dev/ttyACM0`
+3. **Editor** – starts `$EDITOR` in the repo root
+4. **Shell** – spare shell for Git or tools
+
+Works on vanilla `tmux` without plugins. All panes start in the repository root.
 
 ---
 
@@ -178,32 +186,55 @@ qemu-system-avr --version  | head -1
 _Static_assert(NK_LOCK_ADDR <= 0x3F, "must live in lower I/O");
 ```
 
-Override at configure-time:
+*Override at configure time:*
 
 ```bash
 meson setup build --cross-file cross/atmega328p_gcc14.cross \
                   -Dc_args="-DNK_LOCK_ADDR=0x2D"
 ```
 
+### 6A · Stack & quantum overrides
+
+```c
+#ifndef NK_STACK_SIZE
+#define NK_STACK_SIZE 128u           /* bytes per task stack */
+#endif
+#ifndef NK_QUANTUM_MS
+#define NK_QUANTUM_MS 10u            /* round-robin slice (ms) */
+#endif
+```
+
+*Override:*
+
+```bash
+meson setup build --cross-file cross/atmega328p_gcc14.cross \
+                  -Dc_args="-DNK_STACK_SIZE=256 -DNK_QUANTUM_MS=5"
+```
+
 ---
 
 ## 7 · Hardware target
 
-| Chip           | Role            | Clock          | Flash / SRAM | Notes               |
-| -------------- | --------------- | -------------- | ------------ | ------------------- |
-| **ATmega328P** | Application MCU | 16 MHz crystal | 32 k / 2 k   | classic 8-bit AVRe+ |
-| **ATmega16U2** | USB-CDC bridge  | 48 MHz PLL     | 16 k / 512 B | LUFA firmware       |
+| Chip           | Role            | Clock          | Flash / SRAM | Notes             |
+| -------------- | --------------- | -------------- | ------------ | ----------------- |
+| **ATmega328P** | Application MCU | 16 MHz crystal | 32 k / 2 k   | classic 8-bit AVR |
+| **ATmega16U2** | USB-CDC bridge  | 48 MHz PLL     | 16 k / 512 B | LUFA firmware     |
 
 ---
 
 ## 8 · What you get
 
 * **Nano-kernel** < 10 kB – 1 kHz pre-emptive round-robin
-* **TinyLog-4** – wear-levelled EEPROM log (420 B flash)
+* **TinyLog-4** – wear-levelled EEPROM log (≈ 420 B flash)
 * **Door RPC** – zero-copy Cap’n-Proto slab, ≈ 1 µs RTT
-* **Spin-locks** – TAS / quaternion / Beatty-lattice flavours
+* **Unified spinlock** – merges BKL & DAG/Lattice with backward-compatible aliases; offers global BKL or fine-grained real-time locking via
+  `nk_spinlock_init`, `nk_spinlock_lock`/`trylock`, `nk_spinlock_lock_rt`/`trylock_rt`, `nk_spinlock_unlock`. Under the hood TAS, quaternion & Beatty-lattice flavours are available.
 * **Fixed-point Q8.8** helpers
 * **Full QEMU board model** (`arduino-uno`) wired into CI
+
+### 8A · Unified spinlock details
+
+`nk_spinlock` is a **hybrid-chimera BKL–DAG matrix** blending a global Big Kernel Lock with fine-grained spinlocks and speculative snapshots. It provides real-time lock primitives and a backward-compat `nk_superlock` layer. See [include/nk\_spinlock.h](include/nk_spinlock.h).
 
 ---
 
@@ -211,7 +242,7 @@ meson setup build --cross-file cross/atmega328p_gcc14.cross \
 
 ```text
 fork → feat/my-feature → tiny, reviewable commits
-$ ninja -C build && meson test          # must stay green
+$ ninja -C build && meson test   # must stay green
 ```
 
 Document any flash / SRAM delta in **docs/monograph.rst**.
@@ -230,18 +261,13 @@ Creates two files in TinyLog-4, reads them back, prints via UART.
 
 ---
 
-## 11 · Running the test-suite
+## 11 · Running the test suite
 
 ```bash
 meson test -C build --print-errorlogs
 ```
 
-Tests using the host CPU run directly. Cross builds leverage **simavr** so the
-AVR binaries execute in simulation. Ensure `simavr` is installed and available
-in your `$PATH`.
-
-The `spinlock_isr` case stresses the DAG-based spinlock under a 1 kHz timer
-interrupt using `simavr`.  It runs automatically when cross compiling.
+Host-CPU tests run directly; cross builds use **simavr**. Ensure `simavr` is in your `$PATH`. The `spinlock_isr` case stresses the unified spinlock under a 1 kHz timer interrupt.
 
 ---
 
@@ -252,7 +278,7 @@ docker build -t avrix-qemu docker
 docker run --rm -it avrix-qemu
 ```
 
-The container compiles the firmware, emits `avrix.img`, then boots QEMU.
+Container compiles firmware, emits `avrix.img`, then boots QEMU.
 
 ---
 
@@ -267,10 +293,9 @@ The container compiles the firmware, emits `avrix.img`, then boots QEMU.
 | **Binary-size guardrail**                 | flash creep goes unnoticed                     | Meson `size-gate` custom target (< 30 kB)           |
 | *(full table continues in README source)* |                                                |                                                     |
 
+
 Pull requests welcome – keep each under **1 kB flash**. 🐜
-Happy hacking – and keep the footprint smaller than an emoji! 🍋
+Happy hacking – keep the footprint smaller than an emoji! 🍋
 
 ```
-
-*Everything now renders without conflict markers, the build commands are unified, and the roadmap/​gap table is preserved.*
 ```
