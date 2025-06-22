@@ -22,6 +22,8 @@ project(
   ]
 )
 
+python = import('python').find_installation('python3')
+
 ## Include directories
 #
 # Host builds should use compatibility headers that emulate the AVR
@@ -95,3 +97,11 @@ endif
 if doc_targets.length() > 0
   run_target('doc', command : ['true'], depends : doc_targets)
 endif
+
+# ─────────────────────────  Size gate  ─────────────────────────────────
+size_gate = run_target(
+  'size-gate',
+  command : [python, files('scripts/size_gate.py'), meson.project_build_root()],
+  depends : [fs_demo, romfs_demo, slip_demo, ned, vini],
+  console : true
+)
