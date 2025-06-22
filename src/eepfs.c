@@ -7,7 +7,7 @@
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 
-#define ARRAY_LEN(x) ((sizeof(x) / sizeof((x)[0])))
+#define ARRAY_LEN(x) ((sizeof((x)) / sizeof((x)[0])))
 
 #define EEPFS_FILE 1u
 #define EEPFS_DIR  2u
