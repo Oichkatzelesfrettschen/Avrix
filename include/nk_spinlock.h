@@ -1,20 +1,19 @@
 /* SPDX-License-Identifier: MIT
  * See LICENSE file in the repository root for full license information.
  *
- * @file nk_spinlock.h
+ * @file include/nk_spinlock.h
  * @brief Unified spinlock primitive combining a global Big Kernel Lock (BKL)
  *        with optional fine-grained, real-time bypass, built atop nk_slock.
  *
  * Features:
- *   - Global Big Kernel Lock (nk_bkl) for coarse-grained serialization.
- *   - Per-instance spinlocks for fine-grained locking.
- *   - Speculative copy-on-write (COW) matrix for snapshotting state.
- *   - Real-time mode bypassing the global BKL.
- *   - Cap’n Proto–compatible encoding/decoding of lock state.
+ *   - A single, zero-initialized global Big Kernel Lock (nk_bkl) for coarse-grained serialization.
+ *   - Per-instance spinlocks (nk_spinlock_t) for fine-grained locking.
+ *   - Speculative copy-on-write (COW) matrix snapshot for DAG- or lattice-based protocols.
+ *   - Real-time mode that bypasses the global BKL for low-latency critical sections.
+ *   - Cap’n Proto–compatible encode/decode helpers for state snapshots.
  *
- * All operations use atomic primitives from nk_slock and enforce proper
- * memory ordering for SMP correctness. Inline functions ensure zero
- * call-overhead.
+ * All operations are inline, use atomic fences to enforce acquire/release semantics,
+ * and assert on invalid usage. No dynamic allocation or hidden state.
  */
 
 #pragma once
@@ -22,6 +21,7 @@
 #include "nk_lock.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <assert.h>
 #include <stdatomic.h>
 
@@ -33,7 +33,7 @@ extern "C" {
  *  @{
  */
 
-/** @brief Global Big Kernel Lock (BKL), zero-initialized at load time. */
+/** @brief Global Big Kernel Lock (BKL), must be initialized before any spinlock. */
 extern nk_slock_t nk_bkl;
 
 /**
@@ -47,13 +47,14 @@ typedef struct {
     uint32_t   matrix[4];  /**< Snapshot of speculative COW state.     */
 } nk_spinlock_t;
 
-/** @brief Static initializer for nk_spinlock_t. */
+/** @brief Static initializer for nk_spinlock_t (zeroed state). */
 #define NK_SPINLOCK_STATIC_INIT \
     { {0}, 0u, 0u, {0u, 0u, 0u, 0u} }
 
 /**
  * @brief Initialize the global Big Kernel Lock.
- *        Must be called once during startup before any spinlocks are used.
+ *
+ * Must be called once during system startup before any spinlocks are used.
  */
 static inline void nk_spinlock_global_init(void)
 {
@@ -62,7 +63,7 @@ static inline void nk_spinlock_global_init(void)
 
 /**
  * @brief Initialize a spinlock instance.
- * @param[out] s Spinlock to initialize.
+ * @param[out] s  Pointer to spinlock to initialize.
  */
 static inline void nk_spinlock_init(nk_spinlock_t *s)
 {
@@ -70,9 +71,8 @@ static inline void nk_spinlock_init(nk_spinlock_t *s)
     nk_slock_init(&s->core);
     s->dag_mask = 0u;
     s->rt_mode  = 0u;
-    for (size_t i = 0; i < 4; ++i) {
+    for (size_t i = 0; i < 4; ++i)
         s->matrix[i] = 0u;
-    }
 }
 
 /**
@@ -94,7 +94,7 @@ static inline void nk_spinlock_lock(nk_spinlock_t *s, uint8_t mask)
  * @brief Try to acquire the spinlock without blocking.
  * @param[in,out] s    Spinlock instance.
  * @param[in]     mask Dependency mask to record.
- * @return true if acquired; false otherwise.
+ * @returns true if acquired, false otherwise.
  */
 static inline bool nk_spinlock_trylock(nk_spinlock_t *s, uint8_t mask)
 {
@@ -112,7 +112,7 @@ static inline bool nk_spinlock_trylock(nk_spinlock_t *s, uint8_t mask)
 
 /**
  * @brief Release the spinlock (core lock + global BKL).
- * @param[in,out] s Spinlock instance.
+ * @param[in,out] s  Spinlock instance.
  */
 static inline void nk_spinlock_unlock(nk_spinlock_t *s)
 {
@@ -142,7 +142,7 @@ static inline void nk_spinlock_lock_rt(nk_spinlock_t *s, uint8_t mask)
  * @brief Try to acquire the spinlock in real-time mode.
  * @param[in,out] s    Spinlock instance.
  * @param[in]     mask Dependency mask to record.
- * @return true if acquired; false otherwise.
+ * @returns true if acquired, false otherwise.
  */
 static inline bool nk_spinlock_trylock_rt(nk_spinlock_t *s, uint8_t mask)
 {
@@ -156,7 +156,7 @@ static inline bool nk_spinlock_trylock_rt(nk_spinlock_t *s, uint8_t mask)
 
 /**
  * @brief Release the spinlock acquired in real-time mode.
- * @param[in,out] s Spinlock instance.
+ * @param[in,out] s  Spinlock instance.
  */
 static inline void nk_spinlock_unlock_rt(nk_spinlock_t *s)
 {
@@ -172,8 +172,8 @@ static inline void nk_spinlock_unlock_rt(nk_spinlock_t *s)
  * @brief Cap’n Proto–compatible snapshot of spinlock state.
  */
 typedef struct {
-    uint8_t  dag_mask;   /**< Dependency mask at snapshot.    */
-    uint32_t matrix[4];  /**< Snapshot of speculative state.  */
+    uint8_t   dag_mask;   /**< Dependency mask at snapshot.    */
+    uint32_t  matrix[4];  /**< Snapshot of speculative state.  */
 } nk_spinlock_capnp_t;
 
 /**
@@ -205,7 +205,7 @@ static inline void nk_spinlock_decode(nk_spinlock_t *s,
 }
 
 /**
- * @brief Update a single entry in the speculative matrix.
+ * @brief Update one entry in the speculative matrix.
  * @param[out] s   Spinlock instance.
  * @param[in]  idx Index [0..3] in the matrix.
  * @param[in]  val Value to set.
@@ -218,10 +218,13 @@ static inline void nk_spinlock_matrix_set(nk_spinlock_t *s,
     s->matrix[idx] = val;
 }
 
-/** Convenience aliases mirroring nk_slock API. */
+/** @brief Alias for nk_spinlock_lock. */
 #define nk_spinlock_acquire(s, m)    nk_spinlock_lock((s), (m))
+/** @brief Alias for nk_spinlock_unlock. */
 #define nk_spinlock_release(s)       nk_spinlock_unlock((s))
-#define nk_spinlock_acquire_rt(s, m) nk_spinlock_lock_rt((s), (m))
+/** @brief Alias for nk_spinlock_lock_rt. */
+#define nk_spinlock_acquire_rt(s,m)  nk_spinlock_lock_rt((s),(m))
+/** @brief Alias for nk_spinlock_unlock_rt. */
 #define nk_spinlock_release_rt(s)    nk_spinlock_unlock_rt((s))
 
 /** @} */
