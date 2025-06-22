@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT
  * See LICENSE file in the repository root for full license information.
- *
+nk_slock_t nk_bkl = NK_SLOCK_STATIC_INIT;
  * @file nk_spinlock.c
  * @brief Definition and automatic initialization of the global Big Kernel Lock (BKL)
  *        for the nk_spinlock API.

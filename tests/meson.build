@@ -22,21 +22,19 @@ fs_mod     = import('fs')
 test(
   'check-docs',
   python,
-  args : [
-    files('check_docs.py'),
-    '--docs-dir',   meson.project_source_root() / 'docs/source',
-    '--index-file', meson.project_source_root() / 'docs/source/index.rst',
-    '--recursive',
-  ],
-  workdir : meson.project_source_root()
-)
-
-# ───────── 1 · Include-path negotiation (host vs. AVR) ────────────────
-inc_list = [inc]
+if get_option('san') and cc.get_id() in ['gcc', 'clang']
+  if get_option('cov') and cc.has_argument('-fprofile-instr-generate')
+# Simple helper was removed for broader Meson compatibility.  Invoke
+# executable() directly when building each test.
 
 if host_machine.cpu_family() != 'avr'
-  inc_list += include_directories('../compat')   # stubbed <avr/...>
-endif
+  exe = executable(
+    t.get(0),
+    t.get(1) + extra_src,
+    include_directories : inc_list,
+    link_with           : link_target,
+    c_args              : common_cflags,
+    native              : true)
 
 opt_avr_inc = get_option('avr_inc_dir')
 if opt_avr_inc != '' and fs_mod.is_dir(opt_avr_inc)
