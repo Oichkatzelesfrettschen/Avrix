@@ -284,14 +284,15 @@ Container compiles firmware, emits `avrix.img`, then boots QEMU.
 
 ## 13 · Gap & friction backlog
 
-| Gap                                | Why it matters                           | Proposed fix                                   |
-| ---------------------------------- | ---------------------------------------- | ---------------------------------------------- |
-| **Real-board flash helper**        | Newcomers still need the avrdude incant. | `meson compile -C build flash` flashes the Uno |
-| **tmux-dev launcher**              | 4-pane session exists only in docs       | Ship `scripts/tmux-dev.sh`                     |
-| **On-device GDB stub**             | “printf + LED” is clumsy                 | Gate tiny `avr-gdbstub` behind `-DDEBUG_GDB`   |
-| **Static-analysis CI**             | cppcheck runs locally only               | ✅ `cppcheck` & `clang-tidy` GitHub job         |
-| **Binary-size guardrail**          | Flash creep goes unnoticed               | Meson `size-gate` custom target (< 30 kB)      |
-| *(full table continues in source)* |                                          |                                                |
+| Gap                                       | Why it matters                                 | Proposed fix                                        |
+| ----------------------------------------- | ---------------------------------------------- | --------------------------------------------------- |
+| **Real-board flash helper**               | newcomers still need the `avrdude` incantation | `scripts/flash.sh build/unix0.hex` flashes the Uno |
+| **tmux-dev launcher**                     | 4-pane session exists only in docs             | ship `scripts/tmux-dev.sh`                          |
+| **On-device GDB stub**                    | “printf + LED” is clumsy                       | gate tiny `avr-gdbstub` behind `-DDEBUG_GDB`        |
+| **Static-analysis CI**                    | cppcheck runs locally only                     | add `cppcheck/clang-tidy` GitHub job                |
+| **Binary-size guardrail**                 | flash creep goes unnoticed                     | Meson `size-gate` custom target (< 30 kB)           |
+| *(full table continues in README source)* |                                                |                                                     |
+
 
 Pull requests welcome – keep each under **1 kB flash**. 🐜
 Happy hacking – keep the footprint smaller than an emoji! 🍋
