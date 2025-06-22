@@ -1,3 +1,5 @@
+# meson_options.txt
+
 option('avr_inc_dir', type: 'string', value: '',
        description: 'Path to AVR libc headers (fallback to standard locations)')
 
@@ -7,6 +9,6 @@ option('flash_programmer', type: 'string', value: 'arduino',
        description: 'Programmer string for avrdude')
 
 option('san', type: 'boolean', value: false,
-       description: 'Enable Address- and UB-Sanitizer for tests')
+       description: 'Enable Address- and Undefined-Behavior Sanitizer for tests')
 option('cov', type: 'boolean', value: false,
-       description: 'Enable LLVM coverage flags for tests')
+       description: 'Enable LLVM coverage instrumentation for tests')
