@@ -76,15 +76,15 @@ link_target = meson.is_cross_build() ? libfs : libavrix
 
 # 3 · Core unit tests
 tests = [
-  ['test_fixed_point',        ['test_fixed_point.c']],
-  ['fs_test',                 ['fs_test.c',       'sim.c']],
-  ['flock_stress',            ['flock_stress.c',  'sim.c']],
-  ['spin_test',               ['spin_test.c',     'sim.c']],
-  ['unified_spinlock_test',   ['unified_spinlock_test.c', 'sim.c']],
-  ['superlock_test',          ['superlock_test.c',        'sim.c']],
-  ['romfs_test',              ['romfs_test.c',    'sim.c']],
-  ['fs_roundtrip',            ['fs_roundtrip.c',  'sim.c']],
-  ['door_test',               ['door_test.c']],
+  ['test_fixed_point',      ['test_fixed_point.c']],
+  ['fs_test',               ['fs_test.c',       'sim.c']],
+  ['flock_stress',          ['flock_stress.c',  'sim.c']],
+  ['spin_test',             ['spin_test.c',     'sim.c']],
+  ['unified_spinlock_test', ['unified_spinlock_test.c', 'sim.c']],
+  ['superlock_test',        ['superlock_test.c',        'sim.c']],
+  ['romfs_test',            ['romfs_test.c',    'sim.c']],
+  ['fs_roundtrip',          ['fs_roundtrip.c',  'sim.c']],
+  ['door_test',             ['door_test.c']],
 ]
 
 # Include kalloc_test only for native builds
@@ -100,6 +100,7 @@ foreach t : tests
   if not srcs.contains('sim.c')
     srcs += extra_src
   endif
+
   exe = executable(
     t[0],
     srcs,

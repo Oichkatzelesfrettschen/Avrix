@@ -7,6 +7,8 @@
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 
+#define ARRAY_LEN(x) ((sizeof((x)) / sizeof((x)[0])))
+
 #define EEPFS_FILE 1u
 #define EEPFS_DIR  2u
 
@@ -86,9 +88,13 @@ const eepfs_file_t *eepfs_open(const char *path)
             if (eq_p(seg, nm)) {
                 found = true;
                 if (*p == '\0' && ent.type == EEPFS_FILE) {
-                    return &((const eepfs_file_t *)pgm_read_word(&file_tab))[ent.idx];
+                    if (ent.idx >= ARRAY_LEN(file_tab))
+                        return NULL;
+                    return &file_tab[ent.idx];
                 } else if (ent.type == EEPFS_DIR) {
-                    dir = &((const eepfs_dir_t *)pgm_read_word(&dir_tab))[ent.idx];
+                    if (ent.idx >= ARRAY_LEN(dir_tab))
+                        return NULL;
+                    dir = &dir_tab[ent.idx];
                 } else {
                     return NULL;
                 }
