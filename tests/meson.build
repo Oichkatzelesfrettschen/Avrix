@@ -15,9 +15,9 @@
 #   libfs     → portable RAM-filesystem (always)
 # ------------------------------------------------------------------------
 
-python     = import('python').find_installation('python3')
-fs_mod     = import('fs')
-cc         = meson.get_compiler('c')
+python = import('python').find_installation('python3')
+fs_mod = import('fs')
+cc     = meson.get_compiler('c')
 
 san = get_option('san')
 cov = get_option('cov')
@@ -64,7 +64,11 @@ if not meson.is_cross_build()
   endif
 endif
 
-# Helper: extra stub source for host-only builds
+# Helper: always build the test binary for the host CPU.
+# Older Meson releases (<1.4) do not support arrow-function wrappers.
+# We therefore expand executable() calls directly in the loop below.
+
+# Extra stub source for host-only builds
 extra_src = []
 if host_machine.cpu_family() != 'avr'
   extra_src += meson.project_source_root() / 'src/avr_stub.c'
@@ -118,7 +122,6 @@ if target_machine.cpu_family() == 'avr'
       ['fs_simavr_basic', ['fs_simavr_basic.c', meson.project_source_root() / 'src/fs.c']],
       ['spinlock_isr',    ['spinlock_isr.c',    meson.project_source_root() / 'src/nk_lock.c']],
     ]
-
     foreach s : sim_suites
       sim_exe = executable(
         s[0],
