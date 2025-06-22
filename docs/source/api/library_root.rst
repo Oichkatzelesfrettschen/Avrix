@@ -1,4 +1,4 @@
-Library Root
-============
+API Reference
+=============
 
-Placeholder for API docs.
+Placeholder for Exhale-generated API documentation.  

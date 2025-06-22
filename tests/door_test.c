@@ -1,58 +1,45 @@
+/* SPDX-License-Identifier: MIT
+ * See LICENSE file in the repository root for full license information.
+ *
+ * Host-side unit test for Door RPC primitives.
+ */
+
 #include <stdint.h>
-
-void scheduler_init(void) {}
-void scheduler_run(void) {}
-
-#include "door.h"
-#include <assert.h>
+#include <stddef.h>
 #include <string.h>
+#include <assert.h>
 #include <stdio.h>
 
-/*
- * Host-side unit test for the Door RPC primitives.
- * The real scheduler and assembly trampoline are replaced by
- * lightweight stubs so that door_call() and door_return()
- * can be exercised without an AVR context.
- */
+#include "door.h"
 
-/* -------------------------------------------------------------
- *  Minimal scheduler stubs
- * -----------------------------------------------------------*/
+/*─── Stub scheduler & dispatch ─────────────────────────────────────────*/
 static uint8_t current_tid;
+uint8_t nk_cur_tid(void)        { return current_tid; }
+void    nk_switch_to(uint8_t t) { current_tid = t;  }
+
 static void (*service_table[NK_MAX_TASKS])(void);
 
-door_t door_vec[NK_MAX_TASKS][DOOR_SLOTS];
+/*─── External door storage (from door.c) ───────────────────────────────*/
+extern door_t    door_vec[NK_MAX_TASKS][DOOR_SLOTS];
+extern uint8_t   door_slab[DOOR_SLAB_SIZE];
 
-uint8_t nk_cur_tid(void)
-{
-    return current_tid;
-}
-
-void nk_switch_to(uint8_t tid)
-{
-    /* context switch is a no-op in the host stub */
-    current_tid = tid;
-}
-
-/* _nk_door replicates the AVR trampoline.  It copies the request
- * payload into the shared slab and invokes the callee handler.
- */
+/*─── Trampoline stub replicating AVR _nk_door ──────────────────────────*/
 void _nk_door(const void *src, uint8_t len, uint8_t tid)
 {
     memcpy(door_slab, src, len);
     current_tid = tid;
     if (service_table[tid])
         service_table[tid]();
-    /* door_return() will restore current_tid to the caller */
+    /* door_return() will switch back */
 }
 
+/*─── Pull in implementation under test ─────────────────────────────────*/
 #include "../src/door.c"
 
-/* -------------------------------------------------------------
- *  Door services for the test
- * -----------------------------------------------------------*/
+/*─── Echo service ─────────────────────────────────────────────────────*/
 static void door_echo(void)
 {
+    assert(current_tid == 1);
     assert(door_words() == 1);
     assert(door_flags() == 0);
 
@@ -60,43 +47,42 @@ static void door_echo(void)
     door_return();
 }
 
+/*─── CRC service ──────────────────────────────────────────────────────*/
 static void door_crc_srv(void)
 {
+    assert(current_tid == 1);
     assert(door_words() == 1);
     assert(door_flags() == 1);
 
     const uint8_t *msg = (const uint8_t *)door_message();
-    uint8_t crc = msg[8];
-    assert(crc == crc8_maxim(msg, 8));
+    uint8_t crc = crc8_maxim(msg, 8);
+    assert(crc == msg[8]);
 
-    const char reply[8] = "crc_ok\0"; /* 8 bytes including NUL */
-    memcpy(door_slab, reply, 8);
+    memcpy(door_slab, "crc_ok\0", 8);
     door_return();
 }
 
-/* -------------------------------------------------------------
- *  Test driver
- * -----------------------------------------------------------*/
+/*─── Test driver ──────────────────────────────────────────────────────*/
 int main(void)
 {
-    /* Descriptor without CRC */
+    /* Init stub state */
+    memset(door_vec, 0, sizeof door_vec);
     current_tid = 0;
+
+    /* Test without CRC */
     service_table[1] = door_echo;
     door_register(0, 1, 1, 0);
+    char buf1[8] = "payload";
+    door_call(0, buf1);
+    assert(memcmp(buf1, "payload", 8) == 0);
 
-    char buf[8] = "payload";
-    door_call(0, buf);
-    assert(memcmp(buf, "payload", 8) == 0);
-
-    /* Descriptor with CRC */
+    /* Test with CRC */
     service_table[1] = door_crc_srv;
     door_register(1, 1, 1, 1);
-
     char buf2[8] = "checkme";
     door_call(1, buf2);
     assert(memcmp(buf2, "crc_ok\0", 8) == 0);
 
-    puts("door rpc ok");
+    puts("door RPC OK");
     return 0;
 }
-
