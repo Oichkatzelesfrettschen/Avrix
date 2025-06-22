@@ -6,11 +6,11 @@
  *        with optional fine-grained, real-time bypass, built atop nk_slock.
  *
  * Features:
- *   - A single, zero-initialized global Big Kernel Lock (`nk_bkl`) for coarse-grained serialization.
- *   - Per-instance spinlocks (`nk_spinlock_t`) for fine-grained locking.
- *   - Speculative copy-on-write (COW) snapshot matrix to support DAG- or lattice-based protocols.
- *   - Real-time mode bypassing the global BKL for low-latency critical sections.
- *   - Cap’n Proto–compatible encode/decode helpers for lock-state snapshots.
+ *   - A single, zero-initialized global Big Kernel Lock (nk_bkl) for coarse-grained serialization.
+ *   - Per-instance spinlocks (nk_spinlock_t) for fine-grained locking.
+ *   - Speculative copy-on-write (COW) matrix snapshot for DAG- or lattice-based protocols.
+ *   - Real-time mode that bypasses the global BKL for low-latency critical sections.
+ *   - Cap’n Proto–compatible encode/decode helpers for state snapshots.
  *
  * All operations are inline, use atomic fences to enforce acquire/release semantics,
  * and assert on invalid usage. No dynamic allocation or hidden state.
@@ -33,7 +33,7 @@ extern "C" {
  *  @{
  */
 
-/** @brief Global Big Kernel Lock (BKL). Must be initialized before any spinlock. */
+/** @brief Global Big Kernel Lock (BKL), must be initialized before any spinlock. */
 extern nk_slock_t nk_bkl;
 
 /**
@@ -94,7 +94,7 @@ static inline void nk_spinlock_lock(nk_spinlock_t *s, uint8_t mask)
  * @brief Try to acquire the spinlock without blocking.
  * @param[in,out] s    Spinlock instance.
  * @param[in]     mask Dependency mask to record.
- * @return true if acquired; false otherwise.
+ * @returns true if acquired, false otherwise.
  */
 static inline bool nk_spinlock_trylock(nk_spinlock_t *s, uint8_t mask)
 {
@@ -142,7 +142,7 @@ static inline void nk_spinlock_lock_rt(nk_spinlock_t *s, uint8_t mask)
  * @brief Try to acquire the spinlock in real-time mode.
  * @param[in,out] s    Spinlock instance.
  * @param[in]     mask Dependency mask to record.
- * @return true if acquired; false otherwise.
+ * @returns true if acquired, false otherwise.
  */
 static inline bool nk_spinlock_trylock_rt(nk_spinlock_t *s, uint8_t mask)
 {
