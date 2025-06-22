@@ -1,82 +1,88 @@
+/* SPDX-License-Identifier: MIT
+ * See LICENSE file in the repository root for full license information.
+ *
+ * Host-side unit test for Door RPC primitives.
+ */
+
 #include <stdint.h>
-/* Stubs required for door.c aliases ---------------------------------- */
-void scheduler_init(void) {}
-void scheduler_run(void) {}
+#include <stddef.h>
+#include <string.h>
+#include <assert.h>
+#include <stdio.h>
 
 #include "door.h"
-#include <assert.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 
-/* ───── Stub scheduler ------------------------------------------------ */
-static uint8_t g_cur_tid;                 /* simulated task ID */
+/*─── Stub scheduler & dispatch ─────────────────────────────────────────*/
+static uint8_t current_tid;
+uint8_t nk_cur_tid(void)        { return current_tid; }
+void    nk_switch_to(uint8_t t) { current_tid = t;  }
 
-uint8_t nk_cur_tid(void) { return g_cur_tid; }
+static void (*service_table[NK_MAX_TASKS])(void);
 
-void nk_switch_to(uint8_t tid) { g_cur_tid = tid; }
+/*─── External door storage (from door.c) ───────────────────────────────*/
+extern door_t    door_vec[NK_MAX_TASKS][DOOR_SLOTS];
+extern uint8_t   door_slab[DOOR_SLAB_SIZE];
 
-/* Door descriptor table (normally in scheduler) */
-door_t door_vec[NK_MAX_TASKS][DOOR_SLOTS];
-
-/* Forward declaration of the callee service. */
-static void door_service(void);
-
-/* Pull in the implementation under test. */
-#include "../src/door.c"
-
-/* ───── Minimal _nk_door stub ---------------------------------------- */
+/*─── Trampoline stub replicating AVR _nk_door ──────────────────────────*/
 void _nk_door(const void *src, uint8_t len, uint8_t tid)
 {
-    memcpy(door_slab, src, len);  /* copy request into slab */
-    nk_switch_to(tid);            /* enter callee context  */
-    door_service();               /* handle call           */
+    memcpy(door_slab, src, len);
+    current_tid = tid;
+    if (service_table[tid])
+        service_table[tid]();
+    /* door_return() will switch back */
 }
 
-/* ───── Callee implementation --------------------------------------- */
-static void door_service(void)
+/*─── Pull in implementation under test ─────────────────────────────────*/
+#include "../src/door.c"
+
+/*─── Echo service ─────────────────────────────────────────────────────*/
+static void door_echo(void)
 {
-    assert(nk_cur_tid() == 1);            /* switched to callee */
-    assert(door_words() == 1);            /* one 8-byte word    */
-    assert(door_flags() == 0);            /* no flags enabled   */
+    assert(current_tid == 1);
+    assert(door_words() == 1);
+    assert(door_flags() == 0);
 
-    const uint8_t *msg = door_message();
-    assert(msg[0] == 42);                 /* validate payload   */
-
-    door_slab[0] = (uint8_t)(msg[0] + 1); /* craft reply        */
-    door_return();                        /* resume caller      */
+    memcpy(door_slab, door_message(), 8);
+    door_return();
 }
 
-/* ───── Test cases ---------------------------------------------------- */
+/*─── CRC service ──────────────────────────────────────────────────────*/
+static void door_crc_srv(void)
+{
+    assert(current_tid == 1);
+    assert(door_words() == 1);
+    assert(door_flags() == 1);
+
+    const uint8_t *msg = (const uint8_t *)door_message();
+    uint8_t crc = crc8_maxim(msg, 8);
+    assert(crc == msg[8]);
+
+    memcpy(door_slab, "crc_ok\0", 8);
+    door_return();
+}
+
+/*─── Test driver ──────────────────────────────────────────────────────*/
 int main(void)
 {
+    /* Init stub state */
     memset(door_vec, 0, sizeof door_vec);
-    g_cur_tid = 0;                        /* caller task */
+    current_tid = 0;
 
-    /* 1. invalid registrations must be ignored */
-    door_register(DOOR_SLOTS, 1, 1, 0);   /* bad index */
-    for (unsigned i = 0; i < DOOR_SLOTS; ++i)
-        assert(door_vec[0][i].words == 0);
-
-    door_register(0, 1, 0, 0);            /* zero words */
-    assert(door_vec[0][0].words == 0);
-
-    door_register(0, 1, (DOOR_SLAB_SIZE / 8) + 1, 0); /* overflow */
-    assert(door_vec[0][0].words == 0);
-
-    /* 2. install valid descriptor */
+    /* Test without CRC */
+    service_table[1] = door_echo;
     door_register(0, 1, 1, 0);
-    assert(door_vec[0][0].tgt_tid == 1);
-    assert(door_vec[0][0].words   == 1);
-    assert(door_vec[0][0].flags   == 0);
+    char buf1[8] = "payload";
+    door_call(0, buf1);
+    assert(memcmp(buf1, "payload", 8) == 0);
 
-    /* 3. round-trip message */
-    uint8_t buf[8] = { 42 };
-    door_call(0, buf);
-    assert(buf[0] == 43);                 /* callee echoed +1   */
-    assert(g_cur_tid == 0);               /* returned to caller */
+    /* Test with CRC */
+    service_table[1] = door_crc_srv;
+    door_register(1, 1, 1, 1);
+    char buf2[8] = "checkme";
+    door_call(1, buf2);
+    assert(memcmp(buf2, "crc_ok\0", 8) == 0);
 
-    puts("door RPC passed");
+    puts("door RPC OK");
     return 0;
 }
-

@@ -1,4 +1,4 @@
 API Reference
 =============
 
-Placeholder for Exhale-generated API docs.
+Placeholder for Exhale-generated API documentation.  
