@@ -260,7 +260,7 @@ The container compiles the firmware, emits `avrix.img`, then boots QEMU.
 
 | Gap                                       | Why it matters                                 | Proposed fix                                        |
 | ----------------------------------------- | ---------------------------------------------- | --------------------------------------------------- |
-| **Real-board flash helper**               | newcomers still need the `avrdude` incantation | `meson compile -C build flash` flashes the Uno |
+| **Real-board flash helper**               | newcomers still need the `avrdude` incantation | `scripts/flash.sh build/unix0.hex` flashes the Uno |
 | **tmux-dev launcher**                     | 4-pane session exists only in docs             | ship `scripts/tmux-dev.sh`                          |
 | **On-device GDB stub**                    | “printf + LED” is clumsy                       | gate tiny `avr-gdbstub` behind `-DDEBUG_GDB`        |
 | **Static-analysis CI**                    | cppcheck runs locally only                     | add `cppcheck/clang-tidy` GitHub job                |
