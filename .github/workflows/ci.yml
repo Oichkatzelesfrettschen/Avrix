@@ -64,7 +64,7 @@ jobs:
       - name: Compile targets
         run: meson compile -C build
 
-      - name: Enforce size gate
+      - name: Enforce size gate (-Dflash_limit)
         run: meson compile -C build size-gate
 
       # ── 4 · Test ───────────────────────────────────────────────────────

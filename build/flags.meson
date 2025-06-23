@@ -1,0 +1,13 @@
+# Shared compiler and linker flags used across Avrix
+# Imported by subdirs via `subdir('build')`
+
+common_cflags = [
+  '-O2',
+  '-Wall',
+  '-Wextra',
+  '-pedantic',
+  '-std=c23'
+]
+
+# Linker flags may be extended by specific targets
+common_ldflags = []
