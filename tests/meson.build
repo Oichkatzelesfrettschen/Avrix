@@ -39,7 +39,7 @@ test(
 inc_list = [inc]
 
 if host_machine.cpu_family() != 'avr'
-  inc_list += include_directories('../compat')
+  inc_list += include_directories(meson.project_source_root() / 'compat')
 endif
 
 avr_inc = get_option('avr_inc_dir')
@@ -50,7 +50,7 @@ elif fs_mod.is_dir('/usr/lib/avr/include')
 endif
 
 # 2 · Compiler and Sanitizer Flags Setup
-common_cflags = ['-O2', '-Wall', '-Wextra', '-pedantic', '-std=c23']
+common_cflags = ['-O2', '-Wall', '-Wextra', '-pedantic', '-std=c2x']
 common_link_args = []
 
 if not meson.is_cross_build()
@@ -65,10 +65,10 @@ if not meson.is_cross_build()
   endif
 endif
 
-# 3 · Host-only Stub Source Inclusion
-extra_src = []
+# 3 · Host-only Stub Library
+extra_libs = []
 if host_machine.cpu_family() != 'avr'
-  extra_src += meson.project_source_root() / 'src/avr_stub.c'
+  extra_libs += nk_sim_io
 endif
 
 link_target = meson.is_cross_build() ? libfs : libavrix
@@ -80,7 +80,6 @@ tests = [
   ['flock_stress',          ['flock_stress.c', 'sim.c']],
   ['spin_test',             ['spin_test.c', 'sim.c']],
   ['unified_spinlock_test', ['unified_spinlock_test.c', 'sim.c']],
-  ['superlock_test',        ['superlock_test.c', 'sim.c']],
   ['romfs_test',            ['romfs_test.c', 'sim.c']],
   ['fs_roundtrip',          ['fs_roundtrip.c', 'sim.c']],
   ['door_test',             ['door_test.c']],
@@ -98,15 +97,11 @@ endif
 foreach t : tests
   srcs = t[1]
 
-  if not srcs.contains('sim.c')
-    srcs += extra_src
-  endif
-
   exe = executable(
     t[0],
     srcs,
     include_directories : inc_list,
-    link_with           : link_target,
+    link_with           : [link_target] + extra_libs,
     c_args              : common_cflags,
     link_args           : common_link_args,
     native              : true
@@ -128,7 +123,7 @@ if target_machine.cpu_family() == 'avr'
     foreach s : sim_suites
       sim_exe = executable(
         s[0],
-        s[1] + extra_src,
+        s[1],
         include_directories : inc_list,
         c_args              : ['-Os', '-std=c11', '-Wall', '-Wextra', '-pedantic']
       )

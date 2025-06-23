@@ -27,6 +27,9 @@ void delete_line(char lines[][MAX_LINE_LEN], uint8_t *count,
                  uint8_t idx);
 int  display_width(const char *s, size_t byte_offset);
 
+void set_status_message(const char *fmt, ...);
+extern char status_msg[64];
+
 #ifdef __cplusplus
 }
 #endif

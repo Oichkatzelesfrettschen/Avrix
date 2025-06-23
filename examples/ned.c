@@ -3,13 +3,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <locale.h>
 
 #if defined(__AVR__)
 #include <avr/eeprom.h>
 #else
 #include "../compat/avr/eeprom.h"
 #include "../compat/avr/pgmspace.h"
-uint8_t nk_sim_eeprom[1024];
 #endif
 
 /*
@@ -137,6 +137,8 @@ static const char help_msg[] PROGMEM =
 static void help(void) { pgm_print(help_msg); }
 
 int main(int argc, char **argv) {
+  setlocale(LC_CTYPE, "");
+
   struct Buffer buf;
   buffer_init(&buf, argc > 1 ? argv[1] : NULL);
   if (argc > 1)
@@ -163,21 +165,36 @@ int main(int argc, char **argv) {
     if (cmd[0] == 'e') {
       unsigned int line;
       char text[200];
-      if (sscanf(cmd + 1, "%u %[\x00-\xFF]", &line, text) == 2 && line)
+      if (sscanf(cmd + 1, "%u %[\x00-\xFF]", &line, text) == 2 && line) {
+        if (strlen(text) >= MAX_LINE_LEN) {
+          set_status_message("Line truncated to %d chars", MAX_LINE_LEN - 1);
+          printf("%s\n", status_msg);
+        }
         replace_line(&buf, (uint8_t)(line - 1), text);
+      }
       continue;
     }
     if (cmd[0] == 'i') {
       unsigned int line;
       char text[200];
-      if (sscanf(cmd + 1, "%u %[\x00-\xFF]", &line, text) == 2)
+      if (sscanf(cmd + 1, "%u %[\x00-\xFF]", &line, text) == 2) {
+        if (strlen(text) >= MAX_LINE_LEN) {
+          set_status_message("Line truncated to %d chars", MAX_LINE_LEN - 1);
+          printf("%s\n", status_msg);
+        }
         insert_line(&buf, (uint8_t)(line - 1), text);
+      }
       continue;
     }
     if (cmd[0] == 'a') {
       char text[200];
-      if (sscanf(cmd + 1, " %[\x00-\xFF]", text) == 1)
+      if (sscanf(cmd + 1, " %[\x00-\xFF]", text) == 1) {
+        if (strlen(text) >= MAX_LINE_LEN) {
+          set_status_message("Line truncated to %d chars", MAX_LINE_LEN - 1);
+          printf("%s\n", status_msg);
+        }
         insert_line(&buf, buf.count, text);
+      }
       continue;
     }
     if (cmd[0] == 'd') {
