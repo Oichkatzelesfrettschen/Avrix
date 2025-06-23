@@ -6,3 +6,5 @@ docs/build/
 docs/doxygen/
 docker/avrix.img
 __pycache__/
+build.log
+build.log.txt
