@@ -61,7 +61,7 @@ c_link_args = [
 
 [built-in options]
 c_std           = 'c23'
-optimization    = 'z'                  # Meson alias for -Oz
+optimization    = 's'                  # Meson alias for -Oz
 warning_level   = 2
 strip           = true
 default_library = 'none'

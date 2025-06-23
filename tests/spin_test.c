@@ -108,7 +108,7 @@ int main(void)
 
     /*────────────────────────── Results ────────────────────────────────*/
     printf("ticks: %lu\n", tick_count);
-    printf("worst cycles: %" PRIu64 "\n", worst);
+    printf("worst cycles: %llu\n", (unsigned long long)worst);
 
     return 0;
 }
