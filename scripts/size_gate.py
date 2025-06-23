@@ -106,6 +106,12 @@ def main(argv: list[str]) -> int:
             return 1
         out_path = args.output or (args.dir / 'size_gate.txt')
 
+    missing = [str(e) for e in elfs if not e.exists()]
+    if missing:
+        for m in missing:
+            print(f'[size-gate] missing ELF: {m}', file=sys.stderr)
+        return 1
+
     limit = args.limit
     status = 0
     max_size = 0

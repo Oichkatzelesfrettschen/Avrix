@@ -1,4 +1,5 @@
-# build/meson.build -- shared flag definitions
+# Shared compiler and linker flags used across Avrix
+# Imported by subdirs via `subdir('build_flags')`
 
 common_cflags = [
   '-pipe',
@@ -12,8 +13,7 @@ common_cflags = [
   '-std=c23'
 ]
 
+# Linker flags may be extended by specific targets
 common_ldflags = [
   '-Wl,--gc-sections'
 ]
-
-# File 'flags.meson' mirrors these definitions for external tooling

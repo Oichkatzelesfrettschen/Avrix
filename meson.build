@@ -23,7 +23,7 @@ project(
 )
 
 # ── helper modules / common flags ────────────────────────────────────
-subdir('build')                      # shared flag definitions
+subdir('build_flags')                      # shared flag definitions
 add_project_arguments(common_cflags, language : 'c')
 add_project_link_arguments(common_ldflags, language : 'c')
 python = import('python').find_installation('python3')
@@ -120,7 +120,7 @@ endif
 
 size_gate = custom_target(
   'size-gate',
-  input   : [fs_demo, romfs_demo, slip_demo, ned, vini],
+  input   : [fs_demo, romfs_demo, slip_demo, ned, vini, files('scripts/size_gate.py')],
   output  : 'size-gate.stamp',
   command : gate_cmd,
   console : true
