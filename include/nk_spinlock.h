@@ -1,234 +1,136 @@
-/* SPDX-License-Identifier: MIT
- * See LICENSE file in the repository root for full license information.
- *
- * @file include/nk_spinlock.h
- * @brief Unified spinlock primitive combining a global Big Kernel Lock (BKL)
- *        with optional fine-grained, real-time bypass, built atop nk_slock.
- *
- * Features:
- *   - A single, zero-initialized global Big Kernel Lock (`nk_bkl`) for coarse-grained serialization.
- *   - Per-instance spinlocks (`nk_spinlock_t`) for fine-grained locking.
- *   - Speculative copy-on-write (COW) matrix snapshot to support DAG- or lattice-based protocols.
- *   - Real-time mode that bypasses the global BKL for low-latency critical sections.
- *   - Cap’n Proto–compatible encode/decode helpers for lock-state snapshots.
- *
- * All operations are inline, use atomic fences to enforce acquire/release semantics,
- * and assert on invalid usage. No dynamic allocation or hidden state.
- */
+#define _POSIX_C_SOURCE 200809L
+#define _DEFAULT_SOURCE
 
-#pragma once
-
-#include "nk_lock.h"
+#include "nk_spinlock.h"
+#include <signal.h>
+#include <sys/time.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdbool.h>
-#include <stddef.h>
+#include <stdlib.h>
 #include <assert.h>
+#include <inttypes.h>
+#include <unistd.h>
+#include <time.h>
 #include <stdatomic.h>
 
-#ifdef __cplusplus
-extern "C" {
+#ifdef __x86_64__
+#include <x86intrin.h>
 #endif
 
-/** @defgroup spinlock Unified Spinlock API
- *  @{
- */
+/*─────────────────────────────── Globals ──────────────────────────────*/
+static volatile atomic_ulong tick_count = ATOMIC_VAR_INIT(0);
 
-/** @brief Global Big Kernel Lock (BKL), must be initialized before any spinlock. */
-extern nk_slock_t nk_bkl;
-
-/**
- * @struct nk_spinlock_t
- * @brief Composite spinlock combining global and per-instance locking.
- */
-typedef struct {
-    nk_slock_t core;       /**< Underlying smart-lock primitive.      */
-    uint8_t    dag_mask;   /**< Dependency bitmap for speculative ops. */
-    uint8_t    rt_mode;    /**< Real-time flag: bypass global BKL.    */
-    uint32_t   matrix[4];  /**< Snapshot of speculative COW state.     */
-} nk_spinlock_t;
-
-/** @brief Static initializer for nk_spinlock_t (zeroed state). */
-#define NK_SPINLOCK_STATIC_INIT \
-    { {0}, 0u, 0u, {0u, 0u, 0u, 0u} }
-
-/**
- * @brief Initialize the global Big Kernel Lock.
- *
- * Must be called once at system startup before any spinlock.
- */
-static inline void nk_spinlock_global_init(void)
+/*─────────────────────── 1 kHz Timer Interrupt ────────────────────────*/
+static void on_tick(int signum)
 {
-    nk_slock_init(&nk_bkl);
+    (void)signum;  // Signal number is unused
+    atomic_fetch_add_explicit(&tick_count, 1, memory_order_relaxed);
 }
 
-/**
- * @brief Initialize a spinlock instance.
- * @param[out] s  Pointer to spinlock to initialize.
- */
-static inline void nk_spinlock_init(nk_spinlock_t *s)
+/*────────────────────── High-Resolution Timer ─────────────────────────*/
+static inline uint64_t rdcycles(void)
 {
-    assert(s != NULL);
-    nk_slock_init(&s->core);
-    s->dag_mask = 0u;
-    s->rt_mode  = 0u;
-    for (size_t i = 0; i < 4; ++i)
-        s->matrix[i] = 0u;
+#if defined(__i386__) || defined(__x86_64__)
+    // Use processor's Time Stamp Counter (TSC)
+    return __rdtsc();
+#else
+    // Fallback to POSIX clock_gettime for portability
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
+    return (uint64_t)ts.tv_sec * 1000000000ull + ts.tv_nsec;
+#endif
 }
 
-/**
- * @brief Acquire the spinlock (global BKL + core lock).
- * @param[in,out] s    Spinlock instance.
- * @param[in]     mask Dependency mask to record.
- */
-static inline void nk_spinlock_lock(nk_spinlock_t *s, uint8_t mask)
+/*────────────────────── Timer Initialization ──────────────────────────*/
+static void init_1khz_timer(void)
 {
-    assert(s != NULL);
-    nk_slock_lock(&nk_bkl);
-    nk_slock_lock(&s->core);
-    atomic_thread_fence(memory_order_acquire);
-    s->dag_mask = mask;
-    s->rt_mode  = 0u;
-}
+    struct sigaction sa = { .sa_handler = on_tick };
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;  // Restart interrupted syscalls
 
-/**
- * @brief Try to acquire the spinlock without blocking.
- * @param[in,out] s    Spinlock instance.
- * @param[in]     mask Dependency mask to record.
- * @return true if acquired; false otherwise.
- */
-static inline bool nk_spinlock_trylock(nk_spinlock_t *s, uint8_t mask)
-{
-    assert(s != NULL);
-    if (!nk_slock_trylock(&nk_bkl)) return false;
-    if (!nk_slock_trylock(&s->core)) {
-        nk_slock_unlock(&nk_bkl);
-        return false;
+    if (sigaction(SIGALRM, &sa, NULL) < 0) {
+        perror("sigaction failed");
+        exit(EXIT_FAILURE);
     }
-    atomic_thread_fence(memory_order_acquire);
-    s->dag_mask = mask;
-    s->rt_mode  = 0u;
-    return true;
+
+    struct itimerval timer_spec = {
+        .it_interval = { .tv_sec = 0, .tv_usec = 1000 }, // 1ms period
+        .it_value    = { .tv_sec = 0, .tv_usec = 1000 }
+    };
+
+    if (setitimer(ITIMER_REAL, &timer_spec, NULL) < 0) {
+        perror("setitimer failed");
+        exit(EXIT_FAILURE);
+    }
 }
 
-/**
- * @brief Release the spinlock (core lock + global BKL).
- * @param[in,out] s  Spinlock instance.
- */
-static inline void nk_spinlock_unlock(nk_spinlock_t *s)
+/*───────────────────── Spinlock Benchmark & Validation ────────────────*/
+int main(void)
 {
-    assert(s != NULL);
-    atomic_thread_fence(memory_order_release);
-    s->dag_mask = 0u;
-    s->rt_mode  = 0u;
-    nk_slock_unlock(&s->core);
-    nk_slock_unlock(&nk_bkl);
+    // Initialize 1 kHz interrupt-driven timing mechanism
+    init_1khz_timer();
+
+    // Spinlock global and local initialization
+    nk_spinlock_global_init(); // Ensure global resources (e.g., nk_bkl)
+    nk_spinlock_t lock = NK_SPINLOCK_STATIC_INIT;
+    nk_spinlock_init(&lock);
+
+    /*──────────────────────── Functional Validation ────────────────────*/
+
+    // Test 1: Blocking Lock/Unlock Semantics
+    nk_spinlock_lock(&lock, 1u);
+    assert(lock.dag_mask == 1u && "dag_mask mismatch on lock");
+    nk_spinlock_unlock(&lock);
+    assert(lock.dag_mask == 0u && "dag_mask not cleared after unlock");
+
+    // Test 2: Non-blocking (Trylock) semantics
+    bool lock_acquired = nk_spinlock_trylock(&lock, 2u);
+    assert(lock_acquired && lock.dag_mask == 2u && "Trylock failed");
+    nk_spinlock_unlock(&lock);
+    assert(lock.dag_mask == 0u && "dag_mask not cleared after try-unlock");
+
+    // Test 3: Real-time (RT) blocking semantics
+    nk_spinlock_lock_rt(&lock, 3u);
+    assert(lock.rt_mode == 1u && lock.dag_mask == 3u && "RT lock incorrect");
+    nk_spinlock_unlock_rt(&lock);
+    assert(lock.rt_mode == 0u && "RT mode not cleared after unlock");
+
+    // Test 4: Snapshot (Cap’n Proto-style) serialization check
+    nk_spinlock_matrix_set(&lock, 0, 0xDEADBEEFu);
+    nk_spinlock_capnp_t snap;
+    nk_spinlock_encode(&lock, &snap);
+    assert(snap.matrix[0] == 0xDEADBEEF && "Snapshot serialization error");
+
+    /*──────────────────────── Benchmark Loop ───────────────────────────*/
+    const unsigned loops = 2'000'000u;  // Two million benchmark iterations
+    void *begin_brk = sbrk(0);          // Memory boundary verification
+    uint64_t worst_cycle_duration = 0;  // Track worst observed cycle latency
+
+    for (unsigned i = 0; i < loops; ++i) {
+        uint64_t start_cycles = rdcycles();
+
+        // Benchmark real-time lock/unlock latency
+        nk_spinlock_lock_rt(&lock, 0u);
+        nk_spinlock_unlock_rt(&lock);
+
+        uint64_t elapsed_cycles = rdcycles() - start_cycles;
+
+        if (elapsed_cycles > worst_cycle_duration) {
+            worst_cycle_duration = elapsed_cycles; // Update worst case
+        }
+    }
+
+    void *end_brk = sbrk(0);
+    // Verify no dynamic heap memory growth occurred during benchmark
+    assert(begin_brk == end_brk && "Heap expanded unexpectedly");
+
+    /*───────────────────────────── Results ─────────────────────────────*/
+    printf("\n─── Spinlock Benchmark Results ───\n");
+    printf("Total Benchmark Iterations : %u\n", loops);
+    printf("1 kHz Timer Ticks Recorded : %lu\n", atomic_load(&tick_count));
+    printf("Worst-case cycle latency   : %" PRIu64 " cycles\n", worst_cycle_duration);
+    printf("Memory Stability Check     : PASSED (no heap growth)\n\n");
+
+    return EXIT_SUCCESS;
 }
-
-/**
- * @brief Acquire the spinlock in real-time mode (bypass global BKL).
- * @param[in,out] s    Spinlock instance.
- * @param[in]     mask Dependency mask to record.
- */
-static inline void nk_spinlock_lock_rt(nk_spinlock_t *s, uint8_t mask)
-{
-    assert(s != NULL);
-    nk_slock_lock(&s->core);
-    atomic_thread_fence(memory_order_acquire);
-    s->dag_mask = mask;
-    s->rt_mode  = 1u;
-}
-
-/**
- * @brief Try to acquire the spinlock in real-time mode.
- * @param[in,out] s    Spinlock instance.
- * @param[in]     mask Dependency mask to record.
- * @return true if acquired; false otherwise.
- */
-static inline bool nk_spinlock_trylock_rt(nk_spinlock_t *s, uint8_t mask)
-{
-    assert(s != NULL);
-    if (!nk_slock_trylock(&s->core)) return false;
-    atomic_thread_fence(memory_order_acquire);
-    s->dag_mask = mask;
-    s->rt_mode  = 1u;
-    return true;
-}
-
-/**
- * @brief Release the spinlock acquired in real-time mode.
- * @param[in,out] s  Spinlock instance.
- */
-static inline void nk_spinlock_unlock_rt(nk_spinlock_t *s)
-{
-    assert(s != NULL);
-    atomic_thread_fence(memory_order_release);
-    s->dag_mask = 0u;
-    s->rt_mode  = 0u;
-    nk_slock_unlock(&s->core);
-}
-
-/**
- * @struct nk_spinlock_capnp_t
- * @brief Cap’n Proto–compatible snapshot of spinlock state.
- */
-typedef struct {
-    uint8_t   dag_mask;   /**< Dependency mask at snapshot.    */
-    uint32_t  matrix[4];  /**< Snapshot of speculative state.  */
-} nk_spinlock_capnp_t;
-
-/**
- * @brief Encode spinlock state into Cap’n Proto snapshot.
- * @param[in]  s   Spinlock instance.
- * @param[out] out Snapshot to populate.
- */
-static inline void nk_spinlock_encode(const nk_spinlock_t *s,
-                                      nk_spinlock_capnp_t *out)
-{
-    assert(s != NULL && out != NULL);
-    out->dag_mask = s->dag_mask;
-    for (size_t i = 0; i < 4; ++i)
-        out->matrix[i] = s->matrix[i];
-}
-
-/**
- * @brief Decode spinlock state from Cap’n Proto snapshot.
- * @param[out] s   Spinlock instance to update.
- * @param[in]  in  Snapshot to read.
- */
-static inline void nk_spinlock_decode(nk_spinlock_t *s,
-                                      const nk_spinlock_capnp_t *in)
-{
-    assert(s != NULL && in != NULL);
-    s->dag_mask = in->dag_mask;
-    for (size_t i = 0; i < 4; ++i)
-        s->matrix[i] = in->matrix[i];
-}
-
-/**
- * @brief Update one entry in the speculative matrix.
- * @param[out] s   Spinlock instance.
- * @param[in]  idx Index [0..3] in the matrix.
- * @param[in]  val Value to set.
- */
-static inline void nk_spinlock_matrix_set(nk_spinlock_t *s,
-                                          unsigned idx,
-                                          uint32_t val)
-{
-    assert(s != NULL && idx < 4);
-    s->matrix[idx] = val;
-}
-
-/** @brief Alias for nk_spinlock_lock. */
-#define nk_spinlock_acquire(s, m)    nk_spinlock_lock((s), (m))
-/** @brief Alias for nk_spinlock_unlock. */
-#define nk_spinlock_release(s)       nk_spinlock_unlock((s))
-/** @brief Alias for nk_spinlock_lock_rt. */
-#define nk_spinlock_acquire_rt(s,m)  nk_spinlock_lock_rt((s),(m))
-/** @brief Alias for nk_spinlock_unlock_rt. */
-#define nk_spinlock_release_rt(s)    nk_spinlock_unlock_rt((s))
-
-/** @} */
-
-#ifdef __cplusplus
-}
-#endif
