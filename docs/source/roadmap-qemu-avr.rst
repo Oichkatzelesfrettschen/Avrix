@@ -79,6 +79,8 @@ A full Uno R3 stack including the virtual USB bridge uses:
 2. Relaunch ``qemu-system-avr`` with the new ELF.
 3. Inspect GPIO and USART output via the QEMU monitor.
 4. Automate the process using Python's ``pexpect`` or Rust scripting.
+5. ``scripts/tmux-dev.sh`` spawns a four-pane session: build, QEMU,
+   log tail, and a spare shell.
 
 7. Packaging the workflow
 -------------------------
