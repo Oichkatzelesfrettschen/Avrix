@@ -5,7 +5,7 @@
   • Discovers C/C++ sources (default src/, tests/) using Tree-sitter.
   • Generates a JSON knowledge-graph consumed by meta-build agents.
   • CLI: node repo_map.js [--src DIR]... [--tests DIR] [--out FILE]
-           [--exclude GLOB]... [--jobs N]
+           [--exclude GLOB]... [--jobs N] [--cross DIR]
      – multiple --src flags allowed; defaults: src/, tests/, repo_map.json
   • Emits SHA-256 digest of the JSON on stdout for deterministic CI caching.
   • Requires:    npm i tree-sitter tree-sitter-c fast-glob p-limit
@@ -33,6 +33,7 @@ let testsDir   = 'tests';
 let outFile    = 'repo_map.json';
 const excludes = [];            // glob patterns to ignore
 let jobs       = 0;             // 0 = auto (CPU count)
+let crossDir   = process.env.CROSS_DIR || 'cross';
 
 // crude manual parse keeps dependencies zero
 for (let i = 0; i < argv.length; ++i) {
@@ -47,13 +48,15 @@ for (let i = 0; i < argv.length; ++i) {
     case '--out':    case '-o': outFile  = need();             break;
     case '--exclude':case '-x': excludes.push(need());         break;
     case '--jobs':   case '-j': jobs = parseInt(need(), 10);   break;
+    case '--cross':  case '-c': crossDir = need();             break;
     case '--help':   case '-h':
       console.log(`Usage: node repo_map.js [opts]
   -s, --src DIR       Source dir (repeatable)   [default: src]
   -t, --tests DIR     Tests dir                 [default: tests]
   -o, --out FILE      Output JSON               [default: repo_map.json]
   -x, --exclude GLOB  Ignore (fast-glob syntax) [repeatable]
-  -j, --jobs N        Parallel parses (0 = CPU)#`);
+  -j, --jobs N        Parallel parses (0 = CPU)
+  -c, --cross DIR     Cross-file directory      [default: cross]#`);
       process.exit(0);
     default:
       console.error(`unknown option: ${arg}`); process.exit(1);
@@ -62,9 +65,9 @@ for (let i = 0; i < argv.length; ++i) {
 if (srcDirs.length === 0) srcDirs.push('src');
 
 // ───────────────────────────── Helpers ───────────────────────────────────────
-function listCrossFiles() {
+function listCrossFiles(dir) {
   try {
-    return fs.readdirSync('cross').filter(f => f.endsWith('.cross'));
+    return fs.readdirSync(dir).filter(f => f.endsWith('.cross'));
   } catch {
     return [];
   }
@@ -108,12 +111,14 @@ const files   = {};                    // fp → {functions: [...]}
     limit(async () => { files[fp] = parseFile(fp); })
   ));
 
+  const crossFiles = listCrossFiles(crossDir);
+
   // ───────────────────────────── Assemble repo map ───────────────────────────
   const map = {
     generated_at : new Date().toISOString(),
     build_system : 'meson',
-    cross_files  : listCrossFiles(),
-    toolchains   : listCrossFiles().map(f => f.replace('.cross', '')),
+    cross_files  : crossFiles,
+    toolchains   : crossFiles.map(f => f.replace('.cross', '')),
     src_roots    : srcDirs,
     tests_dir    : testsDir,
     test_suites  : fs.existsSync(testsDir)
