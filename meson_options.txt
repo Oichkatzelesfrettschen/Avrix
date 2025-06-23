@@ -5,3 +5,6 @@ option('flash_port', type: 'string', value: '/dev/ttyACM0',
        description: 'Serial device for avrdude')
 option('flash_programmer', type: 'string', value: 'arduino',
        description: 'Programmer string for avrdude')
+
+option('debug_gdb', type: 'boolean', value: false,
+       description: 'Compile tiny avr-gdbstub and enable DEBUG_GDB')
