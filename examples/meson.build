@@ -51,9 +51,10 @@ if host_machine.cpu_family() == 'avr'
   opt_cflags += ['-fno-stack-protector']
 endif
 
+
 ned = executable(
   'ned',
-  'ned.c',
+  ['ned.c', 'editor_common.c'],
   include_directories: inc,
   link_with: libavrix,
   c_args: opt_cflags,
@@ -62,7 +63,7 @@ ned = executable(
 
 vini = executable(
   'vini',
-  'vini.c',
+  ['vini.c', 'editor_common.c'],
   include_directories: inc,
   link_with: libavrix,
   c_args: opt_cflags,
