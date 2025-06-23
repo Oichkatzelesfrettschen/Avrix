@@ -1,5 +1,6 @@
 const Parser = require('tree-sitter');
-const C = require('/tmp/tree-sitter-c');
+const TREE_SITTER_C_PATH = process.env.TREE_SITTER_C_PATH || path.resolve(__dirname, 'tree-sitter-c');
+const C = require(TREE_SITTER_C_PATH);
 const fs = require('fs');
 const path = require('path');
 
