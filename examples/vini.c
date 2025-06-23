@@ -11,17 +11,10 @@
 #else
 #include "../compat/avr/eeprom.h"
 #include "../compat/avr/pgmspace.h"
+#include <wchar.h>
+#include <locale.h>
 uint8_t nk_sim_eeprom[1024];
 #endif
-
-static void pgm_print(const char *p) {
-#ifdef __AVR__
-  for (char c = pgm_read_byte(p); c; c = pgm_read_byte(++p))
-    putchar(c);
-#else
-  fputs(p, stdout);
-#endif
-}
 
 /*
  * ────────────────────────────────────────────────────────────────────
@@ -53,6 +46,8 @@ static void pgm_print(const char *p) {
 #define MAX_LINES 14
 #define MAX_LINE_LEN 64
 
+#include "editor_common.h"
+
 struct Buffer {
   char lines[MAX_LINES][MAX_LINE_LEN];
   uint8_t count;
@@ -76,29 +71,6 @@ static void buf_init(struct Buffer *b) { memset(b, 0, sizeof *b); }
 
 static void buf_free(struct Buffer *b) { (void)b; }
 
-static void insert_line(struct Buffer *b, uint8_t idx, const char *text) {
-  if (b->count >= MAX_LINES)
-    return;
-  if (idx > b->count)
-    idx = b->count;
-  for (uint8_t i = b->count; i > idx; --i)
-    memcpy(b->lines[i], b->lines[i - 1], MAX_LINE_LEN);
-  strncpy(b->lines[idx], text, MAX_LINE_LEN - 1);
-  b->lines[idx][MAX_LINE_LEN - 1] = '\0';
-  ++b->count;
-}
-
-static void delete_line(struct Buffer *b, uint8_t idx) {
-  if (idx >= b->count)
-    return;
-  for (uint8_t i = idx; i + 1 < b->count; ++i)
-    memcpy(b->lines[i], b->lines[i + 1], MAX_LINE_LEN);
-  --b->count;
-  if (b->count == 0) {
-    strncpy(b->lines[0], "\n", MAX_LINE_LEN);
-    b->count = 1;
-  }
-}
 
 static void load_file(struct Buffer *b, const char *path) {
   FILE *f = fopen(path, "r");
@@ -145,18 +117,31 @@ static void eeprom_load(struct Buffer *b) {
           (char)eeprom_read_byte(&ee_buf[1 + i * MAX_LINE_LEN + j]);
 }
 
-static void highlight(const char *line) {
-  if (strncmp(line, "//", 2) == 0 || line[0] == '#') {
-    printf("\x1b[33m%s\x1b[0m", line);
-    return;
+static int display_width(const char *s, size_t byte_offset)
+{
+  int width = 0;
+  size_t i = 0;
+  setlocale(LC_CTYPE, "");
+  while (i < byte_offset && s[i]) {
+    if (s[i] == '\t') {
+      width += 8 - (width % 8);
+      ++i;
+    } else {
+      wchar_t wc;
+      int len = mbtowc(&wc, s + i, MB_CUR_MAX);
+      if (len <= 0) {
+        ++width;
+        ++i;
+      } else {
+        int w = wcwidth(wc);
+        width += (w > 0) ? w : 1;
+        i += len;
+      }
+    }
   }
-  for (const char *p = line; *p; ++p) {
-    if (isdigit((unsigned char)*p))
-      printf("\x1b[36m%c\x1b[0m", *p);
-    else
-      putchar(*p);
-  }
+  return width;
 }
+
 
 static const char ins_str[] PROGMEM = "INSERT";
 static const char cmd_str[] PROGMEM = "COMMAND";
@@ -169,8 +154,10 @@ static void draw(const struct Buffer *b, uint8_t row, uint8_t col, int mode) {
     else
       printf("  %3zu ", i + 1);
     highlight(b->lines[i]);
-    if (i == row && col < strlen(b->lines[i]))
-      printf("%*s^", (int)col + 1, "");
+    if (i == row && col < strlen(b->lines[i])) {
+      int caret_pos = display_width(b->lines[i], col);
+      printf("%*s^", caret_pos + 1, "");
+    }
     putchar('\n');
   }
   fputs("-- ", stdout);
@@ -191,9 +178,24 @@ static void draw(const struct Buffer *b, uint8_t row, uint8_t col, int mode) {
 #endif
     );
   puts(" --");
+  if (status_timer > 0) {
+    printf("%s\n", status_msg);
+    --status_timer;
+  } else {
+    putchar('\n');
+  }
 }
 
+static char status_msg[64];
+static int  status_timer;
 static char yank[MAX_LINE_LEN] = "";
+
+static void set_status_message(const char *msg)
+{
+  strncpy(status_msg, msg, sizeof status_msg - 1);
+  status_msg[sizeof status_msg - 1] = '\0';
+  status_timer = 5;
+}
 
 static void command_loop(struct Buffer *b, const char *path) {
   uint8_t row = 0, col = 0;
@@ -313,6 +315,8 @@ static void command_loop(struct Buffer *b, const char *path) {
         memmove(&b->lines[row][col + 1], &b->lines[row][col], len - col + 1);
         b->lines[row][col] = ch;
         ++col;
+      } else {
+        set_status_message("Line length limit reached");
       }
     }
 

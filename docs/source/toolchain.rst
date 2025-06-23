@@ -164,6 +164,18 @@ For a *legacy* build drop ``--icf`` / ``-fipa-pta`` and switch
         -Dflash_port=/dev/ttyACM0 -Dflash_programmer=arduino
 
 ``cross/atmega328p_clang20.cross`` is provided for LLVM 20 users.
+``cross/atmega32.cross`` and ``cross/atmega128.cross`` extend the
+selection to DIP‐40 and larger ATmega128 boards.
+
+.. code-block:: bash
+
+   meson setup build32  --wipe --cross-file cross/atmega32.cross
+   meson setup build128 --wipe --cross-file cross/atmega128.cross
+
+``atmega32.cross`` mirrors the ``328p`` flags, merely changing the MCU
+type. ``atmega128.cross`` enables extra hardening flags such as
+``-fstack-protector-strong`` and ``-D_FORTIFY_SOURCE=2`` while printing
+memory usage at link time.
 
 ----------------------------------------------------------------------
 7 · Documentation targets
@@ -187,6 +199,22 @@ Create an isolated environment via ``docker/Dockerfile``::
 
 The container builds the firmware, generates ``avrix.img`` and launches
 ``qemu-system-avr`` with the USB bridge enabled.
+
+6 B · Debugging with GDB
+------------------------
+
+Enable the tiny GDB stub by configuring Meson with ``-Ddebug_gdb=true``.
+Run QEMU with its built-in GDB server and connect using ``avr-gdb``::
+
+   meson setup build --wipe -Ddebug_gdb=true
+   meson compile -C build
+   qemu-system-avr -M arduino-uno -bios build/unix0.elf -S -gdb tcp::1234
+
+From another shell::
+
+   avr-gdb build/unix0.elf -ex 'target remote :1234'
+
+The firmware halts at reset. Call ``gdbstub_break()`` to re-enter the debugger.
 
 ----------------------------------------------------------------------
 8 · APT cheat-sheet
