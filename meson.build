@@ -15,7 +15,7 @@ project(
   version         : '0.1.0',
   license         : 'MIT',
   default_options : [
-    'c_std=c23',            # <- final choice after merge
+    'c_std=none',           # determine dialect dynamically
     'warning_level=2',
     'optimization=s',       # -Os for flash size
     'buildtype=release'
@@ -24,9 +24,33 @@ project(
 
 # ── helper modules / common flags ────────────────────────────────────
 subdir('build_flags')                      # shared flag definitions
+
+# Determine the best C dialect flag supported by the current compiler.
+cc = meson.get_compiler('c')
+std_candidates = ['-std=c23', '-std=c2x', '-std=c11']
+std_flag = []
+foreach cand : std_candidates
+  if cc.has_argument(cand)
+    std_flag = [cand]
+    break
+  endif
+endforeach
+posix_flag = cc.get_id() == 'clang' ? ['-D_POSIX_C_SOURCE=200809L', '-D_GNU_SOURCE'] : []
+common_cflags += std_flag + posix_flag
+
 add_project_arguments(common_cflags, language : 'c')
 add_project_link_arguments(common_ldflags, language : 'c')
 python = import('python').find_installation('python3')
+
+# Export finalised flag lists for external tooling using a helper script.
+run_command(
+  python,
+  files('scripts/gen_flags.py'),
+  meson.current_source_dir() / 'build_flags/flags.meson',
+  ';'.join(common_cflags),
+  ';'.join(common_ldflags),
+  check : true
+)
 
 # ── include-path logic ───────────────────────────────────────────────
 if meson.is_cross_build() or host_machine.cpu_family() == 'avr'
