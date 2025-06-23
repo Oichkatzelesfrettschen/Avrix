@@ -79,7 +79,7 @@ static void load_file(struct Buffer *b, const char *path) {
   }
   char tmp[MAX_LINE_LEN];
   while (fgets(tmp, sizeof tmp, f) && b->count < MAX_LINES)
-    insert_line(b, b->count, tmp);
+    insert_line(b->lines, &b->count, b->count, tmp);
   fclose(f);
   strncpy(b->filename, path, sizeof b->filename - 1);
 }
@@ -182,7 +182,7 @@ int main(int argc, char **argv) {
           set_status_message("Line truncated to %d chars", MAX_LINE_LEN - 1);
           printf("%s\n", status_msg);
         }
-        insert_line(&buf, (uint8_t)(line - 1), text);
+        insert_line(buf.lines, &buf.count, (uint8_t)(line - 1), text);
       }
       continue;
     }
@@ -193,14 +193,14 @@ int main(int argc, char **argv) {
           set_status_message("Line truncated to %d chars", MAX_LINE_LEN - 1);
           printf("%s\n", status_msg);
         }
-        insert_line(&buf, buf.count, text);
+        insert_line(buf.lines, &buf.count, buf.count, text);
       }
       continue;
     }
     if (cmd[0] == 'd') {
       unsigned int line;
       if (sscanf(cmd + 1, "%u", &line) == 1)
-        delete_line(&buf, (uint8_t)(line - 1));
+        delete_line(buf.lines, &buf.count, (uint8_t)(line - 1));
       continue;
     }
     if (cmd[0] == 's') {
