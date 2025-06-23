@@ -78,12 +78,16 @@ void fs_init(void) {
  */
 int fs_create(const char *name, uint8_t type) {
     if (name == NULL || *name == '\0') {
-        return -EINVAL;
+        return -EINVAL;                     /* reject empty names */
     }
 
-    size_t len = strnlen(name, FS_MAX_NAME + 1);
-    if (len == 0 || len > FS_MAX_NAME - 1) {
-        return -EINVAL;
+    /*
+     * FS_MAX_NAME includes the terminating NUL.  Valid filenames
+     * therefore must be strictly shorter than this constant.
+     */
+    size_t len = strnlen(name, FS_MAX_NAME);
+    if (len == 0 || len >= FS_MAX_NAME) {
+        return -EINVAL;                     /* name too long */
     }
 
     for (uint8_t i = 0; i < FS_NUM_INODES; ++i) {
