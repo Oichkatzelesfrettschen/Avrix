@@ -100,11 +100,20 @@ const romfs_file_t *romfs_open(const char *path)
             p++;
         uint8_t count = pgm_read_byte(&dir->count);
         romfs_entry_t entry;
-        const romfs_entry_t *entries = (const romfs_entry_t *)pgm_read_word(&dir->entries);
+#ifdef __AVR__
+        const romfs_entry_t *entries =
+            (const romfs_entry_t *)pgm_read_word(&dir->entries);
+#else
+        const romfs_entry_t *entries = dir->entries;
+#endif
         bool found = false;
         for (uint8_t i = 0; i < count; i++) {
             memcpy_P(&entry, &entries[i], sizeof entry);
+#ifdef __AVR__
             const char *nm = (const char *)pgm_read_word(&entry.name);
+#else
+            const char *nm = entry.name;
+#endif
             if (equal_p(seg, nm)) {
                 found = true;
                 if (*p == '\0' && entry.type == ROMFS_FILE) {
