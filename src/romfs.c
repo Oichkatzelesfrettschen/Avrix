@@ -6,6 +6,8 @@
 #include <string.h>
 #include <avr/pgmspace.h>
 
+#define ARRAY_LEN(x) ((sizeof(x) / sizeof((x)[0])))
+
 /* ----------------------------------------------------------------------
  * ROMFS descriptor layout
  * ------------------------------------------------------------------ */
@@ -106,9 +108,13 @@ const romfs_file_t *romfs_open(const char *path)
             if (equal_p(seg, nm)) {
                 found = true;
                 if (*p == '\0' && entry.type == ROMFS_FILE) {
-                    return &((const romfs_file_t *)pgm_read_word(&file_table))[entry.idx];
+                    if (entry.idx >= ARRAY_LEN(file_table))
+                        return NULL;
+                    return &file_table[entry.idx];
                 } else if (entry.type == ROMFS_DIR) {
-                    dir = &((const romfs_dir_t *)pgm_read_word(&dir_table))[entry.idx];
+                    if (entry.idx >= ARRAY_LEN(dir_table))
+                        return NULL;
+                    dir = &dir_table[entry.idx];
                 } else {
                     return NULL;
                 }
