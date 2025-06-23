@@ -78,8 +78,7 @@ if [[ $MODE == "--modern" ]]; then
   if ! have_repo "deb.debian.org/debian sid"; then
     step "Adding Debian-sid cross repo"
     cat >/etc/apt/sources.list.d/debian-sid-avr.list <<'EOF'
-deb [arch=amd64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] \
-    http://deb.debian.org/debian sid main
+deb [arch=amd64 signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] http://deb.debian.org/debian sid main
 EOF
     cat >/etc/apt/preferences.d/90-avr-cross <<'EOF'
 Package: gcc-avr avr-libc binutils-avr

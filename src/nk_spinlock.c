@@ -11,7 +11,7 @@
  * setup of internal state before use.
  */
 
-#include "nk_spinlock.h"
+#include "nk_superlock.h"
 
 /** @brief Global Big Kernel Lock shared by all spinlock instances. */
 nk_slock_t nk_bkl = {0};

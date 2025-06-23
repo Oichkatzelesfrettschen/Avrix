@@ -106,7 +106,7 @@ endif
 #   option('flash_limit_bytes',  type : 'integer', value : 30720,
 #          description : 'Maximum firmware size in bytes checked by size gate')
 
-if get_option('flash_limit')
+if meson.is_cross_build() and get_option('flash_limit')
   gate_cmd = [
     python,
     files('scripts/size_gate.py'),
@@ -114,14 +114,16 @@ if get_option('flash_limit')
     '@INPUT@',
     '@OUTPUT@'
   ]
-else
+elif meson.is_cross_build()
   gate_cmd = ['true']
 endif
 
-size_gate = custom_target(
-  'size-gate',
-  input   : [fs_demo, romfs_demo, slip_demo, ned, vini, files('scripts/size_gate.py')],
-  output  : 'size-gate.stamp',
-  command : gate_cmd,
-  console : true
-)
+if meson.is_cross_build()
+  size_gate = custom_target(
+    'size-gate',
+    input   : [fs_demo, romfs_demo, slip_demo, ned, vini, files('scripts/size_gate.py')],
+    output  : 'size-gate.stamp',
+    command : gate_cmd,
+    console : true
+  )
+endif

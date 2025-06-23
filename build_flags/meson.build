@@ -9,7 +9,7 @@ common_cflags = [
   '-Wall',
   '-Wextra',
   '-Wpedantic',
-  '-std=c23'
+  '-std=c2x'
 ]
 
 common_ldflags = [

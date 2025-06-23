@@ -10,7 +10,7 @@ common_cflags = [
   '-Wall',
   '-Wextra',
   '-Wpedantic',
-  '-std=c23'
+  '-std=c2x'
 ]
 
 # Linker flags may be extended by specific targets
