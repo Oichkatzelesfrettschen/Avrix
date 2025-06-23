@@ -1,124 +1,151 @@
 #!/usr/bin/env node
 /*───────────────────────────────────────────────────────────────────────────────
-  repo_map.js — harvest project metadata into repo_map.json
-  ───────────────────────────────────────────────────────────────────────────────
-  • Discovers C/C++ sources (default src/, tests/) using Tree-sitter.
-  • Generates a JSON knowledge-graph consumed by meta-build agents.
-  • CLI: node repo_map.js [--src DIR] [--tests DIR] [--cross DIR]
-          [--output FILE]
-     – defaults: src/, tests/, cross/, repo_map.json
-  • Emits SHA-256 digest of the JSON on stdout for deterministic CI caching.
-  • Requires:    npm i tree-sitter tree-sitter-c fast-glob p-limit
+  repo_map.js — harvest repository metadata → repo_map.json
+────────────────────────────────────────────────────────────────────────────────
+  • Recursively discovers C sources (default src/, tests/) with fast-glob
+    and Tree-sitter-C, then extracts top-level function names.
+  • CLI:
+        node repo_map.js [--src DIR]... [--tests DIR]      \
+                         [--cross DIR] [--out FILE]        \
+                         [--exclude GLOB]... [--jobs N]
+
+        -s/--src      repeatable source roots     (def: src)
+        -t/--tests    single tests dir            (def: tests)
+        -c/--cross    Meson cross-file dir        (def: cross or $CROSS_DIR)
+        -o/--out      output JSON filename        (def: repo_map.json)
+        -x/--exclude  glob patterns to ignore     (repeatable)
+        -j/--jobs     parallel parse workers      (0 = auto CPU count)
+        -h/--help     usage
+
+  • Emits SHA-256 digest of the generated JSON for CI cache keys.
+  • Requires:  npm i tree-sitter tree-sitter-c fast-glob p-limit
 ───────────────────────────────────────────────────────────────────────────────*/
 
 'use strict';
-const fs     = require('fs');
-const path   = require('path'); // required before first use
-const crypto = require('crypto');
-const fg     = require('fast-glob');          // robust globbing, cross-platform
-const pLimit = require('p-limit');            // concurrency throttle
-const Parser = require('tree-sitter');
-const C      = require('tree-sitter-c');
 
-// ───────────────────────────── Tree-sitter setup ─────────────────────────────
+/* ── 0 · Imports ─────────────────────────────────────────────────────────── */
+const fs        = require('fs');
+const path      = require('path');                                     // Node path utils
+const crypto    = require('crypto');                                   // SHA-256 :contentReference[oaicite:0]{index=0}
+const fg        = require('fast-glob');                                // globbing :contentReference[oaicite:1]{index=1}
+const pLimit    = require('p-limit');                                  // concurrency :contentReference[oaicite:2]{index=2}
+const Parser    = require('tree-sitter');                              // syntax trees :contentReference[oaicite:3]{index=3}
+const C         = require('tree-sitter-c');                            // C grammar :contentReference[oaicite:4]{index=4}
+const os        = require('os');
+
+/* ── 1 · Tree-sitter bootstrap ───────────────────────────────────────────── */
 const parser = new Parser();
-parser.setLanguage(C);
+parser.setLanguage(C);                                                 // grammar attach
 
-// ───────────────────────────── CLI argument parse ────────────────────────────
-const argv  = process.argv.slice(2);
-const args  = { src: 'src', tests: 'tests', cross: 'cross', output: 'repo_map.json' };
+/* ── 2 · CLI parsing (zero-dependency) ───────────────────────────────────── */
+const argv        = process.argv.slice(2);
+const srcDirs     = [];
+let   testsDir    = 'tests';
+let   crossDir    = process.env.CROSS_DIR || 'cross';
+let   outFile     = 'repo_map.json';
+const excludes    = [];
+let   jobs        = 0;                                                 // 0 → auto
 
 for (let i = 0; i < argv.length; ++i) {
-  const arg = argv[i];
+  const arg  = argv[i];
   const need = () => {
     if (!argv[i + 1]) { console.error(`missing value for ${arg}`); process.exit(1); }
     return argv[++i];
   };
+
   switch (arg) {
-    case '--src':    args.src    = need(); break;
-    case '--tests':  args.tests  = need(); break;
-    case '--cross':  args.cross  = need(); break;
-    case '--output': args.output = need(); break;
-    case '--help':
-      console.log('Usage: node repo_map.js [--src DIR] [--tests DIR] [--cross DIR] [--output FILE]');
+    case '--src':    case '-s': srcDirs.push(need());                     break;
+    case '--tests':  case '-t': testsDir  = need();                       break;
+    case '--cross':  case '-c': crossDir  = need();                       break;
+    case '--out':    case '-o': outFile   = need();                       break;
+    case '--exclude':case '-x': excludes.push(need());                    break;
+    case '--jobs':   case '-j': jobs = parseInt(need(), 10) || 0;         break;
+    case '--help':   case '-h':
+      console.log(`Usage: node repo_map.js [options]
+  -s, --src DIR       Add source root (repeatable)     [default: src]
+  -t, --tests DIR     Tests directory                  [default: tests]
+  -c, --cross DIR     Meson cross-file directory       [default: cross]
+  -o, --out FILE      Output JSON file                [default: repo_map.json]
+  -x, --exclude GLOB  Ignore pattern (repeatable)
+  -j, --jobs N        Parallel parses (0 = all CPUs)
+  -h, --help          Show this help`);
       process.exit(0);
     default:
       console.error(`unknown option: ${arg}`); process.exit(1);
   }
 }
+if (srcDirs.length === 0) srcDirs.push('src');                           // default
 
-// ───────────────────────────── Helpers ───────────────────────────────────────
-function listCrossFiles(dir) {
-  try {
-    return fs.readdirSync(dir).filter(f => f.endsWith('.cross'));
-  } catch {
-    return [];
-  }
-}
+/* ── 3 · Helpers ────────────────────────────────────────────────────────── */
+const listCrossFiles = dir =>
+  fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith('.cross')) : [];
 
-function sha256(data) {
-  return crypto.createHash('sha256').update(data).digest('hex');
-}
+const sha256 = data =>
+  crypto.createHash('sha256').update(data).digest('hex');                // hash :contentReference[oaicite:5]{index=5}
 
-// Tree-sitter visitor
-function functionsIn(sourceCode) {
-  const tree = parser.parse(sourceCode);
+function functionsIn(source) {                                           // AST visitor
   const fns  = [];
   (function walk(node) {
     if (node.type === 'function_definition') {
-      const decl = node.childForFieldName('declarator');
-      const id   = decl && decl.descendantsOfType('identifier')[0];
-      if (id) fns.push(id.text);
+      const idNode = node
+        .childForFieldName('declarator')
+        ?.descendantsOfType('identifier')[0];
+      if (idNode) fns.push(idNode.text);
     }
     for (let i = 0; i < node.namedChildCount; ++i) walk(node.namedChild(i));
-  })(tree.rootNode);
+  })(parser.parse(source).rootNode);                                      // parse once
   return fns;
 }
 
-// parse one file
-function parseFile(fp) {
-  const source = fs.readFileSync(fp, 'utf8');
-  return { functions: functionsIn(source) };
+function parseFile(fp) {                                                 // per-file meta
+  return { functions: functionsIn(fs.readFileSync(fp, 'utf8')) };
 }
 
-// ───────────────────────────── Main scan phase (parallel) ────────────────────
-const limit   = pLimit(require('os').cpus().length);
-const files   = {};                    // fp → {functions: [...]}
+/* ── 4 · Concurrency setup ─────────────────────────────────────────────── */
+const cpuCount = typeof os.availableParallelism === 'function'
+  ? os.availableParallelism()                                            // Node ≥ 19 :contentReference[oaicite:6]{index=6}
+  : os.cpus().length;                                                    // legacy :contentReference[oaicite:7]{index=7}
 
-async function scan(root) {
-  const patterns   = [`${root}/**/*.c`];
-  const ignore     = ['**/build/**', '**/vendor/**'];
-  const candidates = await fg(patterns, { ignore, onlyFiles: true, unique: true });
+const limit    = pLimit(jobs > 0 ? jobs : cpuCount);                     // throttle
 
-  await Promise.all(candidates.map(fp =>
-    limit(async () => { files[fp] = parseFile(fp); })
+/* ── 5 · Main scan ═ async ═────────────────────────────────────────────── */
+const files = Object.create(null);                                       // fp → meta
+
+async function scan(patternRoot) {                                       // one root
+  const patterns = [`${patternRoot}/**/*.c`];                            // C only
+  const ignore   = ['**/build/**', '**/vendor/**', ...excludes];         // defaults + CLI
+  const paths    = await fg(patterns, { ignore, onlyFiles: true, unique: true });  // :contentReference[oaicite:8]{index=8}
+
+  await Promise.all(paths.map(fp =>
+    limit(() => { files[fp] = parseFile(fp); })
   ));
 }
 
 (async () => {
-  await scan(args.src);
-  await scan(args.tests);
+  // 5.1 · gather sources ---------------------------------------------------
+  for (const d of srcDirs)  await scan(d);
+  await scan(testsDir);
 
-  // ───────────────────────────── Assemble repo map ───────────────────────────
-  const crossFiles = listCrossFiles(args.cross);
+  // 5.2 · assemble JSON ----------------------------------------------------
+  const crossFiles = listCrossFiles(crossDir);
   const map = {
     generated_at : new Date().toISOString(),
     build_system : 'meson',
     cross_files  : crossFiles,
     toolchains   : crossFiles.map(f => f.replace('.cross', '')),
-    src_roots    : [args.src],
-    tests_dir    : args.tests,
-    test_suites  : fs.existsSync(args.tests)
-                    ? fs.readdirSync(args.tests).filter(f => f.endsWith('.c'))
+    src_roots    : srcDirs,
+    tests_dir    : testsDir,
+    test_suites  : fs.existsSync(testsDir)
+                    ? fs.readdirSync(testsDir).filter(f => f.endsWith('.c'))
                     : [],
     files,
   };
 
-  const json     = JSON.stringify(map, null, 2);
-  const outPath  = path.resolve(args.output);
-  fs.writeFileSync(outPath, json);
+  // 5.3 · write artefact ---------------------------------------------------
+  const payload  = JSON.stringify(map, null, 2);
+  const outPath  = path.resolve(outFile);
+  fs.writeFileSync(outPath, payload);
 
-  // CI can key cache artefacts on this digest
-  console.log(`repo_map written to ${outPath}`);
-  console.log(`SHA-256: ${sha256(json)}`);
+  console.log(`repo_map written → ${outPath}`);
+  console.log(`SHA-256 digest   : ${sha256(payload)}`);
 })().catch(err => { console.error(err); process.exit(1); });
