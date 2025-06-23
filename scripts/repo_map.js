@@ -17,6 +17,9 @@
         -j/--jobs     parallel parse workers      (0 = auto CPU count)
         -h/--help     usage
 
+  • The cross directory is scanned once; its contents feed both
+    the `cross_files` list and the derived `toolchains` array.
+
   • Emits SHA-256 digest of the generated JSON for CI cache keys.
   • Requires:  npm i tree-sitter tree-sitter-c fast-glob p-limit
 ───────────────────────────────────────────────────────────────────────────────*/
@@ -30,7 +33,10 @@ const crypto    = require('crypto');                                   // SHA-25
 const fg        = require('fast-glob');                                // globbing :contentReference[oaicite:1]{index=1}
 const pLimit    = require('p-limit');                                  // concurrency :contentReference[oaicite:2]{index=2}
 const Parser    = require('tree-sitter');                              // syntax trees :contentReference[oaicite:3]{index=3}
-const C         = require('tree-sitter-c');                            // C grammar :contentReference[oaicite:4]{index=4}
+// Prefer bundled grammar from node_modules; allow override via TREE_SITTER_C_PATH.
+const C         = process.env.TREE_SITTER_C_PATH
+  ? require(path.resolve(process.env.TREE_SITTER_C_PATH))
+  : require('tree-sitter-c');                                           // C grammar
 const os        = require('os');
 
 /* ── 1 · Tree-sitter bootstrap ───────────────────────────────────────────── */
@@ -41,7 +47,7 @@ parser.setLanguage(C);                                                 // gramma
 const argv        = process.argv.slice(2);
 const srcDirs     = [];
 let   testsDir    = 'tests';
-let   crossDir    = process.env.CROSS_DIR || 'cross';
+let   crossDir    = process.env.CROSS_DIR || 'cross';           // cross-file search root
 let   outFile     = 'repo_map.json';
 const excludes    = [];
 let   jobs        = 0;                                                 // 0 → auto
@@ -79,6 +85,8 @@ if (srcDirs.length === 0) srcDirs.push('src');                           // defa
 /* ── 3 · Helpers ────────────────────────────────────────────────────────── */
 const listCrossFiles = dir =>
   fs.existsSync(dir) ? fs.readdirSync(dir).filter(f => f.endsWith('.cross')) : [];
+
+const crossFiles = listCrossFiles(crossDir);                             // reuse across keys
 
 const sha256 = data =>
   crypto.createHash('sha256').update(data).digest('hex');                // hash :contentReference[oaicite:5]{index=5}
@@ -127,7 +135,6 @@ async function scan(patternRoot) {                                       // one 
   await scan(testsDir);
 
   // 5.2 · assemble JSON ----------------------------------------------------
-  const crossFiles = listCrossFiles(crossDir);
   const map = {
     generated_at : new Date().toISOString(),
     build_system : 'meson',
