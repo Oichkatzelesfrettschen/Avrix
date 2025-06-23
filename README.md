@@ -58,6 +58,11 @@ meson compile -C build size-gate      # fails if firmware exceeds -Dflash_limit
 
 Customize the limit with ``meson configure build -Dflash_limit=32768``.
 
+``build.log`` and ``build.log.txt`` are generated when the CI pipeline
+captures ``meson compile`` output (local builds may do the same with
+``--log-file`` or ``tee``).  These logs live in the project root and are
+ignored by git.
+
 
 ---
 
