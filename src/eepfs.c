@@ -80,19 +80,23 @@ const eepfs_file_t *eepfs_open(const char *path)
             p++;
         uint8_t count = pgm_read_byte(&dir->count);
         eepfs_entry_t ent;
+        const eepfs_entry_t *ents;
 #ifdef __AVR__
-        const eepfs_entry_t *ents =
-            (const eepfs_entry_t *)pgm_read_word(&dir->entries);
+        /* Directory tables live in flash on AVR; fetch pointer through pgm_read_word */
+        ents = (const eepfs_entry_t *)pgm_read_word(&dir->entries);
 #else
-        const eepfs_entry_t *ents = dir->entries;
+        /* Host build: PROGMEM collapses to a normal array */
+        ents = dir->entries;
 #endif
         bool found = false;
         for (uint8_t i = 0; i < count; i++) {
             memcpy_P(&ent, &ents[i], sizeof ent);
+            const char *nm;
 #ifdef __AVR__
-            const char *nm = (const char *)pgm_read_word(&ent.name);
+            /* Entry names also reside in flash */
+            nm = (const char *)pgm_read_word(&ent.name);
 #else
-            const char *nm = ent.name;
+            nm = ent.name;
 #endif
             if (eq_p(seg, nm)) {
                 found = true;
