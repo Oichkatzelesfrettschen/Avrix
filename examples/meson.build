@@ -44,13 +44,15 @@ endif
 
 opt_cflags = [
   '-Wall', '-Wextra', '-Os',
-  '-ffunction-sections', '-fdata-sections',
-  '-fno-stack-protector'
+  '-ffunction-sections', '-fdata-sections'
 ]
+if target_machine.cpu_family() == 'avr'
+  opt_cflags += ['-fno-stack-protector']
+endif
 
 ned = executable(
   'ned',
-  'ned.c',
+  ['ned.c', 'editor_utils.c'],
   include_directories: inc,
   link_with: libavrix,
   c_args: opt_cflags,
@@ -59,7 +61,7 @@ ned = executable(
 
 vini = executable(
   'vini',
-  'vini.c',
+  ['vini.c', 'editor_utils.c'],
   include_directories: inc,
   link_with: libavrix,
   c_args: opt_cflags,

@@ -3,8 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <termios.h>
 #include <unistd.h>
+#include <locale.h>
+#include <wchar.h>
 
 #if defined(__AVR__)
 #include <avr/eeprom.h>
@@ -14,14 +17,7 @@
 uint8_t nk_sim_eeprom[1024];
 #endif
 
-static void pgm_print(const char *p) {
-#ifdef __AVR__
-  for (char c = pgm_read_byte(p); c; c = pgm_read_byte(++p))
-    putchar(c);
-#else
-  fputs(p, stdout);
-#endif
-}
+#include "editor_utils.h"
 
 /*
  * ────────────────────────────────────────────────────────────────────
@@ -145,18 +141,39 @@ static void eeprom_load(struct Buffer *b) {
           (char)eeprom_read_byte(&ee_buf[1 + i * MAX_LINE_LEN + j]);
 }
 
-static void highlight(const char *line) {
-  if (strncmp(line, "//", 2) == 0 || line[0] == '#') {
-    printf("\x1b[33m%s\x1b[0m", line);
-    return;
-  }
-  for (const char *p = line; *p; ++p) {
-    if (isdigit((unsigned char)*p))
-      printf("\x1b[36m%c\x1b[0m", *p);
-    else
-      putchar(*p);
-  }
+static char status_msg[64] = "";
+
+static void set_status_message(const char *fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  vsnprintf(status_msg, sizeof status_msg, fmt, ap);
+  va_end(ap);
 }
+
+static int display_width(const char *s, size_t byte_offset) {
+  int width = 0;
+  size_t i = 0;
+  setlocale(LC_CTYPE, "");
+  while (i < byte_offset && s[i]) {
+    if (s[i] == '\t') {
+      width += 8 - (width % 8);
+      ++i;
+    } else {
+      wchar_t wc;
+      int len = mbtowc(&wc, s + i, MB_CUR_MAX);
+      if (len <= 0) {
+        ++width;
+        ++i;
+      } else {
+        int w = wcwidth(wc);
+        width += (w > 0) ? w : 1;
+        i += len;
+      }
+    }
+  }
+  return width;
+}
+
 
 static const char ins_str[] PROGMEM = "INSERT";
 static const char cmd_str[] PROGMEM = "COMMAND";
@@ -169,8 +186,10 @@ static void draw(const struct Buffer *b, uint8_t row, uint8_t col, int mode) {
     else
       printf("  %3zu ", i + 1);
     highlight(b->lines[i]);
-    if (i == row && col < strlen(b->lines[i]))
-      printf("%*s^", (int)col + 1, "");
+    if (i == row && col < strlen(b->lines[i])) {
+      int caret_pos = display_width(b->lines[i], col);
+      printf("%*s^", caret_pos + 1, "");
+    }
     putchar('\n');
   }
   fputs("-- ", stdout);
@@ -191,6 +210,10 @@ static void draw(const struct Buffer *b, uint8_t row, uint8_t col, int mode) {
 #endif
     );
   puts(" --");
+  if (status_msg[0])
+    puts(status_msg);
+  else
+    putchar('\n');
 }
 
 static char yank[MAX_LINE_LEN] = "";
@@ -313,6 +336,8 @@ static void command_loop(struct Buffer *b, const char *path) {
         memmove(&b->lines[row][col + 1], &b->lines[row][col], len - col + 1);
         b->lines[row][col] = ch;
         ++col;
+      } else {
+        set_status_message("Line length limit reached");
       }
     }
 
@@ -323,6 +348,7 @@ static void command_loop(struct Buffer *b, const char *path) {
 }
 
 int main(int argc, char **argv) {
+  setlocale(LC_CTYPE, "");
   if (argc < 2) {
     fprintf(stderr, "Usage: %s <file>\n", argv[0]);
     return 1;

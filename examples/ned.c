@@ -12,14 +12,7 @@
 uint8_t nk_sim_eeprom[1024];
 #endif
 
-static void pgm_print(const char *p) {
-#ifdef __AVR__
-  for (char c = pgm_read_byte(p); c; c = pgm_read_byte(++p))
-    putchar(c);
-#else
-  fputs(p, stdout);
-#endif
-}
+#include "editor_utils.h"
 
 /*
  * ────────────────────────────────────────────────────────────────────
@@ -143,18 +136,6 @@ static void eeprom_load(struct Buffer *b) {
           (char)eeprom_read_byte(&ee_buf[1 + i * MAX_LINE_LEN + j]);
 }
 
-static void highlight(const char *line) {
-  if (strncmp(line, "//", 2) == 0 || line[0] == '#') {
-    printf("\x1b[33m%s\x1b[0m", line);
-    return;
-  }
-  for (const char *p = line; *p; ++p) {
-    if (isdigit((unsigned char)*p))
-      printf("\x1b[36m%c\x1b[0m", *p);
-    else
-      putchar(*p);
-  }
-}
 
 static void print_buffer(const struct Buffer *b) {
   for (uint8_t i = 0; i < b->count; ++i) {
