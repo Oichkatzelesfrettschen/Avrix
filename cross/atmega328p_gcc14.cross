@@ -38,25 +38,29 @@ c_args = [
   '-DF_CPU=16000000UL',
 
   # Size-first optimisation
-  '-Oz',                               # smallest code
-  '-flto',                             # GCC 14 Thin-LTO by default
-  '-mrelax', '-mcall-prologues',       # shrink jumps & prologues
-  '-fdata-sections', '-ffunction-sections',
+  '-Oz',
+  '-flto',
+  '-mrelax',
+  '-mcall-prologues',
+  '-fdata-sections',
+  '-ffunction-sections',
   '-fmerge-all-constants',
-  '-fno-ident',                        # drop GCC version string
+  '-fno-ident',
 
   # Remove unused runtime features
-  '-fno-exceptions', '-fno-rtti',
-  '-fno-unwind-tables', '-fno-asynchronous-unwind-tables',
+  '-fno-exceptions',
+  '-fno-rtti',
+  '-fno-unwind-tables',
+  '-fno-asynchronous-unwind-tables',
   '-fno-stack-protector'
 ]
 
 c_link_args = [
   '-mmcu=atmega328p',
   '-flto',
-  '-Wl,--gc-sections',                 # dead-code elimination
-  '-Wl,--icf=safe',                    # identical code folding
-  '-Wl,--relax'                        # linker relaxation pass
+  '-Wl,--gc-sections',
+  '-Wl,--icf=safe',
+  '-Wl,--relax'
 ]
 
 [built-in options]

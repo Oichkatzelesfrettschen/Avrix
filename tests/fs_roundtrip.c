@@ -8,7 +8,8 @@ int main(void)
     fs_init();
 
     /* reserve block zero */
-    int dummy = fs_create("dummy", 1);
+    /* Reserve block zero for metadata sanity */
+    (void)fs_create("dummy", 1);
     file_t d;
     assert(fs_open("dummy", &d) == 0);
     char c = 'x';

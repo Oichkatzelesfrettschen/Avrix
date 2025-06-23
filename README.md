@@ -68,6 +68,17 @@ meson configure build -Dflash_limit=32768
 Logs (`build.log`, `build.log.txt`) are produced by CI (or manually with
 `meson compile --log-file build.log | tee build.log.txt`) and ignored by git.
 
+### 2.1 · Developer packages
+
+Install host utilities for debugging and documentation:
+
+```bash
+sudo apt install -y valgrind linux-tools-common linux-tools-generic
+```
+
+See :ref:`toolchain-setup` for a full list including Meson, Doxygen and
+Sphinx helpers.
+
 ---
 
 ## 3 · What you get
