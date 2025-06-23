@@ -1,5 +1,4 @@
 # ──────────────── demo executables ────────────────────────────────────
-subdir('build_flags')
 
 fs_demo = executable(
   'fs_demo',
