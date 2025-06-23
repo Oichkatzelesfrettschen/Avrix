@@ -87,6 +87,11 @@ current directory.
 node scripts/repo_map.js -s src -s extras -t tests -c cross -o repo_map.json
 ```
 
+The command above demonstrates how to override the default source,
+test and cross directories.  Cross-files are enumerated once and the
+same list populates both the `cross_files` and derived `toolchains`
+fields of the resulting `repo_map.json`.
+
 
 
 [1]: https://tracker.debian.org/gcc-avr "gcc-avr - Debian Package Tracker"
