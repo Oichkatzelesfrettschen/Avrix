@@ -119,9 +119,8 @@ static void eeprom_load(struct Buffer *b) {
 
 static int display_width(const char *s, size_t byte_offset)
 {
-  int width = 0;
-  size_t i = 0;
-  setlocale(LC_CTYPE, "");
+  int    width = 0;
+  size_t i     = 0;
   while (i < byte_offset && s[i]) {
     if (s[i] == '\t') {
       width += 8 - (width % 8);
@@ -327,6 +326,8 @@ static void command_loop(struct Buffer *b, const char *path) {
 }
 
 int main(int argc, char **argv) {
+  setlocale(LC_CTYPE, "");
+
   if (argc < 2) {
     fprintf(stderr, "Usage: %s <file>\n", argv[0]);
     return 1;
