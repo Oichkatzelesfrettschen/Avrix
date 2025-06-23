@@ -51,18 +51,19 @@ elif fs_mod.is_dir('/usr/lib/avr/include')
 endif
 
 # ───────────────────── 2 · Common compiler flags  ─────────────────────
-common_cflags    = ['-O2', '-Wall', '-Wextra', '-pedantic', '-std=c2x']
-common_ldflags   = []
+# Start from project-wide defaults defined in build/flags.meson
+test_cflags  = common_cflags
+test_ldflags = common_ldflags
 
 if not meson.is_cross_build()
   if san and cc.get_id() in ['gcc', 'clang']
-    common_cflags += ['-fsanitize=address,undefined']
-    common_ldflags += ['-fsanitize=address,undefined']
+    test_cflags += ['-fsanitize=address,undefined']
+    test_ldflags += ['-fsanitize=address,undefined']
   endif
 
   if cov and cc.has_argument('-fcoverage-mapping')
-    common_cflags += ['-fprofile-instr-generate', '-fcoverage-mapping']
-    common_ldflags += ['-fprofile-instr-generate', '-fcoverage-mapping']
+    test_cflags += ['-fprofile-instr-generate', '-fcoverage-mapping']
+    test_ldflags += ['-fprofile-instr-generate', '-fcoverage-mapping']
   endif
 endif
 
@@ -97,8 +98,8 @@ foreach t : tests
     t[1],
     include_directories : inc_list,
     link_with           : [link_target] + extra_libs,
-    c_args              : common_cflags,
-    link_args           : common_ldflags,
+    c_args              : test_cflags,
+    link_args           : test_ldflags,
     native              : true
   )
   test(t[0], exe)
@@ -120,7 +121,7 @@ if target_machine.cpu_family() == 'avr'
         s[0],
         s[1],
         include_directories : inc_list,
-        c_args              : common_cflags
+        c_args              : test_cflags
       )
 
       test(

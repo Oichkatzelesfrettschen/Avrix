@@ -23,7 +23,9 @@ project(
 )
 
 # ── helper modules / common flags ────────────────────────────────────
-subdir('build')                      # shared flag definitions (if any)
+subdir('build')                      # shared flag definitions
+add_project_arguments(common_cflags, language : 'c')
+add_project_link_arguments(common_ldflags, language : 'c')
 python = import('python').find_installation('python3')
 
 # ── include-path logic ───────────────────────────────────────────────
@@ -99,18 +101,27 @@ endif
 # ─────────────────────────── size gate ───────────────────────────────
 # Blocks the build if any firmware ELF exceeds --limit (bytes).
 # Requires in meson_options.txt:
-#   option('flash_limit', type : 'string', value : '30720',
-#          description : 'Maximum allowed firmware size (bytes)')
+#   option('flash_limit',        type : 'boolean', value : true,
+#          description : 'Enable flash size gate when compiling firmware')
+#   option('flash_limit_bytes',  type : 'integer', value : 30720,
+#          description : 'Maximum firmware size in bytes checked by size gate')
+
+if get_option('flash_limit')
+  gate_cmd = [
+    python,
+    files('scripts/size_gate.py'),
+    '--limit', get_option('flash_limit_bytes'),
+    '@INPUT@',
+    '@OUTPUT@'
+  ]
+else
+  gate_cmd = ['true']
+endif
+
 size_gate = custom_target(
   'size-gate',
   input   : [fs_demo, romfs_demo, slip_demo, ned, vini],
   output  : 'size-gate.stamp',
-  command : [
-    python,
-    files('scripts/size_gate.py'),
-    '--limit', get_option('flash_limit'),
-    '@INPUT@',          # ELF list
-    '@OUTPUT@'
-  ],
+  command : gate_cmd,
   console : true
 )
