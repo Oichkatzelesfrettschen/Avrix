@@ -15,6 +15,10 @@
 #include <locale.h>
 #endif
 
+static int  status_timer;
+static char yank[MAX_LINE_LEN] = "";
+
+
 /*
  * ────────────────────────────────────────────────────────────────────
  * vini.c — VI Nano Implementation
@@ -81,7 +85,7 @@ static void load_file(struct Buffer *b, const char *path) {
   }
   char tmp[MAX_LINE_LEN];
   while (fgets(tmp, sizeof tmp, f) && b->count < MAX_LINES)
-    insert_line(b, b->count, tmp);
+    insert_line(b->lines, &b->count, b->count, tmp);
   fclose(f);
 }
 
@@ -114,30 +118,6 @@ static void eeprom_load(struct Buffer *b) {
     for (uint8_t j = 0; j < MAX_LINE_LEN; ++j)
       b->lines[i][j] =
           (char)eeprom_read_byte(&ee_buf[1 + i * MAX_LINE_LEN + j]);
-}
-
-static int display_width(const char *s, size_t byte_offset)
-{
-  int    width = 0;
-  size_t i     = 0;
-  while (i < byte_offset && s[i]) {
-    if (s[i] == '\t') {
-      width += 8 - (width % 8);
-      ++i;
-    } else {
-      wchar_t wc;
-      int len = mbtowc(&wc, s + i, MB_CUR_MAX);
-      if (len <= 0) {
-        ++width;
-        ++i;
-      } else {
-        int w = wcwidth(wc);
-        width += (w > 0) ? w : 1;
-        i += len;
-      }
-    }
-  }
-  return width;
 }
 
 
@@ -184,8 +164,6 @@ static void draw(const struct Buffer *b, uint8_t row, uint8_t col, int mode) {
   }
 }
 
-static int  status_timer;
-static char yank[MAX_LINE_LEN] = "";
 
 static void command_loop(struct Buffer *b, const char *path) {
   uint8_t row = 0, col = 0;
@@ -230,12 +208,12 @@ static void command_loop(struct Buffer *b, const char *path) {
         memmove(&b->lines[row][col], &b->lines[row][col + 1],
                 strlen(b->lines[row]) - col);
       } else if (ch == 'o') {
-        insert_line(b, row + 1, "\n");
+        insert_line(b->lines, &b->count, row + 1, "\n");
         row++;
         col = 0;
         mode = 1;
       } else if (ch == 'd' && prev == 'd') {
-        delete_line(b, row);
+        delete_line(b->lines, &b->count, row);
         if (row >= b->count)
           row = b->count - 1;
         prev = 0;
@@ -247,7 +225,7 @@ static void command_loop(struct Buffer *b, const char *path) {
       } else if (ch == 'y') {
         prev = 'y';
       } else if (ch == 'p' && yank[0]) {
-        insert_line(b, row + 1, yank);
+        insert_line(b->lines, &b->count, row + 1, yank);
       } else if (ch == 'E') {
         eeprom_save(b);
       } else if (ch == 'L') {
@@ -295,7 +273,7 @@ static void command_loop(struct Buffer *b, const char *path) {
         tail[MAX_LINE_LEN - 1] = '\0';
         b->lines[row][col] = '\n';
         b->lines[row][col + 1] = '\0';
-        insert_line(b, row + 1, tail);
+        insert_line(b->lines, &b->count, row + 1, tail);
         row++;
         col = 0;
         continue;

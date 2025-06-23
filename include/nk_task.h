@@ -89,7 +89,7 @@ typedef void (*nk_task_fn)(void);
 
 /** Initialise scheduler, idle task & 1 kHz tick. */
 void scheduler_init(void);
-#if defined(__GNUC__)
+#if defined(__GNUC__) && defined(__AVR__)
 void nk_sched_init(void) __attribute__((alias("scheduler_init")));
 #else
 static inline void nk_sched_init(void) { scheduler_init(); }
@@ -134,7 +134,7 @@ void nk_task_add(nk_tcb_t *tcb,
 
 /** Enter the scheduler – never returns. */
 void scheduler_run(void) __attribute__((noreturn));
-#if defined(__GNUC__)
+#if defined(__GNUC__) && defined(__AVR__)
 void nk_sched_run(void) __attribute__((alias("scheduler_run"), noreturn));
 #else
 static inline void nk_sched_run(void) { scheduler_run(); }

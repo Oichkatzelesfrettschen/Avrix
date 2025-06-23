@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 #ifdef __AVR__
 #  include <avr/pgmspace.h>

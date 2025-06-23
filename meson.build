@@ -32,10 +32,10 @@ foreach cand : std_candidates
   endif
 endforeach
 
-posix_flag =
-  (cc.get_id() == 'clang' and host_machine.cpu_family() != 'avr')
-  ? ['-D_POSIX_C_SOURCE=200809L', '-D_GNU_SOURCE']
-  : []
+posix_flag = []
+if cc.get_id() == 'clang' and host_machine.cpu_family() != 'avr'
+  posix_flag = ['-D_POSIX_C_SOURCE=200809L', '-D_GNU_SOURCE']
+endif
 
 common_cflags += std_flag + posix_flag
 

@@ -19,9 +19,9 @@ void    nk_switch_to(uint8_t t) { current_tid = t;  }
 
 static void (*service_table[NK_MAX_TASKS])(void);
 
-/*─── External door storage (from door.c) ───────────────────────────────*/
-extern door_t    door_vec[NK_MAX_TASKS][DOOR_SLOTS];
-extern uint8_t   door_slab[DOOR_SLAB_SIZE];
+/*─── Door storage ------------------------------------------------------*/
+door_t  door_vec[NK_MAX_TASKS][DOOR_SLOTS];
+extern uint8_t door_slab[DOOR_SLAB_SIZE];
 
 /*─── Trampoline stub replicating AVR _nk_door ──────────────────────────*/
 void _nk_door(const void *src, uint8_t len, uint8_t tid)

@@ -149,6 +149,24 @@ static inline void nk_slock_lock(nk_slock_t *s)
 #   endif
 }
 
+/* Attempt to acquire without blocking. */
+static inline bool nk_slock_trylock(nk_slock_t *s)
+{
+#   if NK_ENABLE_LATTICE
+    nk_ticket_t my = nk_next_ticket();
+    if (!nk_flock_try(&s->base))
+        return false;
+    if (s->owner != my) {
+        nk_flock_unlock(&s->base);
+        return false;
+    }
+#   else
+    if (!nk_flock_try(&s->base))
+        return false;
+#   endif
+    return true;
+}
+
 /*--------------------------------------------------------------*/
 static inline void nk_slock_unlock(nk_slock_t *s)
 {
