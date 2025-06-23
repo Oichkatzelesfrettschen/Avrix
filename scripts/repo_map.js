@@ -1,8 +1,11 @@
+// Path is required before its first use to prevent a ReferenceError when
+// resolving the Tree-sitter C grammar path.
+const path = require('path');
 const Parser = require('tree-sitter');
-const TREE_SITTER_C_PATH = process.env.TREE_SITTER_C_PATH || path.resolve(__dirname, 'tree-sitter-c');
+const TREE_SITTER_C_PATH = process.env.TREE_SITTER_C_PATH ||
+  path.resolve(__dirname, 'tree-sitter-c');
 const C = require(TREE_SITTER_C_PATH);
 const fs = require('fs');
-const path = require('path');
 
 const parser = new Parser();
 parser.setLanguage(C);
