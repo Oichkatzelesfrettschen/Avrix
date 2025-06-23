@@ -1,28 +1,28 @@
 # ──────────── tests/meson.build ────────────────────────────────────────
+# Native build   → links tests against **libavrix_host** stub.
+# Cross build    → compiles tests for the host CPU (`native : true`)
+#                  and links only against portable **libfs** helpers.
 #
-# Native build   → links tests against the complete **libavrix** stub.
-# Cross build    → compiles tests for the host CPU (`native: true`),
-#                  linking only against portable **libfs** helpers.
+# Options (meson_options.txt):
+#   -Dsan=true      → Address & UB sanitizers (host only)
+#   -Dcov=true      → LLVM coverage flags     (host only)
+#   -Davr_inc_dir=… → Additional AVR header path
 #
-# Options defined (meson_options.txt):
-#   -Dsan=true      → Enable Address & UB sanitizers (host only)
-#   -Dcov=true      → Enable LLVM coverage flags (host only)
-#   -Davr_inc_dir=… → Path to custom AVR include directory
-#
-# Imported symbols from root meson.build:
+# Imported from root meson.build:
 #   inc       → include_directories('include')
-#   libavrix  → Host stub library (native builds)
-#   libfs     → Portable RAM-based filesystem helpers (always included)
+#   libavrix  → host stub   (native builds)
+#   libfs     → portable RAM-FS helpers
+#   nk_sim_io → I/O shim for host simulations
 # -----------------------------------------------------------------------
 
-python = import('python').find_installation('python3')
-fs_mod = import('fs')
-cc     = meson.get_compiler('c')
+python   = import('python').find_installation('python3')
+fs_mod   = import('fs')
+cc       = meson.get_compiler('c')
 
-san = get_option('san')
-cov = get_option('cov')
+san      = get_option('san')
+cov      = get_option('cov')
 
-# 0 · Documentation Check
+# ───────────────────── 0 · Documentation lint  ────────────────────────
 test(
   'check-docs',
   python,
@@ -35,9 +35,10 @@ test(
   workdir : meson.project_source_root()
 )
 
-# 1 · Include Paths Configuration
+# ───────────────────── 1 · Include-path assembly  ─────────────────────
 inc_list = [inc]
 
+# Host builds need AVR-compat headers
 if host_machine.cpu_family() != 'avr'
   inc_list += include_directories(meson.project_source_root() / 'compat')
 endif
@@ -49,43 +50,39 @@ elif fs_mod.is_dir('/usr/lib/avr/include')
   inc_list += include_directories('/usr/lib/avr/include')
 endif
 
-# 2 · Compiler and Sanitizer Flags Setup
-common_cflags = ['-O2', '-Wall', '-Wextra', '-pedantic', '-std=c2x']
-common_link_args = []
+# ───────────────────── 2 · Common compiler flags  ─────────────────────
+common_cflags    = ['-O2', '-Wall', '-Wextra', '-pedantic', '-std=c2x']
+common_ldflags   = []
 
 if not meson.is_cross_build()
   if san and cc.get_id() in ['gcc', 'clang']
-    common_cflags    += ['-fsanitize=address,undefined']
-    common_link_args += ['-fsanitize=address,undefined']
+    common_cflags += ['-fsanitize=address,undefined']
+    common_ldflags += ['-fsanitize=address,undefined']
   endif
 
   if cov and cc.has_argument('-fcoverage-mapping')
-    common_cflags    += ['-fprofile-instr-generate', '-fcoverage-mapping']
-    common_link_args += ['-fprofile-instr-generate', '-fcoverage-mapping']
+    common_cflags += ['-fprofile-instr-generate', '-fcoverage-mapping']
+    common_ldflags += ['-fprofile-instr-generate', '-fcoverage-mapping']
   endif
 endif
 
-# 3 · Host-only Stub Library
-extra_libs = []
-if host_machine.cpu_family() != 'avr'
-  extra_libs += nk_sim_io
-endif
-
+# ───────────────────── 3 · Link-target selection  ─────────────────────
+extra_libs  = (host_machine.cpu_family() != 'avr') ? [nk_sim_io] : []
 link_target = meson.is_cross_build() ? libfs : libavrix
 
-# 4 · Core Unit Tests Definition
+# ───────────────────── 4 · Core unit-test list  ───────────────────────
 tests = [
   ['test_fixed_point',      ['test_fixed_point.c']],
-  ['fs_test',               ['fs_test.c', 'sim.c']],
-  ['flock_stress',          ['flock_stress.c', 'sim.c']],
-  ['spin_test',             ['spin_test.c', 'sim.c']],
+  ['fs_test',               ['fs_test.c',               'sim.c']],
+  ['flock_stress',          ['flock_stress.c',          'sim.c']],
+  ['spin_test',             ['spin_test.c',             'sim.c']],
   ['unified_spinlock_test', ['unified_spinlock_test.c', 'sim.c']],
-  ['romfs_test',            ['romfs_test.c', 'sim.c']],
-  ['fs_roundtrip',          ['fs_roundtrip.c', 'sim.c']],
+  ['romfs_test',            ['romfs_test.c',            'sim.c']],
+  ['fs_roundtrip',          ['fs_roundtrip.c',          'sim.c']],
   ['door_test',             ['door_test.c']],
 ]
 
-# Include kalloc_test exclusively in native builds
+# Native-only test
 if not meson.is_cross_build()
   tests += [
     ['kalloc_test',
@@ -93,31 +90,29 @@ if not meson.is_cross_build()
   ]
 endif
 
-# 5 · Building and Registering Tests
+# ───────────────────── 5 · Build + register tests  ────────────────────
 foreach t : tests
-  srcs = t[1]
-
   exe = executable(
     t[0],
-    srcs,
+    t[1],
     include_directories : inc_list,
     link_with           : [link_target] + extra_libs,
     c_args              : common_cflags,
-    link_args           : common_link_args,
+    link_args           : common_ldflags,
     native              : true
   )
-
   test(t[0], exe)
 endforeach
 
-# 6 · simavr-based Smoke Tests (Cross-builds Only)
+# ───────────────────── 6 · simavr smoke tests (cross) ─────────────────
 if target_machine.cpu_family() == 'avr'
   simavr = find_program('simavr', required : false)
-
   if simavr.found()
     sim_suites = [
-      ['fs_simavr_basic', ['fs_simavr_basic.c', meson.project_source_root() / 'src/fs.c']],
-      ['spinlock_isr',    ['spinlock_isr.c', meson.project_source_root() / 'src/nk_lock.c']],
+      ['fs_simavr_basic',
+       ['fs_simavr_basic.c', meson.project_source_root() / 'src/fs.c']],
+      ['spinlock_isr',
+       ['spinlock_isr.c',    meson.project_source_root() / 'src/nk_lock.c']],
     ]
 
     foreach s : sim_suites
@@ -125,7 +120,7 @@ if target_machine.cpu_family() == 'avr'
         s[0],
         s[1],
         include_directories : inc_list,
-        c_args              : ['-Os', '-std=c11', '-Wall', '-Wextra', '-pedantic']
+        c_args              : common_cflags
       )
 
       test(
