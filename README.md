@@ -44,7 +44,6 @@ sudo ./setup.sh --legacy     # GCC 7.3 – bare minimum
 
 > No Launchpad PPA ships AVR GCC ≥ 10 — ignore any guide mentioning `team-gcc-arm-embedded/avr`. ([apt.llvm.org][4])
 
-*(Sub-sections 1A … 1D unchanged.)*
 
 ---
 
@@ -60,7 +59,6 @@ meson compile -C build size-gate      # fails if firmware exceeds -Dflash_limit
 
 Customize the limit with ``meson configure build -Dflash_limit=32768``.
 
-*(LLVM, SimAVR, custom cross-file, tmux launcher, etc. retained verbatim.)*
 
 ---
 
@@ -73,12 +71,11 @@ Customize the limit with ``meson configure build -Dflash_limit=32768``.
 * **Fixed-point Q8.8** helpers.
 * **Full QEMU board model** (`arduino-uno`) wired into CI.
 
-*(Sections 8A … 13 unchanged — see full README for details.)*
 
 
-[1]: https://tracker.debian.org/gcc-avr?utm_source=chatgpt.com "gcc-avr - Debian Package Tracker"
-[2]: https://www.qemu.org/2023/12/20/qemu-8-2-0/?utm_source=chatgpt.com "QEMU version 8.2.0 released"
-[3]: https://arduino.stackexchange.com/questions/95932/emulating-arduino-uno-with-qemu-interrupts-do-not-work?utm_source=chatgpt.com "Emulating Arduino Uno with QEMU: interrupts do not work"
-[4]: https://apt.llvm.org/?utm_source=chatgpt.com "LLVM Debian/Ubuntu packages"
-[5]: https://capnproto.org/rpc.html?utm_source=chatgpt.com "RPC Protocol - Cap'n Proto"
-[6]: https://en.wikipedia.org/wiki/Beatty_sequence?utm_source=chatgpt.com "Beatty sequence - Wikipedia"
+[1]: https://tracker.debian.org/gcc-avr "gcc-avr - Debian Package Tracker"
+[2]: https://www.qemu.org/2023/12/20/qemu-8-2-0/ "QEMU version 8.2.0 released"
+[3]: https://arduino.stackexchange.com/questions/95932/emulating-arduino-uno-with-qemu-interrupts-do-not-work "Emulating Arduino Uno with QEMU: interrupts do not work"
+[4]: https://apt.llvm.org/ "LLVM Debian/Ubuntu packages"
+[5]: https://capnproto.org/rpc.html "RPC Protocol - Cap'n Proto"
+[6]: https://en.wikipedia.org/wiki/Beatty_sequence "Beatty sequence - Wikipedia"
