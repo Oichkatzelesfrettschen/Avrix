@@ -157,11 +157,15 @@ For a *legacy* build drop ``--icf`` / ``-fipa-pta`` and switch
 .. code-block:: bash
 
    meson setup build --wipe \
-        --cross-file cross/atmega328p_gcc14.cross -Dc_std=c23
+        --cross-file cross/atmega328p_gcc14.cross -Dc_std=c23 \
+        -Ddebug_gdb=true
    meson compile -C build
    qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
    meson compile -C build flash \
         -Dflash_port=/dev/ttyACM0 -Dflash_programmer=arduino
+
+``-Ddebug_gdb=true`` bundles a tiny on-device GDB stub so
+``avr-gdb`` can attach over the serial port.
 
 ``cross/atmega328p_clang20.cross`` is provided for LLVM 20 users.
 

@@ -35,6 +35,11 @@ kernel_src = files(
   'door_entry.S'
 )
 
+if get_option('debug_gdb')
+  kernel_src += files('avr_gdbstub.c')
+  add_project_arguments('-DDEBUG_GDB', language : 'c')
+endif
+
 portable_src = files(   # no <avr/...>
   'fixed_point.c',
   'fs.c',
@@ -99,6 +104,7 @@ install_headers(
   '../include/tty.h',
   '../include/slip.h',
   '../include/ipv4.h',
+  '../include/avr_gdbstub.h',
   subdir : 'avrix'
 )
 

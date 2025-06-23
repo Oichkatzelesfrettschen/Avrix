@@ -70,3 +70,4 @@ b_staticpic      = false
 # -----------------------------------------------------------------------
 [project options]
 profile = false
+debug_gdb = false

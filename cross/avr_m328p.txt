@@ -63,3 +63,4 @@ b_staticpic     = false                # irrelevant on AVR
 
 [project options]
 profile         = false                # enable PGO with -Dprofile=true
+debug_gdb       = false                # build avr-gdbstub when true
