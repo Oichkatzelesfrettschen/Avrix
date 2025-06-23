@@ -58,6 +58,11 @@ meson compile -C build size-gate      # fails if firmware exceeds -Dflash_limit
 
 Customize the limit with ``meson configure build -Dflash_limit=32768``.
 
+``build.log`` and ``build.log.txt`` are generated when the CI pipeline
+captures ``meson compile`` output (local builds may do the same with
+``--log-file`` or ``tee``).  These logs live in the project root and are
+ignored by git.
+
 
 ---
 
@@ -69,6 +74,25 @@ Customize the limit with ``meson configure build -Dflash_limit=32768``.
 * **Unified spinlock** – TAS / quaternion / Beatty-lattice variants with BKL aliases   ([en.wikipedia.org][6]).
 * **Fixed-point Q8.8** helpers.
 * **Full QEMU board model** (`arduino-uno`) wired into CI.
+
+### 9 · Repository map generation
+
+The `scripts/repo_map.js` utility crawls all C sources and emits a
+`repo_map.json` description.  Custom paths may be specified via CLI
+arguments.  When omitted it defaults to `src/` and `tests/` while
+scanning cross-files in `cross/` and writes `repo_map.json` in the
+current directory.
+
+```bash
+node scripts/repo_map.js -s src -s extras -t tests -c cross -o repo_map.json
+```
+
+Before invoking the script, install the Node dependencies declared in
+`package.json`:
+
+```bash
+npm install
+```
 
 
 

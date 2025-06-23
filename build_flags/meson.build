@@ -1,45 +1,33 @@
 # ────────────────────────────────────────────────────────────────────────
-#  build_flags/meson.build — central flag definitions (resolved 2025-06-22)
-# ------------------------------------------------------------------------
-#  • These lists are consumed by every sub-project via:
-#        add_project_arguments(common_cflags, language : 'c')
-#        add_project_link_arguments(common_ldflags, language : 'c')
-#  • A verbatim copy is exported to 'flags.meson' for external tooling.
-#    This file is generated at configure-time to keep these flags
-#    authoritative in a single location.
-# ------------------------------------------------------------------------
+#  build_flags/meson.build  —  authoritative flag oracle  (22 Jun 2025)
+# -----------------------------------------------------------------------
+#  • Define base optimisation / warning flags **only here**.
+#  • NO language-dialect flags: the top-level meson.build probes the
+#    compiler and appends -std=c23 / -std=c2x / -std=c11 as appropriate.
+#  • Emit a Meson fragment (flags.meson) for IDE & Docker tooling via
+#    configure_file() – the canonical Meson idiom. :contentReference[oaicite:1]{index=1}
+# -----------------------------------------------------------------------
 
 common_cflags = [
   '-pipe',
-  '-ffunction-sections',
-  '-fdata-sections',
-  '-fno-common',
-  '-Os',            # size-optimised, retain -O2 for perf-critical objs
-  '-Wall',
-  '-Wextra',
-  '-Wpedantic',
-  '-std=c23',       # align with top-level `c_std=c23`; supersedes draft c2x
+  '-ffunction-sections', '-fdata-sections', '-fno-common',
+  '-Os',                     # favour flash / ROM footprint
+  '-Wall', '-Wextra', '-Wpedantic',
 ]
 
 common_ldflags = [
-  '-Wl,--gc-sections',   # dead-strip unused .text/.data
+  '-Wl,--gc-sections',       # dead-strip unused .text/.data
 ]
 
-# Export a Meson snippet for external tools.  This avoids manually
-# maintaining duplicate flag lists.
-conf = configuration_data()
-cflag_strs = []
-foreach f : common_cflags
-  cflag_strs += '\'' + f + '\''
-endforeach
-ldflag_strs = []
-foreach f : common_ldflags
-  ldflag_strs += '\'' + f + '\''
-endforeach
-conf.set('COMMON_CFLAGS', '[' + ', '.join(cflag_strs) + ']')
-conf.set('COMMON_LDFLAGS', '[' + ', '.join(ldflag_strs) + ']')
-configure_file(
-  input  : 'flags.meson.in',
-  output : 'flags.meson',
-  configuration : conf
+# ── 1 · export snippet for external tools ------------------------------------
+conf = configuration_data()                          # :contentReference[oaicite:2]{index=2}
+conf.set('COMMON_CFLAGS',
+         '[' + ', '.join("'" + f + "'" for f in common_cflags) + ']')
+conf.set('COMMON_LDFLAGS',
+         '[' + ', '.join("'" + f + "'" for f in common_ldflags) + ']')
+
+configure_file(                                      # writes flags.meson
+  input        : 'flags.meson.in',
+  output       : 'flags.meson',
+  configuration: conf,
 )
