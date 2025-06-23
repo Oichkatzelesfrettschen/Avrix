@@ -15,7 +15,9 @@ project(
   version         : '0.1.0',
   license         : 'MIT',
   default_options : [
-    'c_std=c23',            # <- final choice after merge
+    # Meson 1.3 lacks explicit c23 support; use c2x while the
+    # compiler flags below enforce -std=c23.
+    'c_std=c2x',
     'warning_level=2',
     'optimization=s',       # -Os for flash size
     'buildtype=release'
