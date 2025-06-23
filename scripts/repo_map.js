@@ -30,7 +30,9 @@ const crypto    = require('crypto');                                   // SHA-25
 const fg        = require('fast-glob');                                // globbing :contentReference[oaicite:1]{index=1}
 const pLimit    = require('p-limit');                                  // concurrency :contentReference[oaicite:2]{index=2}
 const Parser    = require('tree-sitter');                              // syntax trees :contentReference[oaicite:3]{index=3}
-const C         = require('tree-sitter-c');                            // C grammar :contentReference[oaicite:4]{index=4}
+const C         = process.env.TREE_SITTER_C_PATH
+                    ? require(path.resolve(process.env.TREE_SITTER_C_PATH))
+                    : require('tree-sitter-c');                        // C grammar :contentReference[oaicite:4]{index=4}
 const os        = require('os');
 
 /* ── 1 · Tree-sitter bootstrap ───────────────────────────────────────────── */
