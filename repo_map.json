@@ -1,4 +1,6 @@
 {
+  "build_system": "meson",
+
   "files": {
     "src/avr_gdbstub.c": {
       "functions": [
@@ -57,8 +59,6 @@
         "uart_put",
         "uart_get",
         "gdbstub_init",
-        "gdbstub_break",
-        "gdbstub_init",
         "gdbstub_break"
       ]
     },
@@ -79,7 +79,6 @@
     },
     "src/nk_fs.c": {
       "functions": [
-        "crc8_update",
         "crc8_update",
         "crc3",
         "addr",
@@ -160,34 +159,22 @@
       ]
     },
     "tests/flock_stress.c": {
-      "functions": [
-        "main"
-      ]
+      "functions": ["main"]
     },
     "tests/fs_roundtrip.c": {
-      "functions": [
-        "main"
-      ]
+      "functions": ["main"]
     },
     "tests/fs_simavr_basic.c": {
-      "functions": [
-        "main"
-      ]
+      "functions": ["main"]
     },
     "tests/fs_test.c": {
-      "functions": [
-        "main"
-      ]
+      "functions": ["main"]
     },
     "tests/kalloc_test.c": {
-      "functions": [
-        "main"
-      ]
+      "functions": ["main"]
     },
     "tests/romfs_test.c": {
-      "functions": [
-        "main"
-      ]
+      "functions": ["main"]
     },
     "tests/sim.c": {
       "functions": []
@@ -213,12 +200,10 @@
       ]
     },
     "tests/unified_spinlock_test.c": {
-      "functions": [
-        "main"
-      ]
+      "functions": ["main"]
     }
   },
-  "build_system": "meson",
+
   "cross_files": [
     "atmega128.cross",
     "atmega32.cross",
@@ -227,6 +212,7 @@
     "atmega328p_gcc7.cross",
     "atmega328p_gcc73.cross"
   ],
+
   "toolchains": [
     "atmega128",
     "atmega32",
@@ -235,6 +221,7 @@
     "atmega328p_gcc7",
     "atmega328p_gcc73"
   ],
+
   "test_suites": [
     "door_test.c",
     "flock_stress.c",
@@ -248,5 +235,34 @@
     "spinlock_test.c",
     "test_fixed_point.c",
     "unified_spinlock_test.c"
-  ]
+  ],
+
+  "languages": {
+    "c": 39,
+    "h": 34,
+    "python": 6,
+    "shell": 6,
+    "yaml": 2
+  },
+
+  "build_manifests": [
+    "meson.build",
+    "build_flags/meson.build",
+    "src/meson.build",
+    "tests/meson.build",
+    "examples/meson.build"
+  ],
+
+  "ci_specs": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/static-analysis.yml"
+  ],
+
+  "dockerfiles": [
+    "docker/Dockerfile"
+  ],
+
+  "dependency_lockfiles": [],
+
+  "symbol_index": "repo_tags.txt"
 }
