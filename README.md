@@ -13,7 +13,6 @@ spinlock / Door-RPC suite for the Arduino Uno R3.*
 | **ATmega16U2-MU** | 16 kB | 512 B| 512 B  | 16 → 48 MHz PLL  |
 
 [![CI](https://github.com/your-org/avrix/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/avrix/actions)  
-*Snapshot · 20 Jun 2025 — every command below is exercised by CI against `setup.sh`.*
 
 ---
 
