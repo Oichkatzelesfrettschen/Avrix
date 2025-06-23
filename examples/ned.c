@@ -10,7 +10,6 @@
 #else
 #include "../compat/avr/eeprom.h"
 #include "../compat/avr/pgmspace.h"
-uint8_t nk_sim_eeprom[1024];
 #endif
 
 /*

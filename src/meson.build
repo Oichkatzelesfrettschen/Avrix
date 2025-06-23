@@ -87,6 +87,17 @@ libfs = static_library(
   install : false
 )
 
+# Host-side I/O and EEPROM stubs
+if host_machine.cpu_family() != 'avr'
+  nk_sim_io = static_library(
+    'nk_sim_io',
+    'avr_stub.c',
+    include_directories : inc,
+    native  : true,
+    install : false
+  )
+endif
+
 # ───────────────────────── 4. Public headers  ────────────────────────
 install_headers(
   '../include/fixed_point.h',

@@ -107,6 +107,5 @@ endif
 size_gate = run_target(
   'size-gate',
   command : [python, files('scripts/size_gate.py'), meson.project_build_root()],
-  depends : [fs_demo, romfs_demo, slip_demo, ned, vini],
-  console : true
+  depends : [fs_demo, romfs_demo, slip_demo, ned, vini]
 )

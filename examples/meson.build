@@ -2,7 +2,7 @@ fs_demo = executable(
   'fs_demo',
   'fs_demo.c',
   include_directories: inc,
-  link_with: libavrix,
+  link_with: [libavrix] + (meson.is_cross_build() ? [] : [nk_sim_io]),
   c_args: ['-Wall', '-Wextra'],
   install: false
 )
@@ -11,7 +11,7 @@ romfs_demo = executable(
   'romfs_demo',
   'romfs_demo.c',
   include_directories: inc,
-  link_with: libavrix,
+  link_with: [libavrix] + (meson.is_cross_build() ? [] : [nk_sim_io]),
   c_args: ['-Wall', '-Wextra'],
   install: false
 )
@@ -20,7 +20,7 @@ slip_demo = executable(
   'slip_demo',
   'slip_demo.c',
   include_directories: inc,
-  link_with: libavrix,
+  link_with: [libavrix] + (meson.is_cross_build() ? [] : [nk_sim_io]),
   c_args: ['-Wall', '-Wextra'],
   install: false
 )
@@ -55,7 +55,7 @@ ned = executable(
   'ned',
   'ned.c',
   include_directories: inc,
-  link_with: libavrix,
+  link_with: [libavrix] + (meson.is_cross_build() ? [] : [nk_sim_io]),
   c_args: opt_cflags,
   install: false
 )
@@ -64,7 +64,7 @@ vini = executable(
   'vini',
   'vini.c',
   include_directories: inc,
-  link_with: libavrix,
+  link_with: [libavrix] + (meson.is_cross_build() ? [] : [nk_sim_io]),
   c_args: opt_cflags,
   install: false
 )
