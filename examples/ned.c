@@ -12,15 +12,6 @@
 uint8_t nk_sim_eeprom[1024];
 #endif
 
-static void pgm_print(const char *p) {
-#ifdef __AVR__
-  for (char c = pgm_read_byte(p); c; c = pgm_read_byte(++p))
-    putchar(c);
-#else
-  fputs(p, stdout);
-#endif
-}
-
 /*
  * ────────────────────────────────────────────────────────────────────
  * ned.c — Nano ED
@@ -51,6 +42,8 @@ static void pgm_print(const char *p) {
 #define MAX_LINES 16
 #define MAX_LINE_LEN 64
 
+#include "editor_common.h"
+
 struct Buffer {
   char lines[MAX_LINES][MAX_LINE_LEN];
   uint8_t count;
@@ -70,25 +63,6 @@ static void buffer_init(struct Buffer *b, const char *path) {
 
 static void buffer_free(struct Buffer *b) { (void)b; /* nothing to free */ }
 
-static void insert_line(struct Buffer *b, uint8_t idx, const char *text) {
-  if (b->count >= MAX_LINES)
-    return;
-  if (idx > b->count)
-    idx = b->count;
-  for (uint8_t i = b->count; i > idx; --i)
-    memcpy(b->lines[i], b->lines[i - 1], MAX_LINE_LEN);
-  strncpy(b->lines[idx], text, MAX_LINE_LEN - 1);
-  b->lines[idx][MAX_LINE_LEN - 1] = '\0';
-  ++b->count;
-}
-
-static void delete_line(struct Buffer *b, uint8_t idx) {
-  if (idx >= b->count)
-    return;
-  for (uint8_t i = idx; i + 1 < b->count; ++i)
-    memcpy(b->lines[i], b->lines[i + 1], MAX_LINE_LEN);
-  --b->count;
-}
 
 static void replace_line(struct Buffer *b, uint8_t idx, const char *text) {
   if (idx >= b->count)
@@ -143,18 +117,6 @@ static void eeprom_load(struct Buffer *b) {
           (char)eeprom_read_byte(&ee_buf[1 + i * MAX_LINE_LEN + j]);
 }
 
-static void highlight(const char *line) {
-  if (strncmp(line, "//", 2) == 0 || line[0] == '#') {
-    printf("\x1b[33m%s\x1b[0m", line);
-    return;
-  }
-  for (const char *p = line; *p; ++p) {
-    if (isdigit((unsigned char)*p))
-      printf("\x1b[36m%c\x1b[0m", *p);
-    else
-      putchar(*p);
-  }
-}
 
 static void print_buffer(const struct Buffer *b) {
   for (uint8_t i = 0; i < b->count; ++i) {

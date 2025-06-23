@@ -44,9 +44,12 @@ endif
 
 opt_cflags = [
   '-Wall', '-Wextra', '-Os',
-  '-ffunction-sections', '-fdata-sections',
-  '-fno-stack-protector'
+  '-ffunction-sections', '-fdata-sections'
 ]
+
+if host_machine.cpu_family() == 'avr'
+  opt_cflags += ['-fno-stack-protector']
+endif
 
 ned = executable(
   'ned',
@@ -65,3 +68,14 @@ vini = executable(
   c_args: opt_cflags,
   install: false
 )
+
+if not meson.is_cross_build()
+  door_demo = executable(
+    'door_demo',
+    'door_demo.c',
+    include_directories: inc,
+    c_args: ['-Wall', '-Wextra'],
+    native: true,
+    install: false
+  )
+endif
