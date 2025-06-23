@@ -26,7 +26,7 @@ kernel_src = files(
   'romfs.c',
   'eepfs.c',
   'kalloc.c',
-  'nk_superlock.c',
+  'nk_spinlock.c',
   'tty.c',
   'slip_uart.c',
   'ipv4.c',
@@ -35,12 +35,16 @@ kernel_src = files(
   'door_entry.S'
 )
 
+if get_option('debug_gdb')
+  kernel_src += files('gdbstub.c')
+endif
+
 portable_src = files(   # no <avr/...>
   'fixed_point.c',
   'fs.c',
   'romfs.c',
   'eepfs.c',
-  'nk_superlock.c',
+  'nk_spinlock.c',
   'tty.c',
   'slip_uart.c',
   'ipv4.c'
@@ -95,10 +99,13 @@ install_headers(
   '../include/eepfs.h',
   '../include/eeprom_wrap.h',
   '../include/kalloc.h',
+  '../include/nk_spinlock.h',
   '../include/nk_superlock.h',
+  '../include/nk_spinlock.h',
   '../include/tty.h',
   '../include/slip.h',
   '../include/ipv4.h',
+  '../include/gdbstub.h',
   subdir : 'avrix'
 )
 

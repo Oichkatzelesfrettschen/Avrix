@@ -7,6 +7,7 @@
 
 #define HEAP_SIZE 256u
 
+/** Internal free-list node used by the heap allocator. */
 typedef struct block {
     struct block *next; /**< Next block in free list */
     uint8_t size;       /**< Size of the user allocation */

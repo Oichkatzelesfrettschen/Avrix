@@ -22,6 +22,8 @@ project(
   ]
 )
 
+python = import('python').find_installation('python3')
+
 ## Include directories
 #
 # Host builds should use compatibility headers that emulate the AVR
@@ -32,6 +34,11 @@ if meson.is_cross_build() or host_machine.cpu_family() == 'avr'
   inc = include_directories('include')
 else
   inc = include_directories('include', 'compat')
+endif
+
+# Optional on-device GDB stub
+if get_option('debug_gdb')
+  add_project_arguments('-DDEBUG_GDB', language : 'c')
 endif
 
 subdir('src')
@@ -95,3 +102,11 @@ endif
 if doc_targets.length() > 0
   run_target('doc', command : ['true'], depends : doc_targets)
 endif
+
+# ─────────────────────────  Size gate  ─────────────────────────────────
+size_gate = run_target(
+  'size-gate',
+  command : [python, files('scripts/size_gate.py'), meson.project_build_root()],
+  depends : [fs_demo, romfs_demo, slip_demo, ned, vini],
+  console : true
+)
