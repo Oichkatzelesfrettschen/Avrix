@@ -93,3 +93,31 @@ jobs:
           path: |
             build/docs/**           # Sphinx (meson target doc-sphinx)
             build/doxygen/html/**   # Doxygen (meson target doc-doxygen)
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:24.04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: Install analysis tools
+        run: |
+          apt-get -qq update
+          apt-get -yqq install gcc-avr avr-libc cppcheck clang-tidy
+
+      - name: Run cppcheck
+        run: cppcheck src include --enable=all --inconclusive --error-exitcode=1
+
+      - name: Run clang-tidy
+        run: |
+          AVR_INC=$(realpath $(avr-gcc -print-file-name=include)/../../../../avr/include)
+          for f in src/*.c; do
+            clang-tidy "$f" --quiet --warnings-as-errors='*' -- \
+              -target avr -mmcu=atmega328p -std=c23 -DF_CPU=16000000UL \
+              -Iinclude -I"$AVR_INC"
+          done
