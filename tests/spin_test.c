@@ -1,7 +1,7 @@
 #define _POSIX_C_SOURCE 200809L
 #define _DEFAULT_SOURCE
 
-#include "nk_spinlock.h"
+#include "nk_superlock.h"
 #include <signal.h>
 #include <sys/time.h>
 #include <stdint.h>
