@@ -1,0 +1,252 @@
+{
+  "files": {
+    "src/avr_gdbstub.c": {
+      "functions": [
+        "put",
+        "get",
+        "hex",
+        "packet",
+        "gdbstub_init",
+        "gdbstub_poll",
+        "gdbstub_break"
+      ]
+    },
+    "src/avr_stub.c": {
+      "functions": []
+    },
+    "src/door.c": {
+      "functions": [
+        "crc8_maxim",
+        "door_register",
+        "door_call",
+        "door_return",
+        "door_message",
+        "door_words",
+        "door_flags"
+      ]
+    },
+    "src/eepfs.c": {
+      "functions": [
+        "eq_p",
+        "eepfs_open",
+        "eepfs_read"
+      ]
+    },
+    "src/fixed_point.c": {
+      "functions": [
+        "q8_8_mul"
+      ]
+    },
+    "src/fs.c": {
+      "functions": [
+        "balloc",
+        "bfree",
+        "ialloc",
+        "fs_init",
+        "fs_create",
+        "fs_open",
+        "fs_write",
+        "fs_read",
+        "fs_list",
+        "fs_unlink"
+      ]
+    },
+    "src/gdbstub.c": {
+      "functions": [
+        "uart_init",
+        "uart_put",
+        "uart_get",
+        "gdbstub_init",
+        "gdbstub_break",
+        "gdbstub_init",
+        "gdbstub_break"
+      ]
+    },
+    "src/ipv4.c": {
+      "functions": [
+        "ipv4_checksum",
+        "ipv4_init_header",
+        "ipv4_send",
+        "ipv4_recv"
+      ]
+    },
+    "src/kalloc.c": {
+      "functions": [
+        "kalloc_init",
+        "kalloc",
+        "kfree"
+      ]
+    },
+    "src/nk_fs.c": {
+      "functions": [
+        "crc8_update",
+        "crc8_update",
+        "crc3",
+        "addr",
+        "erase_row",
+        "open_next_row",
+        "nk_fs_init",
+        "write_block",
+        "nk_fs_put",
+        "nk_fs_del",
+        "unpack_key",
+        "unpack_val",
+        "nk_fs_get",
+        "nk_fs_gc"
+      ]
+    },
+    "src/nk_spinlock.c": {
+      "functions": [
+        "nk_spinlock_module_init"
+      ]
+    },
+    "src/romfs.c": {
+      "functions": [
+        "equal_p",
+        "romfs_open",
+        "romfs_read"
+      ]
+    },
+    "src/slip_uart.c": {
+      "functions": [
+        "slip_send_packet",
+        "slip_recv_packet"
+      ]
+    },
+    "src/task.c": {
+      "functions": [
+        "update_sleep_timers",
+        "find_next_task",
+        "panic_stack_overflow",
+        "check_canaries",
+        "switch_to",
+        "atomic_schedule",
+        "scheduler_init",
+        "nk_sched_init",
+        "nk_init",
+        "nk_task_create",
+        "scheduler_run",
+        "nk_sched_run",
+        "nk_start",
+        "nk_yield",
+        "nk_sleep",
+        "nk_current_tid",
+        "nk_switch_to",
+        "nk_task_wait",
+        "nk_task_signal",
+        "context_switch",
+        "TIMER0_COMPA_vect"
+      ]
+    },
+    "src/tty.c": {
+      "functions": [
+        "tty_init",
+        "tty_poll",
+        "tty_buf_read",
+        "tty_buf_write",
+        "tty_read",
+        "tty_write",
+        "tty_rx_available"
+      ]
+    },
+    "tests/door_test.c": {
+      "functions": [
+        "nk_cur_tid",
+        "nk_switch_to",
+        "_nk_door",
+        "door_echo",
+        "door_crc_srv",
+        "main"
+      ]
+    },
+    "tests/flock_stress.c": {
+      "functions": [
+        "main"
+      ]
+    },
+    "tests/fs_roundtrip.c": {
+      "functions": [
+        "main"
+      ]
+    },
+    "tests/fs_simavr_basic.c": {
+      "functions": [
+        "main"
+      ]
+    },
+    "tests/fs_test.c": {
+      "functions": [
+        "main"
+      ]
+    },
+    "tests/kalloc_test.c": {
+      "functions": [
+        "main"
+      ]
+    },
+    "tests/romfs_test.c": {
+      "functions": [
+        "main"
+      ]
+    },
+    "tests/sim.c": {
+      "functions": []
+    },
+    "tests/spin_test.c": {
+      "functions": [
+        "on_tick",
+        "rdcycles",
+        "main"
+      ]
+    },
+    "tests/spinlock_test.c": {
+      "functions": [
+        "TIMER0_COMPA_vect",
+        "main"
+      ]
+    },
+    "tests/test_fixed_point.c": {
+      "functions": [
+        "boundary_tests",
+        "edge_case_tests",
+        "main"
+      ]
+    },
+    "tests/unified_spinlock_test.c": {
+      "functions": [
+        "main"
+      ]
+    }
+  },
+  "build_system": "meson",
+  "cross_files": [
+    "atmega128.cross",
+    "atmega32.cross",
+    "atmega328p_clang20.cross",
+    "atmega328p_gcc14.cross",
+    "atmega328p_gcc7.cross",
+    "atmega328p_gcc73.cross"
+  ],
+  "toolchains": [
+    "atmega128",
+    "atmega32",
+    "atmega328p_clang20",
+    "atmega328p_gcc14",
+    "atmega328p_gcc7",
+    "atmega328p_gcc73"
+  ],
+  "test_suites": [
+    "door_test.c",
+    "flock_stress.c",
+    "fs_roundtrip.c",
+    "fs_simavr_basic.c",
+    "fs_test.c",
+    "kalloc_test.c",
+    "romfs_test.c",
+    "sim.c",
+    "spin_test.c",
+    "spinlock_test.c",
+    "test_fixed_point.c",
+    "unified_spinlock_test.c"
+  ]
+}
