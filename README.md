@@ -260,6 +260,17 @@ simavr -m atmega328p build/examples/fs_demo.elf
 
 Creates files in TinyLog-4, reads back, prints via UART.
 
+### 10A · Door RPC demo
+
+```bash
+meson compile -C build door_demo
+./build/examples/door_demo
+```
+
+This host-only example emulates two tasks using setjmp/longjmp. It
+registers a door descriptor, performs a synchronous call from the client
+task and prints the server reply.
+
 ---
 
 ## 11 · Running the test suite

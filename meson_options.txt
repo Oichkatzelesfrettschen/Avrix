@@ -10,7 +10,7 @@ option('flash_programmer', type: 'string', value: 'arduino',
        description: 'Programmer string for avrdude')
 
 option('san', type: 'boolean', value: false,
-       description: 'Enable Address- and Undefined-Behavior Sanitizer for tests')
+       description: 'Enable Address- and Undefined-Behavior Sanitizer for host tests')
 
 option('cov', type: 'boolean', value: false,
-       description: 'Enable LLVM coverage instrumentation for tests')
+       description: 'Enable LLVM coverage instrumentation for host tests')
