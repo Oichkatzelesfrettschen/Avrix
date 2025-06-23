@@ -1,0 +1,25 @@
+{
+  "languages": {
+    "c": 39,
+    "h": 34,
+    "python": 6,
+    "shell": 6,
+    "yaml": 2
+  },
+  "build_manifests": [
+    "meson.build",
+    "build_flags/meson.build",
+    "src/meson.build",
+    "tests/meson.build",
+    "examples/meson.build"
+  ],
+  "ci_specs": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/static-analysis.yml"
+  ],
+  "dockerfiles": [
+    "docker/Dockerfile"
+  ],
+  "dependency_lockfiles": [],
+  "symbol_index": "repo_tags.txt"
+}
