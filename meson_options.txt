@@ -42,3 +42,10 @@ option(
   value : false,
   description : 'Enable LLVM/clang-based coverage instrumentation for host unit tests'
 )
+
+option(
+  'flash_limit',
+  type : 'integer',
+  value : 30720,
+  description : 'Maximum firmware size in bytes (size-gate)'
+)

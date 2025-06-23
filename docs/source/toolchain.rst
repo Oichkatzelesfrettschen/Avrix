@@ -163,6 +163,8 @@ For a *legacy* build drop ``--icf`` / ``-fipa-pta`` and switch
    qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
    meson compile -C build flash \
         -Dflash_port=/dev/ttyACM0 -Dflash_programmer=arduino
+   meson compile -C build size-gate \
+        # fails if firmware exceeds -Dflash_limit
 
 ``-Ddebug_gdb=true`` bundles a tiny on-device GDB stub so
 ``avr-gdb`` can attach over the serial port.
@@ -170,6 +172,8 @@ For a *legacy* build drop ``--icf`` / ``-fipa-pta`` and switch
 ``cross/atmega328p_clang20.cross`` is provided for LLVM 20 users.
 ``cross/atmega32.cross`` and ``cross/atmega128.cross`` extend the
 selection to DIP‐40 and larger ATmega128 boards.
+
+Adjust the threshold via ``meson configure build -Dflash_limit=32768``.
 
 .. code-block:: bash
 

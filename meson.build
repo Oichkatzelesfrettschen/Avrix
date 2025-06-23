@@ -1,13 +1,13 @@
 # ──────────────────────────────────────────────────────────────────────
-#  top-level meson.build  —  µ-UNIX for AVR
+#  top-level meson.build — µ-UNIX for AVR  (resolved 2025-06-22)
 # --------------------------------------------------------------------
-#  * Pure C23 (builds with gcc-avr ≥ 7.3, gcc-avr 14, clang-20)
+#  * Pure C23 (gcc-avr ≥ 7.3, gcc-avr 14.x, clang-20)
 #  * Directory layout
-#        src/        → kernel + libs for cross build
-#        lib/        → third-party helpers (header-only, etc.)
-#        examples/   → demos / sims (built only when NOT cross)
-#        tests/      → unit tests (always compile; run natively only)
-#  * Optional docs: Doxygen (API) + Sphinx (manual)
+#        src/        → kernel + libs (cross)
+#        lib/        → header-only helpers
+#        examples/   → demos (host-only)
+#        tests/      → unit tests (always build, run on host)
+#  * Optional docs:  Doxygen (API)  +  Sphinx (manual)
 # --------------------------------------------------------------------
 
 project(
@@ -17,37 +17,37 @@ project(
   default_options : [
     'c_std=c2x',
     'warning_level=2',
-    'optimization=s',   # -Os size-optimised
+    'optimization=s',     # -Os for flash size
     'buildtype=release'
   ]
 )
 
-subdir('build')
-
+# ── import helper modules ─────────────────────────────────────────────
+subdir('build')                         # shared flag definitions (if any)
 python = import('python').find_installation('python3')
 
-# ─────────────────────────── include dirs ────────────────────────────
+# ── include-path logic ───────────────────────────────────────────────
 if meson.is_cross_build() or host_machine.cpu_family() == 'avr'
   inc = include_directories('include')
 else
   inc = include_directories('include', 'compat')
 endif
 
-# Optional on-device GDB stub
+# ── optional on-device GDB stub flag ─────────────────────────────────
 if get_option('debug_gdb')
   add_project_arguments('-DDEBUG_GDB', language : 'c')
 endif
 
-# ─────────────────────────── sub-projects ────────────────────────────
+# ── sub-projects ─────────────────────────────────────────────────────
 subdir('src')
 subdir('examples')
 subdir('tests')
 
 # ───────────────────────── documentation targets ─────────────────────
-doc_targets  = []
-doc_doxygen  = []
+doc_targets = []
+doc_doxygen = []
 
-## 1. Doxygen #########################################################
+## 1 · Doxygen ########################################################
 doxygen = find_program('doxygen', required : false)
 if doxygen.found()
   graphviz  = find_program('dot', required : false)
@@ -72,7 +72,7 @@ if doxygen.found()
   doc_targets += doc_doxygen
 endif
 
-## 2. Sphinx ##########################################################
+## 2 · Sphinx #########################################################
 sphinx = find_program('sphinx-build', required : false)
 if sphinx.found()
   doc_sphinx = run_target(
@@ -91,20 +91,25 @@ if sphinx.found()
   doc_targets += doc_sphinx
 endif
 
-## 3. Aggregate #######################################################
+## 3 · Aggregate target ###############################################
 if doc_targets.length() > 0
   run_target('doc', command : ['true'], depends : doc_targets)
 endif
 
 # ─────────────────────────── size gate ───────────────────────────────
+#   Blocks the build if any firmware ELF exceeds --limit (bytes).
+#   Add in meson_options.txt:
+#     option('flash_limit', type : 'string', value : '30720',
+#            description : 'Maximum allowed firmware size (bytes)')
 size_gate = custom_target(
   'size-gate',
   input   : [fs_demo, romfs_demo, slip_demo, ned, vini],
   output  : 'size-gate.stamp',
   command : [
-    python, files('scripts/size_gate.py'),
-    '@INPUT@',        # list of ELF files to check
-    '30720',          # 30 kB flash ceiling
+    python,
+    files('scripts/size_gate.py'),
+    '--limit', get_option('flash_limit'),
+    '@INPUT@',      # list of ELF files
     '@OUTPUT@'
   ],
   console : true
