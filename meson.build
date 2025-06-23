@@ -106,7 +106,13 @@ endif
 # ─────────────────────────  Size gate  ─────────────────────────────────
 size_gate = run_target(
   'size-gate',
-  command : [python, files('scripts/size_gate.py'), meson.project_build_root()],
+  command : [
+    python,
+    files('scripts/size_gate.py'),
+    '--limit',
+    get_option('flash_limit'),
+    meson.project_build_root(),
+  ],
   depends : [fs_demo, romfs_demo, slip_demo, ned, vini],
   console : true
 )

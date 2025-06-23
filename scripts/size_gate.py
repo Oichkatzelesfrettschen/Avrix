@@ -3,11 +3,13 @@
 
 from __future__ import annotations
 
+import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
 
-FLASH_LIMIT = 30 * 1024  # bytes
+FLASH_LIMIT = 30 * 1024  # bytes (default)
 
 
 def flash_usage(elf: Path) -> int:
@@ -21,7 +23,7 @@ def flash_usage(elf: Path) -> int:
     return text + data
 
 
-def main(build_dir: str) -> int:
+def main(build_dir: str, limit: int) -> int:
     build = Path(build_dir)
     elfs = sorted(build.rglob('*.elf'))
     if not elfs:
@@ -31,8 +33,8 @@ def main(build_dir: str) -> int:
     status = 0
     for elf in elfs:
         size = flash_usage(elf)
-        if size > FLASH_LIMIT:
-            print(f'[size-gate] {elf} : {size} bytes > {FLASH_LIMIT}', file=sys.stderr)
+        if size > limit:
+            print(f'[size-gate] {elf} : {size} bytes > {limit}', file=sys.stderr)
             status = 1
         else:
             print(f'[size-gate] {elf} : {size} bytes OK')
@@ -40,4 +42,10 @@ def main(build_dir: str) -> int:
 
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else 'build'))
+    parser = argparse.ArgumentParser(description='Check firmware size against limit.')
+    parser.add_argument('build_dir', nargs='?', default='build', help='Meson build directory')
+    parser.add_argument('--limit', type=int,
+                        default=int(os.environ.get('FLASH_LIMIT', FLASH_LIMIT)),
+                        help='Flash size limit in bytes')
+    args = parser.parse_args()
+    sys.exit(main(args.build_dir, args.limit))

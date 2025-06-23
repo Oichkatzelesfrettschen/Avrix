@@ -67,7 +67,10 @@ meson setup   build --wipe --cross-file cross/atmega328p_gcc14.cross
 meson compile -C build
 qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 meson compile -C build flash          # flashes over /dev/ttyACM0
+meson compile -C build size-gate      # fails if firmware exceeds -Dflash_limit
 ```
+
+Customize the limit with ``meson configure build -Dflash_limit=32768``.
 
 *(LLVM, SimAVR, custom cross-file, tmux launcher, etc. retained verbatim.)*
 
