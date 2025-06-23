@@ -51,21 +51,22 @@ if host_machine.cpu_family() == 'avr'
   opt_cflags += ['-fno-stack-protector']
 endif
 
+
 ned = executable(
   'ned',
-  'ned.c',
+  ['ned.c', 'editor_common.c'],
   include_directories: inc,
   link_with: libavrix,
-  c_args: opt_cflags,
+  c_args: opt_cflags + ['-DMAX_LINES=16', '-DMAX_LINE_LEN=64'],
   install: false
 )
 
 vini = executable(
   'vini',
-  'vini.c',
+  ['vini.c', 'editor_common.c'],
   include_directories: inc,
   link_with: libavrix,
-  c_args: opt_cflags,
+  c_args: opt_cflags + ['-DMAX_LINES=14', '-DMAX_LINE_LEN=64'],
   install: false
 )
 
