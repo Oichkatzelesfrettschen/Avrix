@@ -6,8 +6,9 @@ size_gate.py ― Flash-footprint gate for Avrix firmware                  │
 This helper inspects one or more AVR **ELF** binaries with ``avr-size``.
 If any binary exceeds the user-supplied limit, the script exits with
 status 1 and prints a diagnostic.  It always writes the *largest* size
-encountered to an “output-stamp” file so Meson’s timestamp tracking
-remains correct.
+encountered to an ``output-stamp`` file so Meson's timestamp tracking
+remains correct.  ``main()`` performs the write so the module may be
+imported without side effects.
 
 Two invocation patterns are supported:
 
@@ -53,6 +54,11 @@ def gather_elves(positional: list[str], build_dir: Path | None) -> list[Path]:
         return sorted(build_dir.rglob('*.elf'))
     else:
         return [Path(p) for p in positional]
+
+
+def record_size(path: Path, size: int) -> None:
+    """Write *size* in bytes followed by a newline to *path*."""
+    path.write_text(f"{size}\n")
 
 
 # ────────────────────────── main routine ─────────────────────────────-
@@ -113,7 +119,7 @@ def main(argv: list[str]) -> int:
         else:
             print(f'[size-gate] {elf} : {size} bytes OK')
 
-    out_path.write_text(f'{max_size}\n')
+    record_size(out_path, max_size)
     return status
 
 
