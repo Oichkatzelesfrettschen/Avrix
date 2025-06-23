@@ -1,4 +1,5 @@
 # ──────────── tests/meson.build ────────────────────────────────────────
+# (flags defined in top-level build/flags.meson)
 #
 # Native build   → links tests against the complete **libavrix** stub.
 # Cross build    → compiles tests for the host CPU (`native: true`),
@@ -50,18 +51,18 @@ elif fs_mod.is_dir('/usr/lib/avr/include')
 endif
 
 # 2 · Compiler and Sanitizer Flags Setup
-common_cflags = ['-O2', '-Wall', '-Wextra', '-pedantic', '-std=c23']
-common_link_args = []
+# Start with project-wide defaults from build/flags.meson
+
 
 if not meson.is_cross_build()
   if san and cc.get_id() in ['gcc', 'clang']
     common_cflags    += ['-fsanitize=address,undefined']
-    common_link_args += ['-fsanitize=address,undefined']
+    common_ldflags += ['-fsanitize=address,undefined']
   endif
 
   if cov and cc.has_argument('-fcoverage-mapping')
     common_cflags    += ['-fprofile-instr-generate', '-fcoverage-mapping']
-    common_link_args += ['-fprofile-instr-generate', '-fcoverage-mapping']
+    common_ldflags += ['-fprofile-instr-generate', '-fcoverage-mapping']
   endif
 endif
 
@@ -108,7 +109,7 @@ foreach t : tests
     include_directories : inc_list,
     link_with           : link_target,
     c_args              : common_cflags,
-    link_args           : common_link_args,
+    link_args           : common_ldflags,
     native              : true
   )
 
@@ -130,7 +131,7 @@ if target_machine.cpu_family() == 'avr'
         s[0],
         s[1] + extra_src,
         include_directories : inc_list,
-        c_args              : ['-Os', '-std=c11', '-Wall', '-Wextra', '-pedantic']
+        c_args              : common_cflags
       )
 
       test(

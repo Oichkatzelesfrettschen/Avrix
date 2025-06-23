@@ -22,6 +22,8 @@ project(
   ]
 )
 
+subdir('build')
+
 python = import('python').find_installation('python3')
 
 ## Include directories
