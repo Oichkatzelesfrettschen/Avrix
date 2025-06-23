@@ -1,0 +1,9 @@
+{
+  "name": "avrix",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Repository utilities for Avrix",
+  "dependencies": {
+    "tree-sitter-c": "^0.24.1"
+  }
+}

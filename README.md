@@ -87,6 +87,13 @@ current directory.
 node scripts/repo_map.js -s src -s extras -t tests -c cross -o repo_map.json
 ```
 
+Before invoking the script, install the Node dependencies declared in
+`package.json`:
+
+```bash
+npm install
+```
+
 
 
 [1]: https://tracker.debian.org/gcc-avr "gcc-avr - Debian Package Tracker"
