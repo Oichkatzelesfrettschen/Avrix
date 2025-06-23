@@ -1,0 +1,17 @@
+# Centralized compiler and linker flags used across Avrix
+
+common_cflags = [
+  '-pipe',
+  '-ffunction-sections',
+  '-fdata-sections',
+  '-fno-common',
+  '-Os',            # size-optimised, retain -O2 for perf-critical objs
+  '-Wall',
+  '-Wextra',
+  '-Wpedantic',
+  # The C dialect flag is appended by the top-level meson.build
+]
+
+common_ldflags = [
+  '-Wl,--gc-sections',   # dead-strip unused .text/.data
+]

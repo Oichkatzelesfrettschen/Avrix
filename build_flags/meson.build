@@ -7,21 +7,24 @@
 #  • A verbatim copy is exported to 'flags.meson' for external tooling.
 # ------------------------------------------------------------------------
 
-common_cflags = [
-  '-pipe',
-  '-ffunction-sections',
-  '-fdata-sections',
-  '-fno-common',
-  '-Os',            # size-optimised, retain -O2 for perf-critical objs
-  '-Wall',
-  '-Wextra',
-  '-Wpedantic',
-  # The C dialect flag is appended by the top-level meson.build
-]
+python = import('python').find_installation('python3')
 
-common_ldflags = [
-  '-Wl,--gc-sections',   # dead-strip unused .text/.data
-]
+# Parse the canonical flag lists defined in ``flags.meson`` using Python.
+_flag_py = meson.current_source_dir() / 'flags.meson'
+
+common_cflags = run_command(
+  python,
+  '-c',
+  'import pathlib,sys; g={}; exec(open(sys.argv[1]).read(), g); print(" ".join(g["common_cflags"]))',
+  _flag_py,
+).stdout().strip().split()
+
+common_ldflags = run_command(
+  python,
+  '-c',
+  'import pathlib,sys; g={}; exec(open(sys.argv[1]).read(), g); print(" ".join(g["common_ldflags"]))',
+  _flag_py,
+).stdout().strip().split()
 
 # ── export for non-Meson tooling ─────────────────────────────────────
 # The top-level meson.build serialises these lists to ``flags.meson``
