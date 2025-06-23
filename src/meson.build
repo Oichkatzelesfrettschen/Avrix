@@ -97,6 +97,7 @@ install_headers(
   '../include/kalloc.h',
   '../include/nk_spinlock.h',
   '../include/nk_superlock.h',
+  '../include/nk_spinlock.h',
   '../include/tty.h',
   '../include/slip.h',
   '../include/ipv4.h',

@@ -54,19 +54,17 @@ common_link_args = []
 
 if not meson.is_cross_build()
   if san and cc.get_id() in ['gcc', 'clang']
-    san_flags = ['-fsanitize=address,undefined']
-    common_cflags   += san_flags
-    common_link_args += san_flags
+    common_cflags   += ['-fsanitize=address,undefined']
+    common_link_args += ['-fsanitize=address,undefined']
   endif
 
   if cov and cc.has_argument('-fcoverage-mapping')
-    cov_flags = ['-fprofile-instr-generate', '-fcoverage-mapping']
-    common_cflags   += cov_flags
-    common_link_args += cov_flags
+    common_cflags   += ['-fprofile-instr-generate', '-fcoverage-mapping']
+    common_link_args += ['-fprofile-instr-generate', '-fcoverage-mapping']
   endif
 endif
 
-# Extra stub source for host-only builds
+# 3 · Stub for host-only builds
 extra_src = []
 if host_machine.cpu_family() != 'avr'
   extra_src += meson.project_source_root() / 'src/avr_stub.c'
@@ -74,7 +72,7 @@ endif
 
 link_target = meson.is_cross_build() ? libfs : libavrix
 
-# 3 · Core unit tests
+# 4 · Core unit tests
 tests = [
   ['test_fixed_point',      ['test_fixed_point.c']],
   ['fs_test',               ['fs_test.c',       'sim.c']],
@@ -95,6 +93,7 @@ if not meson.is_cross_build()
   ]
 endif
 
+# Build and register each test
 foreach t : tests
   srcs = t[1]
   if not srcs.contains('sim.c')
@@ -113,7 +112,7 @@ foreach t : tests
   test(t[0], exe)
 endforeach
 
-# 4 · simavr smoke tests (cross builds only)
+# 5 · simavr smoke tests (cross builds only)
 if target_machine.cpu_family() == 'avr'
   simavr = find_program('simavr', required : false)
   if simavr.found()

@@ -6,11 +6,11 @@
  *        with optional fine-grained, real-time bypass, built atop nk_slock.
  *
  * Features:
- *   - A single, zero-initialized global Big Kernel Lock (nk_bkl) for coarse-grained serialization.
- *   - Per-instance spinlocks (nk_spinlock_t) for fine-grained locking.
- *   - Speculative copy-on-write (COW) matrix snapshot for DAG- or lattice-based protocols.
+ *   - A single, zero-initialized global Big Kernel Lock (`nk_bkl`) for coarse-grained serialization.
+ *   - Per-instance spinlocks (`nk_spinlock_t`) for fine-grained locking.
+ *   - Speculative copy-on-write (COW) matrix snapshot to support DAG- or lattice-based protocols.
  *   - Real-time mode that bypasses the global BKL for low-latency critical sections.
- *   - Cap’n Proto–compatible encode/decode helpers for state snapshots.
+ *   - Cap’n Proto–compatible encode/decode helpers for lock-state snapshots.
  *
  * All operations are inline, use atomic fences to enforce acquire/release semantics,
  * and assert on invalid usage. No dynamic allocation or hidden state.
@@ -29,7 +29,7 @@
 extern "C" {
 #endif
 
-/** @addtogroup spinlock
+/** @defgroup spinlock Unified Spinlock API
  *  @{
  */
 
@@ -54,7 +54,7 @@ typedef struct {
 /**
  * @brief Initialize the global Big Kernel Lock.
  *
- * Must be called once during system startup before any spinlocks are used.
+ * Must be called once at system startup before any spinlock.
  */
 static inline void nk_spinlock_global_init(void)
 {
@@ -94,7 +94,7 @@ static inline void nk_spinlock_lock(nk_spinlock_t *s, uint8_t mask)
  * @brief Try to acquire the spinlock without blocking.
  * @param[in,out] s    Spinlock instance.
  * @param[in]     mask Dependency mask to record.
- * @returns true if acquired, false otherwise.
+ * @return true if acquired; false otherwise.
  */
 static inline bool nk_spinlock_trylock(nk_spinlock_t *s, uint8_t mask)
 {
@@ -142,7 +142,7 @@ static inline void nk_spinlock_lock_rt(nk_spinlock_t *s, uint8_t mask)
  * @brief Try to acquire the spinlock in real-time mode.
  * @param[in,out] s    Spinlock instance.
  * @param[in]     mask Dependency mask to record.
- * @returns true if acquired, false otherwise.
+ * @return true if acquired; false otherwise.
  */
 static inline bool nk_spinlock_trylock_rt(nk_spinlock_t *s, uint8_t mask)
 {
