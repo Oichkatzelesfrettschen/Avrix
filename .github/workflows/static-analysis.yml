@@ -1,0 +1,47 @@
+# .github/workflows/static-analysis.yml
+#
+# µ-UNIX (Avrix) Static-Analysis pipeline
+# ───────────────────────────────────────
+# • Installs clang-tidy and cppcheck
+# • Runs both analyzers over the sources on pull requests
+# • Fails on any emitted warning
+
+name: Static analysis
+
+on:
+  pull_request:
+    branches: [ '**' ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      # ── 0 · Checkout ────────────────────────────────────────────────────
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      # ── 1 · Dependencies ───────────────────────────────────────────────
+      - name: Install clang-tidy & cppcheck
+        run: |
+          sudo apt-get -yq update
+          sudo apt-get -yq install clang-tidy cppcheck gcc-avr avr-libc
+
+      # ── 2 · cppcheck ───────────────────────────────────────────────────
+      - name: Run cppcheck
+        run: |
+          cppcheck --enable=all --error-exitcode=1 --inline-suppr \
+                   -Iinclude src tests
+
+      # ── 3 · clang-tidy ─────────────────────────────────────────────────
+      - name: Run clang-tidy
+        run: |
+          for f in $(git ls-files '*.c'); do
+            echo "[tidy] $f"
+            clang-tidy "$f" --quiet --warnings-as-errors='*' -- \
+              -std=c23 -mmcu=atmega328p -DF_CPU=16000000UL -Iinclude \
+              -I/usr/lib/avr/include
+          done
+

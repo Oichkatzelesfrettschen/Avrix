@@ -1,70 +1,71 @@
-# ─── tests/meson.build ────────────────────────────────────────────────
+# ──────────── tests/meson.build ────────────────────────────────────────
 #
-#  Native build   → link tests against the full **libavrix** host stub.
-#  Cross build    → build objects for the *host* CPU (`native:true`)
-#                   and link only against the portable **libfs** helpers.
+# Native build   → links tests against the complete **libavrix** stub.
+# Cross build    → compiles tests for the host CPU (`native: true`),
+#                  linking only against portable **libfs** helpers.
 #
-#  Extra toggles (see meson_options.txt):
-#     -Dsan=yes        Address- & UB-San for host tests
-#     -Dcov=yes        LLVM coverage flags
-#     -Davr_inc_dir=…  custom <avr/...> include search path
+# Options defined (meson_options.txt):
+#   -Dsan=true      → Enable Address & UB sanitizers (host only)
+#   -Dcov=true      → Enable LLVM coverage flags (host only)
+#   -Davr_inc_dir=… → Path to custom AVR include directory
 #
-#  Symbols from the root meson.build:
-#     inc       → include_directories('include')
-#     libavrix  → host stub (native only)
-#     libfs     → portable RAM-filesystem (always)
-# ---------------------------------------------------------------------
+# Imported symbols from root meson.build:
+#   inc       → include_directories('include')
+#   libavrix  → Host stub library (native builds)
+#   libfs     → Portable RAM-based filesystem helpers (always included)
+# -----------------------------------------------------------------------
 
-python     = import('python').find_installation('python3')
-fs_mod     = import('fs')
+python = import('python').find_installation('python3')
+fs_mod = import('fs')
+cc     = meson.get_compiler('c')
 
-# ───────── 0 · Sphinx :toctree: link checker ──────────────────────────
-test('check-docs',
-     python,
-     args : [
-       files('check_docs.py'),
-       '--docs-dir',   meson.project_source_root() / 'docs/source',
-       '--index-file', meson.project_source_root() / 'docs/source/index.rst',
-       '--recursive',
-     ],
-     workdir : meson.project_source_root())
+san = get_option('san')
+cov = get_option('cov')
 
-# ───────── 1 · Include-path negotiation (host vs. AVR) ────────────────
+# 0 · Documentation Check
+test(
+  'check-docs',
+  python,
+  args : [
+    files('check_docs.py'),
+    '--docs-dir',   meson.project_source_root() / 'docs/source',
+    '--index-file', meson.project_source_root() / 'docs/source/index.rst',
+    '--recursive',
+  ],
+  workdir : meson.project_source_root()
+)
+
+# 1 · Include Paths Configuration
 inc_list = [inc]
 
 if host_machine.cpu_family() != 'avr'
-  inc_list += include_directories('../compat')   # stubbed <avr/...>
+  inc_list += include_directories('../compat')
 endif
 
-opt_avr_inc = get_option('avr_inc_dir')
-if opt_avr_inc != '' and fs_mod.is_dir(opt_avr_inc)
-  inc_list += include_directories(opt_avr_inc)
+avr_inc = get_option('avr_inc_dir')
+if avr_inc != '' and fs_mod.is_dir(avr_inc)
+  inc_list += include_directories(avr_inc)
 elif fs_mod.is_dir('/usr/lib/avr/include')
   inc_list += include_directories('/usr/lib/avr/include')
 endif
 
-# ───────── 2 · Compiler flags, sanitiser, coverage  -------------------
-common_cflags = ['-O2', '-Wall', '-Wextra', '-pedantic', '-std=c17']
+# 2 · Compiler and Sanitizer Flags Setup
+common_cflags = ['-O2', '-Wall', '-Wextra', '-pedantic', '-std=c23']
+common_link_args = []
 
 if not meson.is_cross_build()
-  if get_option('san') == 'yes' and cc.get_id() in ['gcc', 'clang']
-    san_flags       = ['-fsanitize=address,undefined']
-    common_cflags  += san_flags
-    add_project_arguments(san_flags, language : 'c')
+  if san and cc.get_id() in ['gcc', 'clang']
+    common_cflags    += ['-fsanitize=address,undefined']
+    common_link_args += ['-fsanitize=address,undefined']
   endif
-  if get_option('cov') == 'yes' and cc.has_argument('-fprofile-instr-generate')
-    cov_flags       = ['-fprofile-instr-generate', '-fcoverage-mapping']
-    common_cflags  += cov_flags
-    add_project_arguments(cov_flags, language : 'c')
+
+  if cov and cc.has_argument('-fcoverage-mapping')
+    common_cflags    += ['-fprofile-instr-generate', '-fcoverage-mapping']
+    common_link_args += ['-fprofile-instr-generate', '-fcoverage-mapping']
   endif
 endif
 
-# Helper: always build the test binary for the host CPU ----------------
-# Build a test executable for the host CPU using consistent flags.
-# Meson 1.3 does not support arrow functions, so we invoke
-# `executable()` directly each time instead of wrapping it.
-
-# Extra stub source for host-only builds
+# 3 · Host-only Stub Source Inclusion
 extra_src = []
 if host_machine.cpu_family() != 'avr'
   extra_src += meson.project_source_root() / 'src/avr_stub.c'
@@ -72,53 +73,73 @@ endif
 
 link_target = meson.is_cross_build() ? libfs : libavrix
 
-# ───────── 3 · Core unit-tests ---------------------------------------
+# 4 · Core Unit Tests Definition
 tests = [
-  ['test_fixed_point', ['test_fixed_point.c']],
-  ['fs_test',          ['fs_test.c',        'sim.c']],
-  ['flock_stress',     ['flock_stress.c',   'sim.c']],
-  ['spin_test',        ['spin_test.c',      'sim.c']],
-  ['superlock_test',   ['superlock_test.c', 'sim.c']],
-  ['romfs_test',       ['romfs_test.c',     'sim.c']],
-  ['fs_roundtrip',     ['fs_roundtrip.c',   'sim.c']],
+  ['test_fixed_point',      ['test_fixed_point.c']],
+  ['fs_test',               ['fs_test.c', 'sim.c']],
+  ['flock_stress',          ['flock_stress.c', 'sim.c']],
+  ['spin_test',             ['spin_test.c', 'sim.c']],
+  ['unified_spinlock_test', ['unified_spinlock_test.c', 'sim.c']],
+  ['superlock_test',        ['superlock_test.c', 'sim.c']],
+  ['romfs_test',            ['romfs_test.c', 'sim.c']],
+  ['fs_roundtrip',          ['fs_roundtrip.c', 'sim.c']],
+  ['door_test',             ['door_test.c']],
 ]
 
+# Include kalloc_test exclusively in native builds
+if not meson.is_cross_build()
+  tests += [
+    ['kalloc_test',
+     ['kalloc_test.c', meson.project_source_root() / 'src/kalloc.c']]
+  ]
+endif
+
+# 5 · Building and Registering Tests
 foreach t : tests
+  srcs = t[1]
+
+  if not srcs.contains('sim.c')
+    srcs += extra_src
+  endif
+
   exe = executable(
-    t.get(0),
-    t.get(1) + extra_src,
+    t[0],
+    srcs,
     include_directories : inc_list,
     link_with           : link_target,
     c_args              : common_cflags,
-    native              : true)
-  test(t.get(0), exe)
+    link_args           : common_link_args,
+    native              : true
+  )
+
+  test(t[0], exe)
 endforeach
 
-# ───────── 4 · simavr smoke-tests (cross builds only) -----------------
+# 6 · simavr-based Smoke Tests (Cross-builds Only)
 if target_machine.cpu_family() == 'avr'
   simavr = find_program('simavr', required : false)
+
   if simavr.found()
     sim_suites = [
-      ['fs_simavr_basic',
-         ['fs_simavr_basic.c', meson.project_source_root() / 'src/fs.c']],
-      ['spinlock_isr',
-         ['spinlock_isr.c',    meson.project_source_root() / 'src/nk_lock.c']],
+      ['fs_simavr_basic', ['fs_simavr_basic.c', meson.project_source_root() / 'src/fs.c']],
+      ['spinlock_isr',    ['spinlock_isr.c', meson.project_source_root() / 'src/nk_lock.c']],
     ]
 
     foreach s : sim_suites
       sim_exe = executable(
-        s.get(0),
-        s.get(1) + extra_src,
+        s[0],
+        s[1] + extra_src,
         include_directories : inc_list,
-        c_args : ['-Os', '-std=c11', '-Wall', '-Wextra', '-pedantic']
+        c_args              : ['-Os', '-std=c11', '-Wall', '-Wextra', '-pedantic']
       )
 
       test(
-        s.get(0),
+        s[0],
         simavr,
         args        : ['-m', 'atmega328p', sim_exe],
         is_parallel : false,
-        timeout     : 30)
+        timeout     : 30
+      )
     endforeach
   endif
 endif
