@@ -36,6 +36,11 @@ else
   inc = include_directories('include', 'compat')
 endif
 
+# Optional on-device GDB stub
+if get_option('debug_gdb')
+  add_project_arguments('-DDEBUG_GDB', language : 'c')
+endif
+
 subdir('src')
 subdir('examples')
 subdir('tests')
