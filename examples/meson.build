@@ -48,10 +48,7 @@ if objcopy.found()
 endif
 
 # ─────────────── optimisation flags (shared) ─────────────────────────
-opt_cflags = [
-  '-Wall', '-Wextra', '-Os',
-  '-ffunction-sections', '-fdata-sections'
-]
+opt_cflags = common_cflags + ['-Os']
 if host_machine.cpu_family() == 'avr'
   opt_cflags += ['-fno-stack-protector']
 endif

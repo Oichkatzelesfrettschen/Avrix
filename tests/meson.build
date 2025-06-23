@@ -52,7 +52,7 @@ elif fs_mod.is_dir('/usr/lib/avr/include')
 endif
 
 # ───────────────────── 2 · Common compiler flags  ─────────────────────
-# Start from project-wide defaults defined in build/flags.meson
+# Start from project-wide defaults defined in build_flags/flags.meson
 test_cflags  = common_cflags
 test_ldflags = common_ldflags
 
