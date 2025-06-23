@@ -13,7 +13,6 @@
 #include "../compat/avr/pgmspace.h"
 #include <wchar.h>
 #include <locale.h>
-uint8_t nk_sim_eeprom[1024];
 #endif
 
 /*
