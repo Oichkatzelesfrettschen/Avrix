@@ -1,4 +1,4 @@
-#include "nk_spinlock.h"
+#include "nk_superlock.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <stdint.h>

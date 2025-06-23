@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT
  * See LICENSE file in the repository root for full license information.
  *
- * @file include/nk_spinlock.h
+ * @file include/nk_superlock.h
  * @brief Unified spinlock primitive combining a global Big Kernel Lock (BKL)
  *        with optional fine-grained, real-time bypass, built atop nk_slock.
  *

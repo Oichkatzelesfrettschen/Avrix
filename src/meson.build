@@ -112,7 +112,6 @@ install_headers(
   '../include/eepfs.h',
   '../include/eeprom_wrap.h',
   '../include/kalloc.h',
-  '../include/nk_spinlock.h',
   '../include/nk_superlock.h',
   '../include/tty.h',
   '../include/slip.h',
