@@ -1,16 +1,34 @@
-# meson_options.txt
+option(
+    'avr_inc_dir',
+    type: 'string',
+    value: '',
+    description: 'Path to AVR libc headers (falls back to standard include locations)'
+)
 
-option('avr_inc_dir', type: 'string', value: '',
-       description: 'Path to AVR libc headers (fallback to standard locations)')
+option(
+    'flash_port',
+    type: 'string',
+    value: '/dev/ttyACM0',
+    description: 'Serial port device used by avrdude for flashing firmware'
+)
 
-option('flash_port', type: 'string', value: '/dev/ttyACM0',
-       description: 'Serial device for avrdude')
+option(
+    'flash_programmer',
+    type: 'string',
+    value: 'arduino',
+    description: 'avrdude-compatible programmer identifier (e.g., arduino, usbasp)'
+)
 
-option('flash_programmer', type: 'string', value: 'arduino',
-       description: 'Programmer string for avrdude')
+option(
+    'san',
+    type: 'boolean',
+    value: false,
+    description: 'Enable AddressSanitizer and UndefinedBehaviorSanitizer for host tests (gcc/clang supported)'
+)
 
-option('san', type: 'boolean', value: false,
-       description: 'Enable Address- and Undefined-Behavior Sanitizer for host tests')
-
-option('cov', type: 'boolean', value: false,
-       description: 'Enable LLVM coverage instrumentation for host tests')
+option(
+    'cov',
+    type: 'boolean',
+    value: false,
+    description: 'Enable LLVM-based code coverage instrumentation for host unit tests'
+)
