@@ -64,18 +64,30 @@ void fs_init(void) {
     strcpy(dir_name[0], "/");
 }
 
+/**
+ * Create a new inode entry with *name* and the given *type*.
+ *
+ * Empty names are considered invalid and duplicates are rejected.
+ *
+ * @param name  NUL terminated filename to install in the directory.
+ * @param type  Inode type (1 = file, 2 = directory).
+ *
+ * @return Newly allocated inode number on success, ``-EINVAL`` for an
+ *         invalid name, ``-EEXIST`` if *name* is already present, or
+ *         ``-1`` when no inodes remain.
+ */
 int fs_create(const char *name, uint8_t type) {
-    if (name == NULL) {
+    if (name == NULL || *name == '\0') {
         return -EINVAL;
     }
 
     size_t len = strnlen(name, FS_MAX_NAME + 1);
-    if (len == 0 || len > 13) {
+    if (len == 0 || len > FS_MAX_NAME - 1) {
         return -EINVAL;
     }
 
     for (uint8_t i = 0; i < FS_NUM_INODES; ++i) {
-        if (inodes[i].type && strncmp(dir_name[i], name, FS_MAX_NAME) == 0) {
+        if (inodes[i].type && strcmp(dir_name[i], name) == 0) {
             return -EEXIST;
         }
     }
