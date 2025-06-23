@@ -103,7 +103,6 @@ int display_width(const char *s, size_t byte_offset)
 #else
     int width  = 0;
     size_t i   = 0;
-    setlocale(LC_CTYPE, "");
     while (i < byte_offset && s[i]) {
         if (s[i] == '\t') {
             width += 8 - (width % 8);
