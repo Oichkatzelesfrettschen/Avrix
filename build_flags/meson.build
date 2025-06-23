@@ -16,9 +16,14 @@ common_cflags = [
   '-Wall',
   '-Wextra',
   '-Wpedantic',
-  '-std=c23',       # align with top-level `c_std=c23`; supersedes draft c2x
+  # The C dialect flag is appended by the top-level meson.build
 ]
 
 common_ldflags = [
   '-Wl,--gc-sections',   # dead-strip unused .text/.data
 ]
+
+# ── export for non-Meson tooling ─────────────────────────────────────
+# The top-level meson.build serialises these lists to ``flags.meson``
+# after appending compiler-specific tweaks (C dialect, POSIX macros).
+

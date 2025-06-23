@@ -1,7 +1,8 @@
 # Build directories
 build/*
-!build_flags/flags.meson
+!build_flags/flags.meson.in
 !build_flags/meson.build
+build_flags/flags.meson
 docs/build/
 docs/doxygen/
 docker/avrix.img
