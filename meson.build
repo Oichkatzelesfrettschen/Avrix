@@ -15,15 +15,15 @@ project(
   version         : '0.1.0',
   license         : 'MIT',
   default_options : [
-    'c_std=c2x',
+    'c_std=c23',            # <- final choice after merge
     'warning_level=2',
-    'optimization=s',     # -Os for flash size
+    'optimization=s',       # -Os for flash size
     'buildtype=release'
   ]
 )
 
-# ── import helper modules ─────────────────────────────────────────────
-subdir('build')                         # shared flag definitions (if any)
+# ── helper modules / common flags ────────────────────────────────────
+subdir('build')                      # shared flag definitions (if any)
 python = import('python').find_installation('python3')
 
 # ── include-path logic ───────────────────────────────────────────────
@@ -33,7 +33,7 @@ else
   inc = include_directories('include', 'compat')
 endif
 
-# ── optional on-device GDB stub flag ─────────────────────────────────
+# ── optional on-device GDB stub flag ────────────────────────────────
 if get_option('debug_gdb')
   add_project_arguments('-DDEBUG_GDB', language : 'c')
 endif
@@ -50,7 +50,7 @@ doc_doxygen = []
 ## 1 · Doxygen ########################################################
 doxygen = find_program('doxygen', required : false)
 if doxygen.found()
-  graphviz  = find_program('dot', required : false)
+  graphviz = find_program('dot', required : false)
 
   doxy_conf = configure_file(
     input  : 'Doxyfile.in',
@@ -91,16 +91,16 @@ if sphinx.found()
   doc_targets += doc_sphinx
 endif
 
-## 3 · Aggregate target ###############################################
+## 3 · Aggregate ######################################################
 if doc_targets.length() > 0
   run_target('doc', command : ['true'], depends : doc_targets)
 endif
 
 # ─────────────────────────── size gate ───────────────────────────────
-#   Blocks the build if any firmware ELF exceeds --limit (bytes).
-#   Add in meson_options.txt:
-#     option('flash_limit', type : 'string', value : '30720',
-#            description : 'Maximum allowed firmware size (bytes)')
+# Blocks the build if any firmware ELF exceeds --limit (bytes).
+# Requires in meson_options.txt:
+#   option('flash_limit', type : 'string', value : '30720',
+#          description : 'Maximum allowed firmware size (bytes)')
 size_gate = custom_target(
   'size-gate',
   input   : [fs_demo, romfs_demo, slip_demo, ned, vini],
@@ -109,7 +109,7 @@ size_gate = custom_target(
     python,
     files('scripts/size_gate.py'),
     '--limit', get_option('flash_limit'),
-    '@INPUT@',      # list of ELF files
+    '@INPUT@',          # ELF list
     '@OUTPUT@'
   ],
   console : true
