@@ -45,7 +45,14 @@ option(
 
 option(
   'flash_limit',
+  type : 'boolean',
+  value : true,
+  description : 'Enable flash size gate when compiling firmware'
+)
+
+option(
+  'flash_limit_bytes',
   type : 'integer',
   value : 30720,
-  description : 'Maximum firmware size in bytes (size-gate)'
+  description : 'Maximum firmware size in bytes checked by size gate'
 )

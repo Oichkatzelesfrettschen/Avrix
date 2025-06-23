@@ -2,12 +2,18 @@
 # Imported by subdirs via `subdir('build')`
 
 common_cflags = [
-  '-O2',
+  '-pipe',
+  '-ffunction-sections',
+  '-fdata-sections',
+  '-fno-common',
+  '-Os',
   '-Wall',
   '-Wextra',
-  '-pedantic',
+  '-Wpedantic',
   '-std=c23'
 ]
 
 # Linker flags may be extended by specific targets
-common_ldflags = []
+common_ldflags = [
+  '-Wl,--gc-sections'
+]
