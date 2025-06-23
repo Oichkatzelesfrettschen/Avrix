@@ -214,6 +214,8 @@ fork → feat/my-feature → tiny, reviewable commits
 $ ninja -C build && meson test          # must stay green
 ```
 
+CI also runs `cppcheck` and `clang-tidy` on `src/` and `include/`; warnings fail the build.
+
 Document any flash / SRAM delta in **docs/monograph.rst**.
 
 ---
