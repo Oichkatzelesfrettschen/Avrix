@@ -14,7 +14,6 @@
 #   libfs     → portable RAM-FS helpers
 #   nk_sim_io → I/O shim for host simulations
 # -----------------------------------------------------------------------
-subdir('build_flags')
 
 python   = import('python').find_installation('python3')
 fs_mod   = import('fs')
