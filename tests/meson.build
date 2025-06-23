@@ -18,6 +18,7 @@
 python   = import('python').find_installation('python3')
 fs_mod   = import('fs')
 cc       = meson.get_compiler('c')
+include('../build/flags.meson')
 
 san      = get_option('san')
 cov      = get_option('cov')
@@ -51,8 +52,6 @@ elif fs_mod.is_dir('/usr/lib/avr/include')
 endif
 
 # ───────────────────── 2 · Common compiler flags  ─────────────────────
-common_cflags    = ['-O2', '-Wall', '-Wextra', '-pedantic', '-std=c2x']
-common_ldflags   = []
 
 if not meson.is_cross_build()
   if san and cc.get_id() in ['gcc', 'clang']

@@ -1,11 +1,12 @@
 # ──────────────── demo executables ────────────────────────────────────
+include('../build/flags.meson')
 
 fs_demo = executable(
   'fs_demo',
   'fs_demo.c',
   include_directories : inc,
   link_with           : [libavrix] + (meson.is_cross_build() ? [] : [nk_sim_io]),
-  c_args              : ['-Wall', '-Wextra'],
+  c_args              : common_cflags,
   install             : false
 )
 
@@ -14,7 +15,7 @@ romfs_demo = executable(
   'romfs_demo.c',
   include_directories : inc,
   link_with           : [libavrix] + (meson.is_cross_build() ? [] : [nk_sim_io]),
-  c_args              : ['-Wall', '-Wextra'],
+  c_args              : common_cflags,
   install             : false
 )
 
@@ -23,7 +24,7 @@ slip_demo = executable(
   'slip_demo.c',
   include_directories : inc,
   link_with           : [libavrix] + (meson.is_cross_build() ? [] : [nk_sim_io]),
-  c_args              : ['-Wall', '-Wextra'],
+  c_args              : common_cflags,
   install             : false
 )
 
@@ -48,8 +49,7 @@ if objcopy.found()
 endif
 
 # ─────────────── optimisation flags (shared) ─────────────────────────
-opt_cflags = [
-  '-Wall', '-Wextra', '-Os',
+opt_cflags = common_cflags + [
   '-ffunction-sections', '-fdata-sections'
 ]
 if host_machine.cpu_family() == 'avr'
@@ -81,7 +81,7 @@ if not meson.is_cross_build()
     'door_demo',
     'door_demo.c',
     include_directories : inc,
-    c_args              : ['-Wall', '-Wextra'],
+    c_args              : common_cflags,
     native              : true,
     install             : false
   )

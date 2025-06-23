@@ -15,6 +15,8 @@
 #
 # NOTE: `inc` comes from the top-level meson.build
 #       (`inc = include_directories('include')`).
+# Pull in shared compiler/linker flags
+include('../build/flags.meson')
 
 # ───────────────────────── 1. Source lists ────────────────────────────
 kernel_src = files(
