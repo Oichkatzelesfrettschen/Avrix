@@ -104,9 +104,15 @@ if doc_targets.length() > 0
 endif
 
 # ─────────────────────────  Size gate  ─────────────────────────────────
-size_gate = run_target(
+size_gate = custom_target(
   'size-gate',
-  command : [python, files('scripts/size_gate.py'), meson.project_build_root()],
-  depends : [fs_demo, romfs_demo, slip_demo, ned, vini],
+  input  : [fs_demo, romfs_demo, slip_demo, ned, vini],
+  output : 'size-gate.stamp',
+  command: [
+    python, files('scripts/size_gate.py'),
+    '@INPUT@',
+    '30720',
+    '@OUTPUT@'
+  ],
   console : true
 )
