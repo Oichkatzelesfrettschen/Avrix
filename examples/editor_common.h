@@ -65,6 +65,9 @@ static inline void delete_line(char lines[][MAX_LINE_LEN], uint8_t *count,
     --*count;
 }
 
+void set_status_message(const char *fmt, ...);
+extern char status_msg[64];
+
 #ifdef __cplusplus
 }
 #endif
