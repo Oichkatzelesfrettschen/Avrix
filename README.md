@@ -79,11 +79,12 @@ ignored by git.
 
 The `scripts/repo_map.js` utility crawls all C sources and emits a
 `repo_map.json` description.  Custom paths may be specified via CLI
-arguments.  When omitted it defaults to `src/` and `tests/` and writes
-`repo_map.json` in the current directory.
+arguments.  When omitted it defaults to `src/` and `tests/` while
+scanning cross-files in `cross/` and writes `repo_map.json` in the
+current directory.
 
 ```bash
-node scripts/repo_map.js -s src -s extras -t tests -o repo_map.json
+node scripts/repo_map.js -s src -s extras -t tests -c cross -o repo_map.json
 ```
 
 
