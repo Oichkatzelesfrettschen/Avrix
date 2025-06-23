@@ -1,11 +1,11 @@
 # ────────────────────────────────────────────────────────────────────
-#  meson_options.txt ― unified after conflict resolution (2025-06-22)
+#  meson_options.txt — unified after conflict resolution (2025-06-22)
 # ────────────────────────────────────────────────────────────────────
 option(
   'avr_inc_dir',
   type : 'string',
   value : '',
-  description : 'Path to AVR libc headers (falls back to standard include locations)'
+  description : 'Path to AVR-LibC headers (falls back to default include locations)'
 )
 
 option(
@@ -19,14 +19,14 @@ option(
   'flash_programmer',
   type : 'string',
   value : 'arduino',
-  description : 'avrdude-compatible programmer identifier (e.g. arduino, usbasp)'
+  description : 'avrdude-compatible programmer identifier (e.g. arduino, usbasp, stk500v1)'
 )
 
 option(
   'debug_gdb',
   type : 'boolean',
   value : false,
-  description : 'Embed a minimal on-target GDB stub (avr-gdbstub) and enable DEBUG_GDB'
+  description : 'Embed a minimal on-target GDB stub (avr-gdbstub) and set DEBUG_GDB'
 )
 
 option(
@@ -40,5 +40,5 @@ option(
   'cov',
   type : 'boolean',
   value : false,
-  description : 'Enable LLVM/clang-based code-coverage instrumentation for host unit tests'
+  description : 'Enable LLVM/clang-based coverage instrumentation for host unit tests'
 )
