@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <locale.h>
 
 #if defined(__AVR__)
 #include <avr/eeprom.h>
@@ -137,6 +138,8 @@ static const char help_msg[] PROGMEM =
 static void help(void) { pgm_print(help_msg); }
 
 int main(int argc, char **argv) {
+  setlocale(LC_CTYPE, "");
+
   struct Buffer buf;
   buffer_init(&buf, argc > 1 ? argv[1] : NULL);
   if (argc > 1)
