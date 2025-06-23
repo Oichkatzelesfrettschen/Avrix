@@ -1,0 +1,13 @@
+# ────────────────────────────────────────────────────────────────────────
+#  flags.meson.in — template snippet *generated* by build_flags/meson.build
+# -----------------------------------------------------------------------
+#  • Filled at configure-time by Meson’s `configure_file()` call.
+#  • Place-holders @COMMON_CFLAGS@ and @COMMON_LDFLAGS@ are replaced with
+#    the fully-resolved flag lists that originate in build_flags/meson.build
+#    **after** the top-level meson.build has appended the compiler-dialect
+#    flag (-std=c23 / c2x / c11) and any Clang POSIX feature-test macros.
+#  • Do **not** edit this file — it is re-created on every `meson setup`.
+# -----------------------------------------------------------------------
+
+common_cflags  = @COMMON_CFLAGS@
+common_ldflags = @COMMON_LDFLAGS@
