@@ -1,6 +1,7 @@
 #include "fs.h"
 
 #include <assert.h>
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -8,11 +9,17 @@ int main(void)
 {
     fs_init();
 
+    /* invalid name checks */
+    assert(fs_create("", 1) == -EINVAL);
+    assert(fs_create("aaaaaaaaaaaaaa", 1) == -EINVAL);
+
     /*
      * Reserve block zero so that a real file never maps to block number
      * zero. This simplifies the checks below.
      */
     int dummy = fs_create("dummy", 1);
+    assert(dummy >= 0);
+    assert(fs_create("dummy", 1) == -EEXIST);
     file_t d;
     assert(fs_open("dummy", &d) == 0);
     char c = 'x';

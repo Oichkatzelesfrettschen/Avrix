@@ -3,6 +3,7 @@
  */
 
 #include "fs.h"
+#include <errno.h>
 #include <string.h>
 
 /** Simple in-memory disk image. Each block is \c FS_BLOCK_SIZE bytes. */
@@ -64,6 +65,21 @@ void fs_init(void) {
 }
 
 int fs_create(const char *name, uint8_t type) {
+    if (name == NULL) {
+        return -EINVAL;
+    }
+
+    size_t len = strnlen(name, FS_MAX_NAME + 1);
+    if (len == 0 || len > 13) {
+        return -EINVAL;
+    }
+
+    for (uint8_t i = 0; i < FS_NUM_INODES; ++i) {
+        if (inodes[i].type && strncmp(dir_name[i], name, FS_MAX_NAME) == 0) {
+            return -EEXIST;
+        }
+    }
+
     int inum = ialloc(type);
     if (inum < 0) {
         return -1;
