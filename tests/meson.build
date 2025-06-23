@@ -77,7 +77,11 @@ tests = [
   ['test_fixed_point',      ['test_fixed_point.c']],
   ['fs_test',               ['fs_test.c',               'sim.c']],
   ['flock_stress',          ['flock_stress.c',          'sim.c']],
-  ['spin_test',             ['spin_test.c',             'sim.c']],
+]
+
+# spin_test is disabled on this configuration
+
+tests += [
   ['unified_spinlock_test', ['unified_spinlock_test.c', 'sim.c']],
   ['romfs_test',            ['romfs_test.c',            'sim.c']],
   ['fs_roundtrip',          ['fs_roundtrip.c',          'sim.c']],

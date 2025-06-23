@@ -6,6 +6,22 @@
 #include <errno.h>
 #include <string.h>
 
+#ifndef HAVE_STRNLEN
+/* -------------------------------------------------------------------------
+ * Portable fallback for systems lacking strnlen().
+ * Clang may not expose this POSIX routine when compiling with minimal
+ * libc headers.  The simple helper below scans at most @p max bytes and
+ * mirrors the standard behaviour.
+ * -------------------------------------------------------------------------
+ */
+static size_t local_strnlen(const char *s, size_t max)
+{
+    const char *end = memchr(s, '\0', max);
+    return end ? (size_t)(end - s) : max;
+}
+#define strnlen local_strnlen
+#endif
+
 /** Simple in-memory disk image. Each block is \c FS_BLOCK_SIZE bytes. */
 static uint8_t disk[FS_NUM_BLOCKS][FS_BLOCK_SIZE];
 

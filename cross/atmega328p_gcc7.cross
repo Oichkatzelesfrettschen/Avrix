@@ -40,7 +40,7 @@ c_link_args = [
 
 [built-in options]
 c_std           = 'c11'
-optimization    = 'z'
+optimization    = 's'
 warning_level   = 2
 strip           = true
 default_library = 'none'

@@ -50,6 +50,9 @@ sudo ./setup.sh --legacy      # GCC 7.3 – bare minimum
 
 ```bash
 meson setup   build --wipe --cross-file cross/atmega328p_gcc14.cross
+# LLVM/Clang users can instead specify
+#   cross/atmega328p_clang.cross  (generic) or
+#   cross/atmega328p_clang20.cross if Clang 20 is installed
 meson compile -C build
 qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
 meson compile -C build flash          # flashes over /dev/ttyACM0

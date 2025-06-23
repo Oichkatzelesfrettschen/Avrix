@@ -169,7 +169,10 @@ For a *legacy* build drop ``--icf`` / ``-fipa-pta`` and switch
 ``-Ddebug_gdb=true`` bundles a tiny on-device GDB stub so
 ``avr-gdb`` can attach over the serial port.
 
-``cross/atmega328p_clang20.cross`` is provided for LLVM 20 users.
+``cross/atmega328p_clang.cross`` targets any recent ``clang`` release and
+selects ``-Oz`` for maximum flash savings without link-time optimisation.
+``cross/atmega328p_clang20.cross`` remains available for explicitly
+versioned LLVM 20 tool-chains.
 ``cross/atmega32.cross`` and ``cross/atmega128.cross`` extend the
 selection to DIP‐40 and larger ATmega128 boards.
 

@@ -9,7 +9,7 @@
 #   sudo apt install binutils-avr
 #
 # Notes
-#   • Clang 20 r557xxx adds full AVR relaxation + Thin-LTO; we exploit both.
+#   • Clang 20 r557xxx adds full AVR relaxation; we exploit this feature.
 #   • `needs_exe_wrapper = true` silences Meson’s “bare-metal” warnings.
 #   • The linker switches assume **lld-avr** ≥ 20, which supports safe ICF.
 # ────────────────────────────────────────────────────────────────────────
@@ -40,7 +40,6 @@ c_args = [
 
   # Code-size / optimisation flags
   '-Oz',                       # size-first optimisation
-  '-flto=thin',                # Thin-LTO gives better link-time visibility
   '-mrelax-all',               # allow instruction relaxation
   '-fdata-sections', '-ffunction-sections',
   '-fmerge-all-constants',
@@ -53,15 +52,13 @@ c_args = [
 c_link_args = [
   '--target=avr',
   '-mmcu=atmega328p',
-  '-flto',
   '-Wl,--gc-sections',         # drop unused sections
-  '-Wl,--icf=safe',            # identical code-folding (lld ≥ 20)
-  '-fuse-ld=lld'               # use LLVM’s AVR-aware linker
+  '-Wl,--icf=safe'             # identical code-folding (lld ≥ 20)
 ]
 
 [built-in options]
 c_std           = 'c23'
-optimization    = 'z'
+optimization    = 's'
 warning_level   = 2
 strip           = true
 default_library = 'none'

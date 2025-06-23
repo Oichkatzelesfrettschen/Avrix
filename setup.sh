@@ -38,6 +38,8 @@ trap 'echo -e "\n[error] setup aborted 🚨" >&2' ERR
 
 [[ $(id -u) -eq 0 ]] || { echo "Run as root." >&2; exit 1; }
 export DEBIAN_FRONTEND=noninteractive
+rm -f /etc/apt/sources.list.d/debian-sid-avr.list \
+      /etc/apt/preferences.d/90-avr-cross
 
 MODE="--modern"
 SKIP_PYTHON=0
@@ -71,7 +73,9 @@ step "Selected mode: $MODE (python $([[ $SKIP_PYTHON -eq 1 ]] && echo skipped ||
 step "Refreshing APT indices"
 apt-get -qq update
 apt-get -yqq install software-properties-common apt-transport-https \
-                      ca-certificates gnupg git curl
+                      ca-certificates gnupg git curl \
+                      debian-archive-keyring
+apt-mark hold base-files >/dev/null 2>&1 || true
 
 # ───────────────────────── 1 · repositories ─────────────────────────────
 if [[ $MODE == "--modern" ]]; then
@@ -166,10 +170,15 @@ echo "export LDFLAGS=\"$LDFLAGS\""
 echo "──────────────────────────────────────────────────"
 
 # ───────────────────────── 7 · Demo build (modern) ──────────────────────
-if [[ $MODE == "--modern" && ( -f cross/atmega328p_gcc14.cross || -f cross/atmega328p_clang20.cross ) ]]; then
+if [[ $MODE == "--modern" ]]; then
   step "Configuring Meson cross build"
-  CROSS_FILE=cross/atmega328p_gcc14.cross
-  [[ -f cross/atmega328p_clang20.cross ]] && CROSS_FILE=cross/atmega328p_clang20.cross
+  if [[ -f cross/atmega328p_clang.cross ]]; then
+    CROSS_FILE=cross/atmega328p_clang.cross
+  elif [[ -f cross/atmega328p_clang20.cross ]]; then
+    CROSS_FILE=cross/atmega328p_clang20.cross
+  else
+    CROSS_FILE=cross/atmega328p_gcc14.cross
+  fi
   meson setup build --wipe --cross-file "$CROSS_FILE" \
         >/dev/null
   step "Compiling firmware"

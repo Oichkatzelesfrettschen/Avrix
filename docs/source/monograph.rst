@@ -248,7 +248,9 @@ Meson cross-file encodes all flags ::
 
    meson setup build --wipe \
        --cross-file cross/atmega328p_gcc14.cross
-   # LLVM:
+   # LLVM (generic Clang):
+   # meson setup build --cross-file cross/atmega328p_clang.cross
+   # LLVM 20:
    # meson setup build --cross-file cross/atmega328p_clang20.cross
    ninja -C build
    qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic

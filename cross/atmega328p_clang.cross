@@ -1,0 +1,32 @@
+# ---------------------------------------------------------------------------
+# cross/atmega328p_clang.cross — Generic LLVM/Clang AVR profile
+# Works with any recent Clang release supporting the AVR backend.
+# ---------------------------------------------------------------------------
+[binaries]
+c='clang'
+ar='llvm-ar'
+strip='llvm-strip'
+objcopy='llvm-objcopy'
+size='avr-size'
+exe_wrapper='true'
+
+[host_machine]
+system='baremetal'
+cpu_family='avr'
+cpu='atmega328p'
+endian='little'
+
+[properties]
+needs_exe_wrapper=true
+
+c_args=['--target=avr','-mmcu=atmega328p','-std=c17','-DF_CPU=16000000UL','-Oz','-mrelax-all','-fdata-sections','-ffunction-sections','-fmerge-all-constants','-fno-exceptions','-fno-rtti','-fno-unwind-tables','-fno-asynchronous-unwind-tables']
+
+c_link_args=['--target=avr','-mmcu=atmega328p','-Wl,--gc-sections']
+
+[built-in options]
+c_std='c17'
+optimization='s'
+warning_level='2'
+strip=true
+default_library='static'
+b_staticpic=false
