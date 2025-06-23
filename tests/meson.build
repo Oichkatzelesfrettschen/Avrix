@@ -28,8 +28,9 @@ test(
   python,
   args : [
     files('check_docs.py'),
-    '--docs-dir',   meson.project_source_root() / 'docs/source',
-    '--index-file', meson.project_source_root() / 'docs/source/index.rst',
+    '--docs-dir',   meson.current_source_dir() / '..' / 'docs' / 'source',
+    '--index-file', meson.current_source_dir() / '..' / 'docs' / 'source' /
+                     'index.rst',
     '--recursive',
   ],
   workdir : meson.project_source_root()
@@ -40,7 +41,7 @@ inc_list = [inc]
 
 # Host builds need AVR-compat headers
 if host_machine.cpu_family() != 'avr'
-  inc_list += include_directories(meson.project_source_root() / 'compat')
+  inc_list += include_directories('..' / 'compat')
 endif
 
 avr_inc = get_option('avr_inc_dir')
