@@ -120,7 +120,7 @@ See `Ask Ubuntu <https://askubuntu.com/>`_ for background.
 
    sudo apt install -y meson ninja-build doxygen python3-sphinx simavr \
                       python3-pip cloc cscope exuberant-ctags cppcheck graphviz \
-                      nodejs npm
+                      nodejs npm valgrind linux-tools-common linux-tools-generic
    pip3 install --user breathe exhale sphinx-rtd-theme
    npm  install  -g   prettier
    # offline? use --no-python with setup.sh and skip the two lines above
