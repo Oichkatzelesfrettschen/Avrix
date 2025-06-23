@@ -26,7 +26,7 @@ kernel_src = files(
   'romfs.c',
   'eepfs.c',
   'kalloc.c',
-  'nk_superlock.c',
+  'nk_spinlock.c',
   'tty.c',
   'slip_uart.c',
   'ipv4.c',
@@ -35,17 +35,19 @@ kernel_src = files(
   'door_entry.S'
 )
 
+# Optional GDB stub
 if get_option('debug_gdb')
   kernel_src += files('avr_gdbstub.c')
   add_project_arguments('-DDEBUG_GDB', language : 'c')
 endif
 
-portable_src = files(   # no <avr/...>
+# Portable subset (no <avr/...>)
+portable_src = files(
   'fixed_point.c',
   'fs.c',
   'romfs.c',
   'eepfs.c',
-  'nk_superlock.c',
+  'nk_spinlock.c',
   'tty.c',
   'slip_uart.c',
   'ipv4.c'
@@ -73,7 +75,6 @@ else                                # ==> host build (CI, docs, etc.)
     include_directories : inc,
     install : false
   )
-
   # AVR-only sources are not built on the host
 endif
 
@@ -100,6 +101,7 @@ install_headers(
   '../include/eepfs.h',
   '../include/eeprom_wrap.h',
   '../include/kalloc.h',
+  '../include/nk_spinlock.h',
   '../include/nk_superlock.h',
   '../include/tty.h',
   '../include/slip.h',
@@ -115,7 +117,7 @@ install_headers(
 
 if meson.is_cross_build()
   objcopy = find_program('avr-objcopy', required: false)
-  avrdude = find_program('avrdude', required: false)
+  avrdude = find_program('avrdude',    required: false)
 
   if objcopy.found() and avrdude.found()
     demo_elf = meson.project_build_root() / 'unix0.elf'
@@ -129,9 +131,9 @@ if meson.is_cross_build()
 
     custom_target(
       'flash',
-      input  : hex_out,
-      output : 'flash.stamp',
-      command: [
+      input   : hex_out,
+      output  : 'flash.stamp',
+      command : [
         avrdude,
         '-c', get_option('flash_programmer'),
         '-p', 'm328p',
