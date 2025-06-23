@@ -70,6 +70,17 @@ Customize the limit with ``meson configure build -Dflash_limit=32768``.
 * **Fixed-point Q8.8** helpers.
 * **Full QEMU board model** (`arduino-uno`) wired into CI.
 
+### 9 · Repository map generation
+
+The `scripts/repo_map.js` utility crawls all C sources and emits a
+`repo_map.json` description.  Custom paths may be specified via CLI
+arguments.  When omitted it defaults to `src/` and `tests/` and writes
+`repo_map.json` in the current directory.
+
+```bash
+node scripts/repo_map.js -s src -s extras -t tests -o repo_map.json
+```
+
 
 
 [1]: https://tracker.debian.org/gcc-avr "gcc-avr - Debian Package Tracker"
