@@ -2,9 +2,6 @@
 #define EDITOR_COMMON_H
 
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
 #include <stddef.h>
 
 #ifdef __cplusplus
