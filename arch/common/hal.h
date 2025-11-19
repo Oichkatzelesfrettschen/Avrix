@@ -95,6 +95,72 @@ extern "C" {
     #define HAL_SECTION(name)  /* Not supported on this compiler */
 #endif
 
+/**
+ * @brief Program memory attribute for const data stored in flash/ROM
+ *
+ * On Harvard architectures (AVR), places data in program memory (flash)
+ * instead of SRAM. On von Neumann architectures (ARM, x86), this is a no-op
+ * since code and data share the same address space.
+ *
+ * Example: static const uint8_t lookup_table[] HAL_PROGMEM = {...};
+ */
+#if defined(__AVR__)
+    #include <avr/pgmspace.h>
+    #define HAL_PROGMEM PROGMEM
+#else
+    #define HAL_PROGMEM  /* No separate program memory */
+#endif
+
+/**
+ * @brief Read byte from program memory
+ *
+ * @param addr Address in program memory
+ * @return Byte value
+ */
+#if defined(__AVR__)
+    #define hal_pgm_read_byte(addr) pgm_read_byte(addr)
+#else
+    #define hal_pgm_read_byte(addr) (*(const uint8_t *)(addr))
+#endif
+
+/**
+ * @brief Read word (16-bit) from program memory
+ *
+ * @param addr Address in program memory
+ * @return Word value
+ */
+#if defined(__AVR__)
+    #define hal_pgm_read_word(addr) pgm_read_word(addr)
+#else
+    #define hal_pgm_read_word(addr) (*(const uint16_t *)(addr))
+#endif
+
+/**
+ * @brief Read dword (32-bit) from program memory
+ *
+ * @param addr Address in program memory
+ * @return Dword value
+ */
+#if defined(__AVR__)
+    #define hal_pgm_read_dword(addr) pgm_read_dword(addr)
+#else
+    #define hal_pgm_read_dword(addr) (*(const uint32_t *)(addr))
+#endif
+
+/**
+ * @brief Copy data from program memory to RAM
+ *
+ * @param dest Destination buffer in RAM
+ * @param src Source address in program memory
+ * @param n Number of bytes to copy
+ */
+#if defined(__AVR__)
+    #define hal_memcpy_P(dest, src, n) memcpy_P(dest, src, n)
+#else
+    #include <string.h>
+    #define hal_memcpy_P(dest, src, n) memcpy(dest, src, n)
+#endif
+
 /*═══════════════════════════════════════════════════════════════════
  * 3. COMMON TYPE DEFINITIONS
  *═══════════════════════════════════════════════════════════════════*/
