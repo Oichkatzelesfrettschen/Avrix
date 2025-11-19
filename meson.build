@@ -67,7 +67,9 @@ if get_option('debug_gdb')
 endif
 
 # ── 7 · sub-projects ---------------------------------------------------
-subdir('src')
+subdir('kernel')    # Portable kernel subsystems (Phase 4)
+subdir('drivers')   # Device drivers (Phase 5)
+subdir('src')       # Legacy sources (being phased out)
 subdir('examples')
 subdir('tests')
 

@@ -17,19 +17,14 @@
 #       (`inc = include_directories('include')`).
 
 # ───────────────────────── 1. Source lists ────────────────────────────
-kernel_src = files(
+# PHASE 6: Refactored to use modular kernel/ and drivers/ directories
+#
+# Legacy sources still in src/ (architecture-specific + not yet migrated)
+legacy_src = files(
   'fixed_point.c',
   'fs.c',
-  'door.c',
-  'task.c',            # pure C
+  'task.c',            # pure C (TODO: migrate to kernel/sched/)
   'nk_fs.c',
-  'romfs.c',
-  'eepfs.c',
-  'kalloc.c',
-  'nk_spinlock.c',
-  'tty.c',
-  'slip_uart.c',
-  'ipv4.c',
   'context_switch.S',  # hand-written AVR ASM
   'switch_task.S',
   'door_entry.S'
@@ -37,21 +32,22 @@ kernel_src = files(
 
 # Optional GDB stub
 if get_option('debug_gdb')
-  kernel_src += files('avr_gdbstub.c')
+  legacy_src += files('avr_gdbstub.c')
   add_project_arguments('-DDEBUG_GDB', language : 'c')
 endif
 
-# Portable subset (no <avr/...>)
-portable_src = files(
-  'fixed_point.c',
-  'fs.c',
-  'romfs.c',
-  'eepfs.c',
-  'nk_spinlock.c',
-  'tty.c',
-  'slip_uart.c',
-  'ipv4.c'
-)
+# Build full kernel source list from modular components
+# NOTE: all_kernel_sources and all_driver_sources come from kernel/ and drivers/
+kernel_src = []
+kernel_src += all_kernel_sources   # From kernel/ subdirectories (Phase 4)
+kernel_src += all_driver_sources   # From drivers/ subdirectories (Phase 5)
+kernel_src += legacy_src           # Architecture-specific sources from src/
+
+# Portable subset (no <avr/...>) for host builds
+portable_src = []
+portable_src += all_kernel_sources
+portable_src += all_driver_sources
+portable_src += files('fixed_point.c', 'fs.c', 'task.c', 'nk_fs.c')
 
 avr_only_src = []
 foreach s : kernel_src
@@ -61,18 +57,30 @@ foreach s : kernel_src
 endforeach
 
 # ───────────────────────── 2. libavrix / libavrix_host ───────────────
+# Include paths for modular structure (Phase 4-5)
+all_inc = [
+  inc,
+  include_directories('../kernel/sched'),
+  include_directories('../kernel/sync'),
+  include_directories('../kernel/mm'),
+  include_directories('../kernel/ipc'),
+  include_directories('../drivers/fs'),
+  include_directories('../drivers/net'),
+  include_directories('../drivers/tty'),
+]
+
 if meson.is_cross_build()          # ==> target = AVR
   libavrix = static_library(
     'avrix',
     kernel_src,
-    include_directories : inc,
+    include_directories : all_inc,
     install : true
   )
 else                                # ==> host build (CI, docs, etc.)
   libavrix = static_library(
     'avrix_host',
     portable_src,
-    include_directories : inc,
+    include_directories : all_inc,
     install : false
   )
   # AVR-only sources are not built on the host
