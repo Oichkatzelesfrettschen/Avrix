@@ -1,0 +1,81 @@
+# ────────────────────────────────────────────────────────────────────────
+# cross/atmega644p_gcc14.cross ― GCC-AVR 14 profile for ATmega644P boards
+#
+# Target MCU  : ATmega644P @ 16 MHz, 64 kB Flash, 4 kB SRAM, 2 kB EEPROM
+# Compiler    : gcc-avr ≥ 14 (Debian Sid package, xPack, or home-built)
+# Goal        : PSE52 limited multi-threading (2-3 threads)
+#
+# Compatible Boards:
+#   - Pandauino 644
+#   - Sanguino
+#   - Mighty 644 (requires MightyCore)
+#
+#  Install on Ubuntu (Debian Sid repo example):
+#    echo "deb http://ftp.debian.org/debian sid main" | sudo tee /etc/apt/sources.list.d/debian-sid.list
+#    sudo apt update
+#    sudo apt install gcc-avr binutils-avr avr-libc
+#
+#  Meson usage:
+#    meson setup build_644p --wipe --cross-file cross/atmega644p_gcc14.cross
+# ────────────────────────────────────────────────────────────────────────
+
+[binaries]
+c           = 'avr-gcc'
+ar          = 'avr-ar'
+strip       = 'avr-strip'
+objcopy     = 'avr-objcopy'
+size        = 'avr-size'
+exe_wrapper = 'true'                  # no runner for bare-metal tests
+
+[host_machine]
+system      = 'baremetal'
+cpu_family  = 'avr'
+cpu         = 'atmega644p'
+endian      = 'little'
+
+[properties]
+needs_exe_wrapper = true              # suppress Meson warning
+
+c_args = [
+  # MCU + language dialect
+  '-mmcu=atmega644p',
+  '-std=c23',
+  '-DF_CPU=16000000UL',
+
+  # Size-first optimisation (4KB RAM is tight for PSE52)
+  '-Oz',
+  '-flto',
+  '-mrelax',
+  '-mcall-prologues',
+  '-fdata-sections',
+  '-ffunction-sections',
+  '-fmerge-all-constants',
+  '-fno-ident',
+
+  # Remove unused runtime features
+  '-fno-exceptions',
+  '-fno-rtti',
+  '-fno-unwind-tables',
+  '-fno-asynchronous-unwind-tables',
+  '-fno-stack-protector'
+]
+
+c_link_args = [
+  '-mmcu=atmega644p',
+  '-flto',
+  '-Wl,--gc-sections',
+  '-Wl,--icf=safe',
+  '-Wl,--relax'
+]
+
+[built-in options]
+c_std           = 'c23'
+optimization    = 's'                  # Meson alias for -Oz
+warning_level   = 2
+strip           = true
+default_library = 'none'
+b_staticpic     = false                # irrelevant on AVR
+
+[project options]
+profile         = false                # enable PGO with -Dprofile=true
+debug_gdb       = false                # build avr-gdbstub when true

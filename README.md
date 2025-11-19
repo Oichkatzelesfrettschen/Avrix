@@ -146,9 +146,31 @@ The codebase has been refactored into a portable embedded POSIX system supportin
 
 Comprehensive guides for developers:
 
+- **[ARDUINO_CHIPSETS.md](ARDUINO_CHIPSETS.md)** - Arduino & compatible chipset specifications (2KB-520KB RAM)
 - **[PORTING_GUIDE.md](PORTING_GUIDE.md)** - Port to new architectures (ARM, RISC-V, MSP430)
 - **[BUILD_GUIDE.md](BUILD_GUIDE.md)** - Build system (Meson), cross-compilation, CI/CD
 - **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Migrate between PSE51/52/54 profiles
+- **[CHANGELOG.md](CHANGELOG.md)** - Complete project development history
+
+### Supported Arduino Chipsets
+
+**PSE51 (Minimal - 2KB RAM):**
+- ATmega328P (Arduino Uno, Nano) - 32KB flash, 2KB RAM ✅ Primary target
+- ATmega32U4 (Leonardo, Micro) - 32KB flash, 2.5KB RAM ✅ With USB HID
+
+**PSE52 (Multi-Threaded - 4-16KB RAM):**
+- ATmega644P (Pandauino) - 64KB flash, 4KB RAM ⚠️ Limited (2-3 threads)
+- ATmega2560 (Mega) - 256KB flash, 8KB RAM ✅ Good (4-8 threads)
+- ATmega1284P (Mighty 1284P) - 128KB flash, 16KB RAM ✅ Best AVR8
+- ESP8266 (NodeMCU) - 4MB flash, 80KB RAM ✅ With WiFi
+- ESP32 (DevKit) - 4MB flash, 520KB RAM ✅ Dual-core + WiFi/BT
+
+**PSE54 (Full POSIX - 32KB+ RAM, MMU required):**
+- SAMD21 (Arduino Zero) - 256KB flash, 32KB RAM ⚠️ No MMU
+- RP2040 (Pico) - 2MB flash, 264KB RAM ⚠️ No MMU, dual-core
+- ARM Cortex-A (Raspberry Pi) - 512MB-4GB RAM ✅ Full MMU
+
+See [ARDUINO_CHIPSETS.md](ARDUINO_CHIPSETS.md) for detailed specifications and recommendations.
 
 ---
 

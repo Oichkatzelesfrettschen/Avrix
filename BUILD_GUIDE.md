@@ -183,13 +183,19 @@ endian = 'little'
 
 ### Supported Targets
 
-| Target       | MCU          | Flash | RAM   | Cross-File                    |
-|--------------|--------------|-------|-------|-------------------------------|
-| ATmega128    | AVR8         | 128KB | 4KB   | `atmega128_gcc14.cross`       |
-| ATmega328P   | AVR8         | 32KB  | 2KB   | `atmega328p_gcc14.cross`      |
-| ATmega1284P  | AVR8         | 128KB | 16KB  | `atmega1284_gcc14.cross`      |
-| ARM Cortex-M0| ARM          | 256KB | 32KB  | `cortex_m0_gcc.cross` (TODO)  |
-| RISC-V RV32I | RISC-V       | 128KB | 16KB  | `riscv32_gcc.cross` (TODO)    |
+| Target       | MCU          | Flash | RAM   | Cross-File                    | PSE Profile   |
+|--------------|--------------|-------|-------|-------------------------------|---------------|
+| ATmega128    | AVR8         | 128KB | 4KB   | `atmega128_gcc14.cross`       | PSE52*        |
+| ATmega328P   | AVR8         | 32KB  | 2KB   | `atmega328p_gcc14.cross`      | PSE51         |
+| ATmega32U4   | AVR8         | 32KB  | 2.5KB | `atmega32u4_gcc14.cross`      | PSE51 (USB)   |
+| ATmega644P   | AVR8         | 64KB  | 4KB   | `atmega644p_gcc14.cross`      | PSE52*        |
+| ATmega1284P  | AVR8         | 128KB | 16KB  | `atmega1284_gcc14.cross`      | PSE52 (Full)  |
+| SAMD21       | ARM M0+      | 256KB | 32KB  | `samd21_gcc.cross` (TODO)     | PSE52/54*     |
+| RP2040       | ARM M0+      | 2MB   | 264KB | `rp2040_gcc.cross` (TODO)     | PSE52/54*     |
+| ARM Cortex-A | ARM          | -     | 512MB+| `cortex_a_gcc.cross` (TODO)   | PSE54 (Full)  |
+| RISC-V RV32I | RISC-V       | 128KB | 16KB  | `riscv32_gcc.cross` (TODO)    | PSE52         |
+
+*Note: PSE52* = Limited threading due to RAM constraints. PSE54* = No MMU (limited process support)
 
 ### Creating Custom Cross-Files
 ```bash
