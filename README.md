@@ -135,21 +135,34 @@ The codebase has been refactored into a portable embedded POSIX system supportin
 **Status:**
 - ✅ Phase 1-4: Foundation (6,236 lines)
 - ✅ Phase 5: Driver Migration (3,108 lines)
-- ⏭️  Phase 6: Build System Integration (next)
+- ✅ Phase 6: Build System Integration (235 lines)
+- ✅ Phase 7: Examples & Testing (2,561 lines, 12 examples)
+- ✅ Phase 8: Documentation (1,250 lines, 3 guides)
+- **PROJECT COMPLETE: 13,390 lines** 🎉
 
 ---
 
-## 4 · Repository map generator
+## 4 · Documentation
+
+Comprehensive guides for developers:
+
+- **[PORTING_GUIDE.md](PORTING_GUIDE.md)** - Port to new architectures (ARM, RISC-V, MSP430)
+- **[BUILD_GUIDE.md](BUILD_GUIDE.md)** - Build system (Meson), cross-compilation, CI/CD
+- **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Migrate between PSE51/52/54 profiles
+
+---
+
+## 5 · Repository map generator
 
 `scripts/repo_map.js` scans the code‐base and writes `repo_map.json`.
 
-### 4.1 · Install dependencies
+### 5.1 · Install dependencies
 
 ```bash
 npm install          # installs fast-glob, p-limit, tree-sitter, tree-sitter-c
 ```
 
-### 4.2 · Run with custom paths
+### 5.2 · Run with custom paths
 
 ```bash
 node scripts/repo_map.js \
@@ -174,7 +187,7 @@ node scripts/repo_map.js \
 
 ---
 
-## 5 · License
+## 6 · License
 
 MIT.  See `LICENSE` for details.
 
