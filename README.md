@@ -144,13 +144,30 @@ The codebase has been refactored into a portable embedded POSIX system supportin
 
 ## 4 · Documentation
 
-Comprehensive guides for developers:
+### General Guides
 
 - **[ARDUINO_CHIPSETS.md](ARDUINO_CHIPSETS.md)** - Arduino & compatible chipset specifications (2KB-520KB RAM)
 - **[PORTING_GUIDE.md](PORTING_GUIDE.md)** - Port to new architectures (ARM, RISC-V, MSP430)
 - **[BUILD_GUIDE.md](BUILD_GUIDE.md)** - Build system (Meson), cross-compilation, CI/CD
 - **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Migrate between PSE51/52/54 profiles
 - **[CHANGELOG.md](CHANGELOG.md)** - Complete project development history
+
+### Technical References (Deep-Dive)
+
+- **[docs/technical/ATMEGA328P_REFERENCE.md](docs/technical/ATMEGA328P_REFERENCE.md)** - Complete ATmega328P technical guide
+  - Memory maps, register files, interrupt system
+  - HAL implementation details, performance analysis
+  - PSE51 resource budgets, programming guide
+
+- **[docs/technical/ATMEGA32U4_REFERENCE.md](docs/technical/ATMEGA32U4_REFERENCE.md)** - Complete ATmega32U4 technical guide
+  - USB subsystem architecture, HID/CDC integration
+  - Native USB programming, bootloader details
+  - PSE51+USB resource budgets
+
+- **[docs/technical/CHIPSET_COMPARISON.md](docs/technical/CHIPSET_COMPARISON.md)** - Performance comparison & decision trees
+  - Complete chipset comparison matrix
+  - Context switch analysis, power consumption
+  - Migration paths, use case recommendations
 
 ### Supported Arduino Chipsets
 

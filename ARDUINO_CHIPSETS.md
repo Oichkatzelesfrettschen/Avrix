@@ -4,6 +4,11 @@
 
 **Last Updated:** 2025-01-19
 
+**See Also:**
+- [docs/technical/ATMEGA328P_REFERENCE.md](docs/technical/ATMEGA328P_REFERENCE.md) - Deep-dive ATmega328P guide
+- [docs/technical/ATMEGA32U4_REFERENCE.md](docs/technical/ATMEGA32U4_REFERENCE.md) - Deep-dive ATmega32U4 guide
+- [docs/technical/CHIPSET_COMPARISON.md](docs/technical/CHIPSET_COMPARISON.md) - Performance comparison & decision trees
+
 ---
 
 ## Table of Contents
