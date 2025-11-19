@@ -507,7 +507,155 @@ const char *hal_cpu_model(void);
 void hal_early_init(void) __attribute__((weak));
 
 /*═══════════════════════════════════════════════════════════════════
- * 11. OPTIONAL: MPU/MMU SUPPORT (high-end only)
+ * 11. EEPROM / NON-VOLATILE STORAGE
+ *═══════════════════════════════════════════════════════════════════*/
+
+/**
+ * @brief Check if platform has EEPROM/NVS support
+ *
+ * @return true if EEPROM is available, false otherwise
+ *
+ * @note On AVR: true (built-in EEPROM)
+ * @note On ARM: depends on chip (may use emulated EEPROM in flash)
+ * @note On x86/host: false (no EEPROM)
+ */
+bool hal_eeprom_available(void);
+
+/**
+ * @brief Get EEPROM size in bytes
+ *
+ * @return Total EEPROM size, or 0 if not available
+ *
+ * @note ATmega328P: 1024 bytes
+ * @note ATmega128: 4096 bytes
+ * @note ATmega1284P: 4096 bytes
+ */
+uint16_t hal_eeprom_size(void);
+
+/**
+ * @brief Read byte from EEPROM
+ *
+ * @param addr EEPROM address (0 to hal_eeprom_size()-1)
+ * @return Byte value at address
+ *
+ * @note Blocks until read completes (~3.4ms on AVR)
+ * @note Out-of-bounds reads return 0xFF
+ */
+uint8_t hal_eeprom_read_byte(uint16_t addr);
+
+/**
+ * @brief Read word (16-bit) from EEPROM
+ *
+ * @param addr EEPROM address (must be even for optimal performance)
+ * @return Word value at address (little-endian)
+ */
+uint16_t hal_eeprom_read_word(uint16_t addr);
+
+/**
+ * @brief Read dword (32-bit) from EEPROM
+ *
+ * @param addr EEPROM address (must be 4-byte aligned for optimal performance)
+ * @return Dword value at address (little-endian)
+ */
+uint32_t hal_eeprom_read_dword(uint16_t addr);
+
+/**
+ * @brief Read block from EEPROM to RAM
+ *
+ * @param dest Destination buffer in RAM
+ * @param addr Source address in EEPROM
+ * @param len Number of bytes to read
+ *
+ * @note More efficient than byte-by-byte reads on some platforms
+ */
+void hal_eeprom_read_block(void *dest, uint16_t addr, size_t len);
+
+/**
+ * @brief Write byte to EEPROM
+ *
+ * @param addr EEPROM address
+ * @param val Byte value to write
+ *
+ * @note Blocks until write completes (~3.4ms on AVR)
+ * @note EEPROM has limited write cycles (~100k on AVR)
+ * @note Use hal_eeprom_update_byte() to avoid unnecessary writes
+ */
+void hal_eeprom_write_byte(uint16_t addr, uint8_t val);
+
+/**
+ * @brief Write word (16-bit) to EEPROM
+ *
+ * @param addr EEPROM address
+ * @param val Word value to write (little-endian)
+ */
+void hal_eeprom_write_word(uint16_t addr, uint16_t val);
+
+/**
+ * @brief Write dword (32-bit) to EEPROM
+ *
+ * @param addr EEPROM address
+ * @param val Dword value to write (little-endian)
+ */
+void hal_eeprom_write_dword(uint16_t addr, uint32_t val);
+
+/**
+ * @brief Write block from RAM to EEPROM
+ *
+ * @param addr Destination address in EEPROM
+ * @param src Source buffer in RAM
+ * @param len Number of bytes to write
+ */
+void hal_eeprom_write_block(uint16_t addr, const void *src, size_t len);
+
+/**
+ * @brief Update byte in EEPROM (write only if different)
+ *
+ * Reads current value and only writes if different, extending EEPROM life.
+ *
+ * @param addr EEPROM address
+ * @param val New byte value
+ *
+ * @note Preferred over hal_eeprom_write_byte() to save write cycles
+ * @note On AVR, uses eeprom_update_byte() which does read-modify-write
+ */
+void hal_eeprom_update_byte(uint16_t addr, uint8_t val);
+
+/**
+ * @brief Update word (16-bit) in EEPROM
+ *
+ * @param addr EEPROM address
+ * @param val New word value
+ */
+void hal_eeprom_update_word(uint16_t addr, uint16_t val);
+
+/**
+ * @brief Update dword (32-bit) in EEPROM
+ *
+ * @param addr EEPROM address
+ * @param val New dword value
+ */
+void hal_eeprom_update_dword(uint16_t addr, uint32_t val);
+
+/**
+ * @brief Update block in EEPROM (write only changed bytes)
+ *
+ * @param addr Destination address in EEPROM
+ * @param src Source buffer in RAM
+ * @param len Number of bytes to update
+ */
+void hal_eeprom_update_block(uint16_t addr, const void *src, size_t len);
+
+/**
+ * @brief Erase entire EEPROM (set all bytes to 0xFF)
+ *
+ * @warning This is a destructive operation and takes a long time!
+ * @note On ATmega328P: ~3.4 seconds (1024 bytes × 3.4ms)
+ * @note Only use during factory reset or initialization
+ */
+void hal_eeprom_erase_all(void);
+
+/*═══════════════════════════════════════════════════════════════════
+ * 12. OPTIONAL: MPU/MMU SUPPORT (high-end only)
  *═══════════════════════════════════════════════════════════════════*/
 
 #if defined(HAL_HAS_MPU) && HAL_HAS_MPU

@@ -267,5 +267,156 @@ void hal_early_init(void) {
 }
 
 /*═══════════════════════════════════════════════════════════════════
+ * EEPROM / NON-VOLATILE STORAGE
+ *═══════════════════════════════════════════════════════════════════*/
+
+#include <avr/eeprom.h>
+
+/**
+ * @brief Check if EEPROM is available
+ *
+ * @return Always true on AVR (built-in EEPROM)
+ */
+bool hal_eeprom_available(void) {
+    return true;
+}
+
+/**
+ * @brief Get EEPROM size in bytes
+ *
+ * @return EEPROM size detected at compile time
+ */
+uint16_t hal_eeprom_size(void) {
+    return (uint16_t)HAL_EEPROM_SIZE;
+}
+
+/**
+ * @brief Read byte from EEPROM
+ */
+uint8_t hal_eeprom_read_byte(uint16_t addr) {
+    if (addr >= HAL_EEPROM_SIZE) {
+        return 0xFF;  /* Out of bounds */
+    }
+    return eeprom_read_byte((const uint8_t *)(uintptr_t)addr);
+}
+
+/**
+ * @brief Read word from EEPROM
+ */
+uint16_t hal_eeprom_read_word(uint16_t addr) {
+    if (addr + 1 >= HAL_EEPROM_SIZE) {
+        return 0xFFFF;
+    }
+    return eeprom_read_word((const uint16_t *)(uintptr_t)addr);
+}
+
+/**
+ * @brief Read dword from EEPROM
+ */
+uint32_t hal_eeprom_read_dword(uint16_t addr) {
+    if (addr + 3 >= HAL_EEPROM_SIZE) {
+        return 0xFFFFFFFF;
+    }
+    return eeprom_read_dword((const uint32_t *)(uintptr_t)addr);
+}
+
+/**
+ * @brief Read block from EEPROM to RAM
+ */
+void hal_eeprom_read_block(void *dest, uint16_t addr, size_t len) {
+    if (addr + len > HAL_EEPROM_SIZE) {
+        len = HAL_EEPROM_SIZE - addr;  /* Truncate to bounds */
+    }
+    eeprom_read_block(dest, (const void *)(uintptr_t)addr, len);
+}
+
+/**
+ * @brief Write byte to EEPROM
+ */
+void hal_eeprom_write_byte(uint16_t addr, uint8_t val) {
+    if (addr < HAL_EEPROM_SIZE) {
+        eeprom_write_byte((uint8_t *)(uintptr_t)addr, val);
+    }
+}
+
+/**
+ * @brief Write word to EEPROM
+ */
+void hal_eeprom_write_word(uint16_t addr, uint16_t val) {
+    if (addr + 1 < HAL_EEPROM_SIZE) {
+        eeprom_write_word((uint16_t *)(uintptr_t)addr, val);
+    }
+}
+
+/**
+ * @brief Write dword to EEPROM
+ */
+void hal_eeprom_write_dword(uint16_t addr, uint32_t val) {
+    if (addr + 3 < HAL_EEPROM_SIZE) {
+        eeprom_write_dword((uint32_t *)(uintptr_t)addr, val);
+    }
+}
+
+/**
+ * @brief Write block from RAM to EEPROM
+ */
+void hal_eeprom_write_block(uint16_t addr, const void *src, size_t len) {
+    if (addr + len > HAL_EEPROM_SIZE) {
+        len = HAL_EEPROM_SIZE - addr;
+    }
+    eeprom_write_block(src, (void *)(uintptr_t)addr, len);
+}
+
+/**
+ * @brief Update byte in EEPROM (write only if different)
+ *
+ * This is the preferred method for EEPROM writes as it extends lifetime.
+ */
+void hal_eeprom_update_byte(uint16_t addr, uint8_t val) {
+    if (addr < HAL_EEPROM_SIZE) {
+        eeprom_update_byte((uint8_t *)(uintptr_t)addr, val);
+    }
+}
+
+/**
+ * @brief Update word in EEPROM
+ */
+void hal_eeprom_update_word(uint16_t addr, uint16_t val) {
+    if (addr + 1 < HAL_EEPROM_SIZE) {
+        eeprom_update_word((uint16_t *)(uintptr_t)addr, val);
+    }
+}
+
+/**
+ * @brief Update dword in EEPROM
+ */
+void hal_eeprom_update_dword(uint16_t addr, uint32_t val) {
+    if (addr + 3 < HAL_EEPROM_SIZE) {
+        eeprom_update_dword((uint32_t *)(uintptr_t)addr, val);
+    }
+}
+
+/**
+ * @brief Update block in EEPROM (write only changed bytes)
+ */
+void hal_eeprom_update_block(uint16_t addr, const void *src, size_t len) {
+    if (addr + len > HAL_EEPROM_SIZE) {
+        len = HAL_EEPROM_SIZE - addr;
+    }
+    eeprom_update_block(src, (void *)(uintptr_t)addr, len);
+}
+
+/**
+ * @brief Erase entire EEPROM (set all bytes to 0xFF)
+ *
+ * @warning This is VERY slow on AVR! ~3.4 seconds for 1KB.
+ */
+void hal_eeprom_erase_all(void) {
+    for (uint16_t addr = 0; addr < HAL_EEPROM_SIZE; addr++) {
+        eeprom_write_byte((uint8_t *)(uintptr_t)addr, 0xFF);
+    }
+}
+
+/*═══════════════════════════════════════════════════════════════════
  * END OF FILE
  *═══════════════════════════════════════════════════════════════════*/
