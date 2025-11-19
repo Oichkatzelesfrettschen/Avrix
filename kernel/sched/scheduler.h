@@ -124,6 +124,23 @@ void nk_sleep(uint16_t ms);
 uint8_t nk_current_tid(void);
 
 /**
+ * @brief Switch to specific task (kernel/IPC use)
+ *
+ * Immediately context-switches to the specified task. Unlike nk_yield(),
+ * which lets the scheduler decide the next task, this forces a switch
+ * to a specific task.
+ *
+ * @param tid Task ID to switch to
+ *
+ * @note This is an advanced API primarily for kernel subsystems (IPC, etc.)
+ * @note If tid is invalid (>= task count), the call is ignored
+ * @note Disables/re-enables interrupts during the switch
+ *
+ * @warning Improper use can break scheduler invariants. Use with caution.
+ */
+void nk_switch_to(uint8_t tid);
+
+/**
  * @brief Terminate current task
  *
  * Marks the task as terminated and yields to scheduler.

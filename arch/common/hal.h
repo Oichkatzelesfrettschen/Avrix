@@ -75,7 +75,28 @@ extern "C" {
 #endif
 
 /*═══════════════════════════════════════════════════════════════════
- * 2. COMMON TYPE DEFINITIONS
+ * 2. COMPILER MACROS & ATTRIBUTES
+ *═══════════════════════════════════════════════════════════════════*/
+
+/**
+ * @brief Section attribute for placing variables in specific memory sections
+ *
+ * Common sections:
+ * - ".noinit" : Uninitialized data that persists across warm reboots
+ * - ".data"   : Initialized data (default)
+ * - ".bss"    : Zero-initialized data (default)
+ * - ".rodata" : Read-only data
+ *
+ * Example: HAL_SECTION(".noinit") uint8_t persistent_buffer[128];
+ */
+#if defined(__GNUC__) || defined(__clang__)
+    #define HAL_SECTION(name) __attribute__((section(name)))
+#else
+    #define HAL_SECTION(name)  /* Not supported on this compiler */
+#endif
+
+/*═══════════════════════════════════════════════════════════════════
+ * 3. COMMON TYPE DEFINITIONS
  *═══════════════════════════════════════════════════════════════════*/
 
 /**
@@ -107,7 +128,7 @@ typedef enum {
 } hal_reset_reason_t;
 
 /*═══════════════════════════════════════════════════════════════════
- * 3. CORE SYSTEM CONTROL
+ * 4. CORE SYSTEM CONTROL
  *═══════════════════════════════════════════════════════════════════*/
 
 /**
@@ -152,7 +173,7 @@ hal_reset_reason_t hal_reset_reason(void);
 void hal_get_caps(hal_caps_t *caps);
 
 /*═══════════════════════════════════════════════════════════════════
- * 4. INTERRUPT MANAGEMENT
+ * 5. INTERRUPT MANAGEMENT
  *═══════════════════════════════════════════════════════════════════*/
 
 /**
@@ -191,7 +212,7 @@ uint32_t hal_irq_save(void);
 void hal_irq_restore(uint32_t state);
 
 /*═══════════════════════════════════════════════════════════════════
- * 5. TIMER & CLOCK SERVICES
+ * 6. TIMER & CLOCK SERVICES
  *═══════════════════════════════════════════════════════════════════*/
 
 /**
@@ -238,7 +259,7 @@ void hal_timer_delay_ms(uint32_t ms);
 uint32_t hal_cpu_freq_hz(void);
 
 /*═══════════════════════════════════════════════════════════════════
- * 6. CONTEXT SWITCHING (for scheduler)
+ * 7. CONTEXT SWITCHING (for scheduler)
  *═══════════════════════════════════════════════════════════════════*/
 
 /**
@@ -291,7 +312,7 @@ void hal_context_init(hal_context_t *ctx, void (*entry)(void), void *stack, size
 void hal_context_switch(hal_context_t *from, hal_context_t *to);
 
 /*═══════════════════════════════════════════════════════════════════
- * 7. MEMORY BARRIERS & SYNCHRONIZATION
+ * 8. MEMORY BARRIERS & SYNCHRONIZATION
  *═══════════════════════════════════════════════════════════════════*/
 
 /**
@@ -327,7 +348,7 @@ void hal_dsb(void);
 void hal_isb(void);
 
 /*═══════════════════════════════════════════════════════════════════
- * 8. ATOMIC OPERATIONS
+ * 9. ATOMIC OPERATIONS
  *═══════════════════════════════════════════════════════════════════*/
 
 /**
@@ -394,7 +415,7 @@ bool hal_atomic_compare_exchange_u32(volatile uint32_t *ptr, uint32_t *expected,
 uint8_t hal_atomic_test_and_set_u8(volatile uint8_t *ptr);
 
 /*═══════════════════════════════════════════════════════════════════
- * 9. PLATFORM-SPECIFIC FUNCTIONS
+ * 10. PLATFORM-SPECIFIC FUNCTIONS
  *═══════════════════════════════════════════════════════════════════*/
 
 /**
@@ -420,7 +441,7 @@ const char *hal_cpu_model(void);
 void hal_early_init(void) __attribute__((weak));
 
 /*═══════════════════════════════════════════════════════════════════
- * 10. OPTIONAL: MPU/MMU SUPPORT (high-end only)
+ * 11. OPTIONAL: MPU/MMU SUPPORT (high-end only)
  *═══════════════════════════════════════════════════════════════════*/
 
 #if defined(HAL_HAS_MPU) && HAL_HAS_MPU
