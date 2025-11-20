@@ -130,9 +130,9 @@ static void uart_init(void)
 }
 
 /**
- * @brief Initialize hardware abstraction layer
+ * @brief Initialize hardware (UART + TTY)
  */
-static void hal_init(void)
+static void hardware_init(void)
 {
     /* Disable interrupts during initialization */
     cli();
@@ -158,7 +158,7 @@ static void hal_init(void)
 static void kernel_init(void)
 {
     /* Initialize memory allocator */
-    kalloc_init(heap_pool, AVRIX_HEAP_SIZE);
+    kalloc_init();
 
     /* Initialize virtual filesystem */
     vfs_init();
@@ -262,7 +262,7 @@ int main(void)
     /*───────────────────────────────────────────────────────────────
      * 1. HARDWARE INITIALIZATION
      *───────────────────────────────────────────────────────────────*/
-    hal_init();
+    hardware_init();
 
     /*───────────────────────────────────────────────────────────────
      * 2. KERNEL INITIALIZATION

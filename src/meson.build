@@ -71,6 +71,7 @@ endforeach
 # Include paths for modular structure (Phase 4-5)
 all_inc = [
   inc,
+  include_directories('..'),              # For arch/common/hal.h, kernel/..., drivers/...
   include_directories('../kernel/sched'),
   include_directories('../kernel/sync'),
   include_directories('../kernel/mm'),
