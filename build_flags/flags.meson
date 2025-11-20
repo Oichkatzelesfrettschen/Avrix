@@ -8,7 +8,7 @@ common_cflags = [
   '-Wall',
   '-Wextra',
   '-Wpedantic',
-  '-std=c2x',
+  '-std=c11',
 ]
 
 common_ldflags = [
