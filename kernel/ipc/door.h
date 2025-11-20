@@ -51,6 +51,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "task.h"                    /* NK_MAX_TASKS configuration */
 #include "kernel/sched/scheduler.h"  /* nk_current_tid, task IDs */
 
 /*═══════════════════════════════════════════════════════════════════

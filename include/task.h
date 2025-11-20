@@ -21,7 +21,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <avr/io.h>
 
 #ifdef __cplusplus
 extern "C" {             /* header is C23-pure but callable from C++ */
@@ -52,7 +51,8 @@ _Static_assert(NK_MAX_TASKS <= 8,
 
 typedef uint16_t nk_sp_t;          /* AVR SP is 16 bit */
 
-typedef enum nk_state : uint8_t {
+/* Task state (C11-compatible enum without fixed underlying type) */
+typedef enum {
     NK_READY   = 0,
     NK_RUNNING = 1,
     NK_BLOCKED = 2

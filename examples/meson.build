@@ -63,14 +63,24 @@ ned = executable(
   install             : false
 )
 
-vini = executable(
-  'vini',
-  ['vini.c', 'editor_common.c'],
-  include_directories : inc,
-  link_with           : [libavrix] + (meson.is_cross_build() ? [] : [nk_sim_io]),
-  c_args              : opt_cflags + ['-DMAX_LINES=14', '-DMAX_LINE_LEN=64'],
-  install             : false
-)
+# vini uses termios.h (POSIX terminal I/O) - host-only
+if not meson.is_cross_build()
+  vini = executable(
+    'vini',
+    ['vini.c', 'editor_common.c'],
+    include_directories : inc,
+    link_with           : [libavrix, nk_sim_io],
+    c_args              : opt_cflags + ['-DMAX_LINES=14', '-DMAX_LINE_LEN=64'],
+    native              : true,
+    install             : false
+  )
+else
+  # Create dummy target for cross-builds (size-gate expects vini to exist)
+  vini = custom_target('vini_dummy',
+    output : 'vini.dummy',
+    command : ['touch', '@OUTPUT@']
+  )
+endif
 
 # ─────────────── door RPC host-only demo ──────────────────────────────
 if not meson.is_cross_build()

@@ -438,20 +438,14 @@ static inline bool hal_atomic_compare_exchange_u32(volatile uint32_t *ptr,
 }
 
 /*═══════════════════════════════════════════════════════════════════
- * FUNCTION PROTOTYPES (implemented in hal_avr8.c)
+ * AVR8-SPECIFIC FUNCTION PROTOTYPES
  *═══════════════════════════════════════════════════════════════════*/
 
-/* These are implemented in hal_avr8.c (not inline due to size) */
-void hal_init(void);
-void hal_reset(void) __attribute__((noreturn));
-hal_reset_reason_t hal_reset_reason(void);
-void hal_get_caps(hal_caps_t *caps);
-void hal_timer_init(uint32_t freq_hz);
-uint32_t hal_timer_ticks(void);
-void hal_timer_delay_us(uint32_t us);
-void hal_timer_delay_ms(uint32_t ms);
-const char *hal_arch_name(void);
-const char *hal_cpu_model(void);
+/*
+ * NOTE: Common HAL interface functions (hal_init, hal_reset, hal_timer_init,
+ * etc.) are declared in arch/common/hal.h and implemented in hal_avr8.c.
+ * They are NOT redeclared here to avoid type conflicts during include.
+ */
 
 /* Context switching - implemented in ASM (hal_context_switch.S) */
 void hal_context_init(hal_context_t *ctx, void (*entry)(void), void *stack, size_t stack_size);

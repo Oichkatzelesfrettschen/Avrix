@@ -74,26 +74,23 @@ static const romfs_file_t file_table[] HAL_PROGMEM = {
 static const romfs_entry_t config_entries[] HAL_PROGMEM = {
     { name_ver, ROMFS_FILE, 0 }
 };
-static const romfs_dir_t config_dir HAL_PROGMEM = { config_entries, 1 };
 
 /* Directory: /etc/ */
 static const romfs_entry_t etc_entries[] HAL_PROGMEM = {
     { name_cfg, ROMFS_DIR, 0 }
 };
-static const romfs_dir_t etc_dir HAL_PROGMEM = { etc_entries, 1 };
 
 /* Directory: / (root) */
 static const romfs_entry_t root_entries[] HAL_PROGMEM = {
     { name_etc, ROMFS_DIR, 1 },
     { name_readme, ROMFS_FILE, 1 }
 };
-static const romfs_dir_t root_dir HAL_PROGMEM = { root_entries, 2 };
 
-/* Directory table (stored in program memory) */
+/* Directory table (stored in program memory) - use compound literals for C11 */
 static const romfs_dir_t dir_table[] HAL_PROGMEM = {
-    config_dir, /* 0 */
-    etc_dir,    /* 1 */
-    root_dir    /* 2 */
+    { config_entries, 1 }, /* 0: /etc/config/ */
+    { etc_entries, 1 },    /* 1: /etc/ */
+    { root_entries, 2 }    /* 2: / (root) */
 };
 
 #define ROOT_DIR (&dir_table[2])

@@ -68,18 +68,16 @@ static const eepfs_file_t file_table[] HAL_PROGMEM = {
 static const eepfs_entry_t sys_entries[] HAL_PROGMEM = {
     { name_msg, EEPFS_FILE, 0 }
 };
-static const eepfs_dir_t sys_dir HAL_PROGMEM = { sys_entries, 1 };
 
 /* Directory: / (root) */
 static const eepfs_entry_t root_entries[] HAL_PROGMEM = {
     { name_sys, EEPFS_DIR, 0 }
 };
-static const eepfs_dir_t root_dir HAL_PROGMEM = { root_entries, 1 };
 
-/* Directory table (stored in program memory) */
+/* Directory table (stored in program memory) - use compound literals for C11 */
 static const eepfs_dir_t dir_table[] HAL_PROGMEM = {
-    sys_dir,   /* 0 */
-    root_dir   /* 1 */
+    { sys_entries, 1 },   /* 0: /sys/ */
+    { root_entries, 1 }   /* 1: / (root) */
 };
 
 #define ROOT_DIR (&dir_table[1])
