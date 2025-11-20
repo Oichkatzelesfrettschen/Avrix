@@ -2,32 +2,26 @@
  * See LICENSE file in the repository root for full license information.
  */
 
+/**
+ * @file eepfs.h (LEGACY COMPATIBILITY HEADER)
+ * @brief Forwarding header for backward compatibility
+ *
+ * DEPRECATED: This header is provided for backward compatibility only.
+ * New code should directly include:
+ *   #include "drivers/fs/eepfs.h"
+ *
+ * This header will be removed in a future release.
+ */
+
 #ifndef EEPFS_H
 #define EEPFS_H
 
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
+/* Forward to new modular location (Phase 5 refactoring) */
+#include "../drivers/fs/eepfs.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/** Simple read-only filesystem stored in the AVR EEPROM.
- *  Directory entries mirror romfs and consume four bytes each. All access
- *  uses the standard eeprom_read_* API so the runtime uses virtually no RAM.
- */
-
-typedef struct {
-    uint16_t addr; /**< EEPROM offset of the file data */
-    uint16_t size; /**< Size in bytes                  */
-} eepfs_file_t;
-
-const eepfs_file_t *eepfs_open(const char *path);
-int eepfs_read(const eepfs_file_t *f, uint16_t off, void *buf, uint16_t len);
-
-#ifdef __cplusplus
-}
+/* Deprecated warning for GCC/Clang */
+#if defined(__GNUC__) || defined(__clang__)
+#  warning "include/eepfs.h is deprecated. Use 'drivers/fs/eepfs.h' instead."
 #endif
 
 #endif /* EEPFS_H */

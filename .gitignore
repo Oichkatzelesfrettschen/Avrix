@@ -9,3 +9,4 @@ docker/avrix.img
 __pycache__/
 build.log
 build.log.txt
+*.deb

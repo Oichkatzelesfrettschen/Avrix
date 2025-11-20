@@ -1,0 +1,92 @@
+# ────────────────────────────────────────────────────────────────────────
+# cross/atmega32u4_gcc14.cross ― GCC-AVR 14 profile for Arduino Leonardo/Micro
+#
+# Target MCU  : ATmega32U4 @ 16 MHz, 32 kB Flash, 2.5 kB SRAM, 1 kB EEPROM
+# Compiler    : gcc-avr ≥ 14 (Debian Sid package, xPack, or home-built)
+# Goal        : PSE51 with native USB HID/CDC support
+#
+# Compatible Boards:
+#   - Arduino Leonardo
+#   - Arduino Micro
+#   - SparkFun Pro Micro
+#   - Adafruit ItsyBitsy 32u4
+#
+# Unique Feature: Built-in USB (can emulate keyboard/mouse)
+#
+#  Install on Ubuntu (Debian Sid repo example):
+#    echo "deb http://ftp.debian.org/debian sid main" | sudo tee /etc/apt/sources.list.d/debian-sid.list
+#    sudo apt update
+#    sudo apt install gcc-avr binutils-avr avr-libc
+#
+#  Meson usage:
+#    meson setup build_32u4 --wipe --cross-file cross/atmega32u4_gcc14.cross
+#
+#  Flash via Arduino bootloader (Caterina):
+#    avrdude -c avr109 -p m32u4 -P /dev/ttyACM0 -b 57600 \
+#            -U flash:w:build_32u4/unix0.hex:i
+# ────────────────────────────────────────────────────────────────────────
+
+[binaries]
+c           = 'avr-gcc'
+ar          = 'avr-ar'
+strip       = 'avr-strip'
+objcopy     = 'avr-objcopy'
+size        = 'avr-size'
+exe_wrapper = 'true'                  # no runner for bare-metal tests
+
+[host_machine]
+system      = 'baremetal'
+cpu_family  = 'avr'
+cpu         = 'atmega32u4'
+endian      = 'little'
+
+[properties]
+needs_exe_wrapper = true              # suppress Meson warning
+
+c_args = [
+  # MCU + language dialect
+  '-mmcu=atmega32u4',
+  '-std=c23',
+  '-DF_CPU=16000000UL',
+
+  # Size-first optimisation (2.5KB RAM, slightly better than Uno)
+  '-Oz',
+  '-flto',
+  '-mrelax',
+  '-mcall-prologues',
+  '-fdata-sections',
+  '-ffunction-sections',
+  '-fmerge-all-constants',
+  '-fno-ident',
+
+  # Remove unused runtime features
+  '-fno-exceptions',
+  '-fno-rtti',
+  '-fno-unwind-tables',
+  '-fno-asynchronous-unwind-tables',
+  '-fno-stack-protector',
+
+  # USB HID support (optional, uncomment if needed)
+  # '-DUSB_VID=0x2341',      # Arduino vendor ID
+  # '-DUSB_PID=0x8036',      # Leonardo product ID
+]
+
+c_link_args = [
+  '-mmcu=atmega32u4',
+  '-flto',
+  '-Wl,--gc-sections',
+  '-Wl,--icf=safe',
+  '-Wl,--relax'
+]
+
+[built-in options]
+c_std           = 'c23'
+optimization    = 's'                  # Meson alias for -Oz
+warning_level   = 2
+strip           = true
+default_library = 'none'
+b_staticpic     = false                # irrelevant on AVR
+
+[project options]
+profile         = false                # enable PGO with -Dprofile=true
+debug_gdb       = false                # build avr-gdbstub when true

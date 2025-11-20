@@ -21,7 +21,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
-#include <avr/io.h>
 
 #ifdef __cplusplus
 extern "C" {             /* header is C23-pure but callable from C++ */

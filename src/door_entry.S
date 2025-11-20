@@ -1,10 +1,20 @@
+/*
+ * Door RPC entry point - AVR assembly implementation
+ *
+ * External symbols referenced:
+ * - door_slab: Shared memory buffer for door messages
+ * - nk_switch_to: Task switching function
+ */
+
 #include <avr/io.h>
-#include "door.h"
-#include "nk_task.h"
 
 .section .text
 .global _nk_door
 .type _nk_door, @function
+
+/* External symbols */
+.extern door_slab
+.extern nk_switch_to
 
 ; void _nk_door(const uint8_t *src, uint8_t len, uint8_t tid)
 ; r24:r25 -> src pointer

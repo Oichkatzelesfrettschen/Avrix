@@ -88,11 +88,15 @@ tests += [
   ['door_test',             ['door_test.c']],
 ]
 
-# Native-only test
+# Native-only tests
 if not meson.is_cross_build()
   tests += [
     ['kalloc_test',
-     ['kalloc_test.c', meson.project_source_root() / 'src/kalloc.c']]
+     ['kalloc_test.c', meson.project_source_root() / 'src/kalloc.c']],
+    # Phase 5 driver tests (P7.7)
+    ['vfs_test',     ['vfs_test.c']],
+    ['ipv4_test',    ['ipv4_test.c']],
+    ['tty_test',     ['tty_test.c']],
   ]
 endif
 

@@ -7,6 +7,7 @@
 
 #if defined(__AVR__)
 #include <avr/eeprom.h>
+#include <avr/pgmspace.h>
 #else
 #include "../compat/avr/eeprom.h"
 #include "../compat/avr/pgmspace.h"
