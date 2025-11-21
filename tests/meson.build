@@ -2,17 +2,6 @@
 # Native build   → links tests against **libavrix_host** stub.
 # Cross build    → compiles tests for the host CPU (`native : true`)
 #                  and links only against portable **libfs** helpers.
-#
-# Options (meson_options.txt):
-#   -Dsan=true      → Address & UB sanitizers (host only)
-#   -Dcov=true      → LLVM coverage flags     (host only)
-#   -Davr_inc_dir=… → Additional AVR header path
-#
-# Imported from root meson.build:
-#   inc       → include_directories('include')
-#   libavrix  → host stub   (native builds)
-#   libfs     → portable RAM-FS helpers
-#   nk_sim_io → I/O shim for host simulations
 # -----------------------------------------------------------------------
 
 python   = import('python').find_installation('python3')
@@ -75,29 +64,47 @@ link_target = meson.is_cross_build() ? libfs : libavrix
 # ───────────────────── 4 · Core unit-test list  ───────────────────────
 tests = [
   ['test_fixed_point',      ['test_fixed_point.c']],
-  ['fs_test',               ['fs_test.c',               'sim.c']],
-  ['flock_stress',          ['flock_stress.c',          'sim.c']],
 ]
 
-# spin_test is disabled on this configuration
+# FS tests require FS to be enabled
+if get_option('fs_enabled')
+  tests += [
+    ['fs_test',               ['fs_test.c',               'sim.c']],
+    ['flock_stress',          ['flock_stress.c',          'sim.c']],
+    ['fs_roundtrip',          ['fs_roundtrip.c',          'sim.c']],
+  ]
+endif
 
 tests += [
   ['unified_spinlock_test', ['unified_spinlock_test.c', 'sim.c']],
-  ['romfs_test',            ['romfs_test.c',            'sim.c']],
-  ['fs_roundtrip',          ['fs_roundtrip.c',          'sim.c']],
-  ['door_test',             ['door_test.c']],
 ]
+
+if get_option('fs_romfs_enabled')
+  tests += [['romfs_test',            ['romfs_test.c',            'sim.c']]]
+endif
+
+if get_option('ipc_door_enabled')
+  tests += [['door_test',             ['door_test.c']]]
+endif
 
 # Native-only tests
 if not meson.is_cross_build()
   tests += [
     ['kalloc_test',
      ['kalloc_test.c', meson.project_source_root() / 'src/kalloc.c']],
-    # Phase 5 driver tests (P7.7)
-    ['vfs_test',     ['vfs_test.c']],
-    ['ipv4_test',    ['ipv4_test.c']],
-    ['tty_test',     ['tty_test.c']],
   ]
+
+  if get_option('fs_enabled')
+    tests += [['vfs_test',     ['vfs_test.c']]]
+  endif
+
+  if get_option('net_ipv4_enabled')
+    tests += [['ipv4_test',    ['ipv4_test.c']]]
+  endif
+
+  if get_option('tty_enabled')
+    tests += [['tty_test',     ['tty_test.c']]]
+  endif
 endif
 
 # ───────────────────── 5 · Build + register tests  ────────────────────
@@ -118,12 +125,17 @@ endforeach
 if target_machine.cpu_family() == 'avr'
   simavr = find_program('simavr', required : false)
   if simavr.found()
-    sim_suites = [
-      ['fs_simavr_basic',
-       ['fs_simavr_basic.c', meson.project_source_root() / 'src/fs.c']],
-      ['spinlock_isr',
-       ['spinlock_isr.c',    meson.project_source_root() / 'src/nk_lock.c']],
-    ]
+    sim_suites = []
+
+    if get_option('fs_enabled')
+      sim_suites += [['fs_simavr_basic',
+       ['fs_simavr_basic.c', meson.project_source_root() / 'src/fs.c']]]
+    endif
+
+    if get_option('sync_spinlock_enabled')
+      sim_suites += [['spinlock_isr',
+       ['spinlock_isr.c',    meson.project_source_root() / 'src/nk_lock.c']]]
+    endif
 
     foreach s : sim_suites
       sim_exe = executable(

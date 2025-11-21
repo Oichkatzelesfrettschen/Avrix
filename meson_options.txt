@@ -1,58 +1,49 @@
 # ────────────────────────────────────────────────────────────────────
-#  meson_options.txt — unified after conflict resolution (2025-06-22)
+#  meson_options.txt — Avrix Configuration (Repo Modulator)
 # ────────────────────────────────────────────────────────────────────
-option(
-  'avr_inc_dir',
-  type : 'string',
-  value : '',
-  description : 'Path to AVR-LibC headers (falls back to default include locations)'
-)
 
-option(
-  'flash_port',
-  type : 'string',
-  value : '/dev/ttyACM0',
-  description : 'Serial port device used by avrdude for flashing firmware'
-)
+# ── Build / Toolchain ───────────────────────────────────────────────
+option('avr_inc_dir', type : 'string', value : '', description : 'Path to AVR-LibC headers')
+option('flash_port', type : 'string', value : '/dev/ttyACM0', description : 'Flashing device')
+option('flash_programmer', type : 'string', value : 'arduino', description : 'AVR programmer')
+option('san', type : 'boolean', value : false, description : 'Host sanitizers')
+option('cov', type : 'boolean', value : false, description : 'Host coverage')
+option('flash_limit', type : 'boolean', value : true, description : 'Enforce flash size limit')
+option('flash_limit_bytes', type : 'integer', value : 30720, description : 'Flash limit bytes')
 
-option(
-  'flash_programmer',
-  type : 'string',
-  value : 'arduino',
-  description : 'avrdude-compatible programmer identifier (e.g. arduino, usbasp, stk500v1)'
-)
+# ── Kernel Core ─────────────────────────────────────────────────────
+option('kernel_sched_type', type : 'combo', choices : ['single', 'coop', 'preempt'], value : 'preempt',
+       description : 'Scheduler type: single-task, cooperative, or preemptive')
+option('kernel_task_max', type : 'integer', value : 8, description : 'Max tasks (Low: 1, Mid: 4-8, High: 16+)')
+option('kernel_stack_size', type : 'integer', value : 128, description : 'Default stack size per task')
+option('kernel_panic_on_fault', type : 'boolean', value : true, description : 'Halt system on kernel fault')
 
-option(
-  'debug_gdb',
-  type : 'boolean',
-  value : false,
-  description : 'Embed a minimal on-target GDB stub (avr-gdbstub) and set DEBUG_GDB'
-)
+# ── Memory Management (MM) ──────────────────────────────────────────
+option('mm_heap_size', type : 'integer', value : 1024, description : 'Heap size in bytes (0 = static only)')
+option('mm_kalloc_guards', type : 'boolean', value : false, description : 'Enable canary guards in allocator')
 
-option(
-  'san',
-  type : 'boolean',
-  value : false,
-  description : 'Enable AddressSanitizer & UndefinedBehaviorSanitizer for host-side tests'
-)
+# ── IPC & Synchronization ───────────────────────────────────────────
+option('ipc_door_enabled', type : 'boolean', value : true, description : 'Enable Door RPC mechanism')
+option('sync_mutex_enabled', type : 'boolean', value : true, description : 'Enable Mutexes')
+option('sync_spinlock_enabled', type : 'boolean', value : true, description : 'Enable Spinlocks')
 
-option(
-  'cov',
-  type : 'boolean',
-  value : false,
-  description : 'Enable LLVM/clang-based coverage instrumentation for host unit tests'
-)
+# ── Filesystem (VFS) ────────────────────────────────────────────────
+option('fs_enabled', type : 'boolean', value : true, description : 'Enable Virtual Filesystem (VFS)')
+option('fs_max_files', type : 'integer', value : 4, description : 'Max open files')
+option('fs_max_mounts', type : 'integer', value : 2, description : 'Max mount points')
+option('fs_romfs_enabled', type : 'boolean', value : true, description : 'Enable ROMFS driver')
+option('fs_eepfs_enabled', type : 'boolean', value : true, description : 'Enable EEPFS driver')
+option('fs_eepfs_wear_leveling', type : 'boolean', value : true, description : 'Enable EEPFS wear leveling')
 
-option(
-  'flash_limit',
-  type : 'boolean',
-  value : true,
-  description : 'Enable flash size gate when compiling firmware'
-)
+# ── Networking (Net) ────────────────────────────────────────────────
+option('net_enabled', type : 'boolean', value : true, description : 'Enable Network Stack')
+option('net_ipv4_enabled', type : 'boolean', value : true, description : 'Enable IPv4')
+option('net_ipv4_checksum', type : 'boolean', value : true, description : 'Verify IPv4 checksums')
+option('net_slip_enabled', type : 'boolean', value : true, description : 'Enable SLIP driver')
+option('net_udp_enabled', type : 'boolean', value : false, description : 'Enable UDP (Future)')
+option('net_tcp_enabled', type : 'boolean', value : false, description : 'Enable TCP (Future)')
 
-option(
-  'flash_limit_bytes',
-  type : 'integer',
-  value : 30720,
-  description : 'Maximum firmware size in bytes checked by size gate'
-)
+# ── Drivers & IO ────────────────────────────────────────────────────
+option('tty_enabled', type : 'boolean', value : true, description : 'Enable TTY subsystem')
+option('tty_buffers', type : 'integer', value : 64, description : 'TTY ring buffer size')
+option('debug_gdb', type : 'boolean', value : false, description : 'Enable on-target GDB stub')

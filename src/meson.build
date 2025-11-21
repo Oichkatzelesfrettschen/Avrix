@@ -33,7 +33,6 @@ kernel_main_src = files(
 legacy_src = files(
   'fixed_point.c',
   'fs.c',
-  'task.c',            # pure C (TODO: migrate to kernel/sched/)
   'nk_fs.c',
   'context_switch.S',  # hand-written AVR ASM
   'switch_task.S',
@@ -58,7 +57,7 @@ kernel_src += avr_startup_src      # PHASE 10: Startup code (AVR only)
 portable_src = []
 portable_src += all_kernel_sources
 portable_src += all_driver_sources
-portable_src += files('fixed_point.c', 'fs.c', 'task.c', 'nk_fs.c')
+portable_src += files('fixed_point.c', 'fs.c', 'nk_fs.c')
 
 avr_only_src = []
 foreach s : kernel_src
@@ -72,6 +71,7 @@ endforeach
 all_inc = [
   inc,
   include_directories('..'),              # For arch/common/hal.h, kernel/..., drivers/...
+  include_directories('../config'),       # For avrix-config.h
   include_directories('../kernel/sched'),
   include_directories('../kernel/sync'),
   include_directories('../kernel/mm'),

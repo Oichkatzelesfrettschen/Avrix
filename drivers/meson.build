@@ -2,31 +2,41 @@
 #
 # Driver layer - Portable device drivers
 # ──────────────────────────────────────────────────────────────────────
-# Phase 5 refactoring: Extracted all drivers from src/ to drivers/
-#
-# Structure:
-#   drivers/fs/    - Filesystem drivers (ROMFS, EEPFS, VFS)
-#   drivers/net/   - Networking drivers (SLIP, IPv4)
-#   drivers/tty/   - Character device drivers (TTY)
-# ──────────────────────────────────────────────────────────────────────
 
-# Include subdirectories
-subdir('fs')
-subdir('net')
-subdir('tty')
-
-# Aggregate all driver sources
 all_driver_sources = []
-all_driver_sources += fs_driver_sources
-all_driver_sources += net_driver_sources
-all_driver_sources += tty_driver_sources
+drivers_inc = []
+
+# ── Filesystem ──
+if get_option('fs_enabled')
+  subdir('fs')
+  all_driver_sources += fs_driver_sources
+  drivers_inc += include_directories('fs')
+else
+  # Even if disabled, we might want to include headers for stubs if they are not in include/
+  # But our stubs are in include/fs.h, so this is fine.
+  fs_driver_sources = []
+endif
+
+# ── Networking ──
+if get_option('net_enabled')
+  subdir('net')
+  all_driver_sources += net_driver_sources
+  drivers_inc += include_directories('net')
+else
+  net_driver_sources = []
+endif
+
+# ── TTY ──
+if get_option('tty_enabled')
+  subdir('tty')
+  all_driver_sources += tty_driver_sources
+  drivers_inc += include_directories('tty')
+else
+  tty_driver_sources = []
+endif
 
 # Export combined dependency
 drivers_dep = declare_dependency(
   sources             : all_driver_sources,
-  include_directories : [
-    include_directories('fs'),
-    include_directories('net'),
-    include_directories('tty'),
-  ],
+  include_directories : drivers_inc,
 )

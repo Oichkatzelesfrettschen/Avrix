@@ -3,160 +3,45 @@
  */
 
 /*────────────────────────── task.h ───────────────────────────────
-   µ-UNIX – Task & scheduler interface (Arduino-Uno / ATmega328P)
-
-   • 8 byte Task-Control-Block  → eight tasks fit in 64 B SRAM  
-   • Priorities 0-63 + 2-bit “class” channel (lock fairness)  
-   • Optional DAG wait-counter (dependency scheduler)  
-   • Pure C23, freestanding: no libc heap / RTTI / EH tables
-
-   Implementations:
-       nk_sched.c  – core scheduler
-       isr.S       – context-switch ASM & 1 kHz timer ISR
+   µ-UNIX – Task & scheduler interface (Legacy Shim)
    ----------------------------------------------------------------*/
 #ifndef NK_TASK_H
 #define NK_TASK_H
 
-/*──────────────── 1. Includes & C linkage ───────────────*/
-#include <stdint.h>
-#include <stddef.h>
-#include <stdbool.h>
+#include "kernel/sched/scheduler.h"
+#include "avrix-config.h"
 
 #ifdef __cplusplus
-extern "C" {             /* header is C23-pure but callable from C++ */
+extern "C" {
 #endif
 
-/*──────────────── 2. Compile-time knobs ─────────────────*/
-
-#ifndef NK_MAX_TASKS           /* incl. idle */
-#  define NK_MAX_TASKS  8
+/* Legacy compatibility mappings */
+#ifndef NK_MAX_TASKS
+#define NK_MAX_TASKS CONFIG_KERNEL_TASK_MAX
 #endif
 
-#ifndef NK_OPT_DAG_WAIT        /* add 1 B per TCB */
-#  define NK_OPT_DAG_WAIT  0
-#endif
-
-/* Per-task stack size in bytes and scheduler quantum in ms */
 #ifndef NK_STACK_SIZE
-#  define NK_STACK_SIZE 128u
-#endif
-#ifndef NK_QUANTUM_MS
-#  define NK_QUANTUM_MS 10u
+#define NK_STACK_SIZE CONFIG_KERNEL_STACK_SIZE
 #endif
 
-_Static_assert(NK_MAX_TASKS <= 8,
-               "NK_MAX_TASKS > 8 breaks SRAM budget");
+/* Map nk_cur_tid -> nk_current_tid */
+static inline uint8_t nk_cur_tid(void) {
+    return nk_current_tid();
+}
 
-/*──────────────── 3. Core types ─────────────────────────*/
-
-typedef uint16_t nk_sp_t;          /* AVR SP is 16 bit */
-
-/* Task state (C11-compatible enum without fixed underlying type) */
-typedef enum {
-    NK_READY   = 0,
-    NK_RUNNING = 1,
-    NK_BLOCKED = 2
-} nk_state_t;
-
-/* Task-Control-Block – must stay exactly 8 B unless DAG enabled */
-typedef struct nk_tcb {
-    nk_sp_t  sp;                   /* saved SP (little-endian)  */
-    uint8_t  state : 2;
-    uint8_t  prio  : 6;            /* dynamic priority 0-63     */
-    uint8_t  pid;                  /* slot 0-(NK_MAX_TASKS-1)   */
-    uint8_t  class : 2;            /* fairness channel 0-3      */
-    uint8_t  _rsv  : 6;            /* keep zero – future use    */
-#if NK_OPT_DAG_WAIT
-    uint8_t  deps;                 /* outstanding deps counter  */
-#else
-    uint8_t  _pad;
-#endif
-    uint16_t _future;              /* keeps TCB aligned / 8 B   */
-} nk_tcb_t;
-
-#if NK_OPT_DAG_WAIT
-_Static_assert(sizeof(nk_tcb_t) == 10,
-               "TCB must pad to 10 bytes when DAG enabled");
-#else
-_Static_assert(sizeof(nk_tcb_t) == 8,
-               "TCB must stay 8 bytes");
-#endif
-
-/** Function signature for task entry points. */
-typedef void (*nk_task_fn)(void);
-
-/*──────────────── 4. Public API ─────────────────────────*/
-
-/** Initialise scheduler, idle task & 1 kHz tick. */
-void scheduler_init(void);
-#if defined(__GNUC__)
-void nk_sched_init(void) __attribute__((alias("scheduler_init")));
-#else
-static inline void nk_sched_init(void) { scheduler_init(); }
-#endif
-
-/**
- * Create a task and add it to the run queue.
- *
- * @param tcb        Caller-allocated TCB
- * @param entry      Task entry point
- * @param prio       0 (highest) … 63 (lowest)
- * @param stack_base Pointer to caller-supplied stack buffer
- * @param stack_len  Buffer length in bytes
- * @return `true` on success, `false` on failure
- */
-bool nk_task_create(nk_tcb_t *tcb,
-                    nk_task_fn entry,
-                    uint8_t    prio,
-                    void      *stack_base,
-                    size_t     stack_len);
-
-/**
- * Add a task to the run queue.
- *
- * @deprecated Legacy helper kept for compatibility. Use
- *             nk_task_create() instead.
- *
- * @param tcb       Caller-allocated TCB (zeroed)
- * @param entry     Task entry (never returns)
- * @param stack_top Unused legacy parameter
- * @param prio      0 (highest) … 63 (lowest)
- * @param class     0…3 fairness channel
- */
-#if defined(__GNUC__)
-__attribute__((deprecated("stack_top is ignored; will be removed")))
-#endif
-void nk_task_add(nk_tcb_t *tcb,
-                 void (*entry)(void),
-                 void *stack_top,
-                 uint8_t prio,
-                 uint8_t class);
-
-/** Enter the scheduler – never returns. */
-void scheduler_run(void) __attribute__((noreturn));
-#if defined(__GNUC__)
-void nk_sched_run(void) __attribute__((alias("scheduler_run"), noreturn));
-#else
-static inline void nk_sched_run(void) { scheduler_run(); }
-#endif
-
-/** Suspend the current task for `ms` milliseconds. */
-void nk_sleep(uint16_t ms);
-
-/*─ Cooperative helpers — used by locks / Doors ──────────*/
-uint8_t nk_cur_tid(void);     /**< current PID */
-void    nk_yield(void);       /**< voluntary yield */
-
-/* low-level switch (asm) */
-void nk_switch_to(uint8_t tid);
-
-/*─ Optional DAG wait / signal API ───────────────────────*/
-#if NK_OPT_DAG_WAIT
-void nk_task_wait(uint8_t deps);
-void nk_task_signal(uint8_t tid);
-#endif
+/* Legacy nk_task_add wrapper around nk_task_create */
+static inline void nk_task_add(nk_tcb_t *tcb,
+                               void (*entry)(void),
+                               void *stack_top,
+                               uint8_t prio,
+                               uint8_t class_id) {
+    (void)stack_top; /* Unused */
+    (void)class_id;  /* Unused in new scheduler for now */
+    nk_task_create(tcb, entry, prio, NULL, 0);
+}
 
 #ifdef __cplusplus
-}  /* extern "C" */
+}
 #endif
+
 #endif /* NK_TASK_H */

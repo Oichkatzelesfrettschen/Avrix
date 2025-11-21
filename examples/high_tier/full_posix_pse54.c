@@ -13,14 +13,11 @@
  *
  * Target: High-end embedded Linux (ARM Cortex-A, RISC-V with MMU)
  * Profile: PSE54 (IEEE 1003.13-2003 Full POSIX)
- *
- * Memory Footprint:
- * - Flash: ~3 KB (comprehensive integration)
- * - RAM: ~8 KB (multiple processes + threads)
- * - EEPROM: 0 bytes
- *
- * Architecture: Producer-consumer with monitoring
  */
+
+#define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 700
+#define _DEFAULT_SOURCE 1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +29,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <errno.h>
 
 /**
  * @brief Shared state between processes
@@ -180,7 +178,8 @@ int main(void) {
     printf("Profile: Complete PSE54 with all features\n\n");
 
     /* Install signal handler */
-    struct sigaction sa = {0};
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
     sa.sa_handler = signal_handler;
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
@@ -270,80 +269,3 @@ int main(void) {
     printf("\nPSE54 full POSIX demo complete.\n");
     return 0;
 }
-
-/**
- * PSE54 Feature Integration:
- * ══════════════════════════
- *
- * **This Demo Combines:**
- * 1. Process Management (fork, wait, exec)
- * 2. Threading (pthread_create, pthread_join)
- * 3. Synchronization (pthread_mutex with PTHREAD_PROCESS_SHARED)
- * 4. Signal Handling (sigaction, kill)
- * 5. Shared Memory (mmap with MAP_SHARED)
- * 6. Virtual Memory (MMU-based isolation)
- *
- * **Architecture:**
- * ```
- * Parent Process
- *   ├── Worker 1 (Process)
- *   │     ├── Producer Thread 1
- *   │     ├── Producer Thread 2
- *   │     └── Consumer Thread 1
- *   ├── Worker 2 (Process)
- *   │     ├── Producer Thread 3
- *   │     ├── Producer Thread 4
- *   │     └── Consumer Thread 2
- *   └── Monitor (Process)
- *         └── Main Thread (observes shared state)
- * ```
- *
- * **IPC Mechanisms Used:**
- * - Shared memory (mmap) - Fast, zero-copy
- * - Signals (kill, sigaction) - Asynchronous notifications
- * - Process-shared mutexes - Cross-process synchronization
- *
- * **PSE54 Complete Feature Set:**
- *
- * | Category            | Features                                    |
- * |---------------------|---------------------------------------------|
- * | Process Management  | fork, exec, wait, exit, kill                |
- * | Threading           | pthread_*, mutex, condvar, rwlock           |
- * | Signals             | sigaction, sigprocmask, kill, raise         |
- * | Memory Management   | mmap, munmap, mprotect, mlock               |
- * | File I/O            | open, read, write, lseek, close             |
- * | Networking          | socket, bind, listen, accept, connect       |
- * | IPC                 | pipe, msgq, shm, sem                        |
- * | Time                | clock_gettime, nanosleep, timer_*           |
- * | Scheduling          | sched_*, nice, priority                     |
- *
- * **Real-World Applications:**
- * - Embedded Linux systems
- * - Multi-core embedded processors
- * - Industrial automation
- * - IoT gateways
- * - Edge computing devices
- * - Automotive infotainment
- * - Network appliances
- *
- * **Performance Characteristics:**
- * - Process creation: ~1-5 ms
- * - Thread creation: ~100-500 µs
- * - Context switch: ~1-10 µs
- * - Mutex lock/unlock: ~20-100 ns
- * - Signal delivery: ~100-500 cycles
- * - Shared memory access: 0 overhead (direct)
- *
- * **Migration Path:**
- * PSE51 (single-threaded)
- *   ↓
- * PSE52 (multi-threaded, no processes)
- *   ↓
- * PSE54 (multi-process + multi-threaded + full POSIX)
- *
- * Each tier adds:
- * - More concurrency primitives
- * - Better isolation
- * - More IPC options
- * - Higher resource requirements
- */

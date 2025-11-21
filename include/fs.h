@@ -7,6 +7,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <errno.h>
+#include "avrix-config.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,29 +47,51 @@ typedef struct {
     uint16_t off;                 /**< byte offset for reads/writes */
 } file_t;
 
+#if CONFIG_FS_ENABLED
+
 void fs_init(void);
 int  fs_create(const char *name, uint8_t type);
 int  fs_open(const char *name, file_t *f);
 int  fs_write(file_t *f, const void *buf, uint16_t len);
 int  fs_read(file_t *f, void *buf, uint16_t len);
-/**
- * Populate *buf* with a newline-separated list of valid filenames.
- *
- * The resulting string is always NUL terminated.  Names exceeding
- * ``len`` are truncated to fit.  The directory is flat so at most
- * ``FS_NUM_INODES`` entries are produced.
- *
- * \param[out] buf  Destination buffer for the concatenated list.
- * \param len       Buffer length in bytes.
- * \return          Number of filenames written.
- */
 int  fs_list(char *buf, size_t len);
-
-/** Release *name* and reclaim all associated blocks.
- *
- * Returns ``0`` on success or ``-1`` if the file does not exist.
- */
 int  fs_unlink(const char *name);
+
+#else /* !CONFIG_FS_ENABLED - Stubs for POSIX compliance */
+
+static inline void fs_init(void) {}
+
+static inline int fs_create(const char *name, uint8_t type) {
+    (void)name; (void)type;
+    return -ENOSYS;
+}
+
+static inline int fs_open(const char *name, file_t *f) {
+    (void)name; (void)f;
+    return -ENOSYS;
+}
+
+static inline int fs_write(file_t *f, const void *buf, uint16_t len) {
+    (void)f; (void)buf; (void)len;
+    return -ENOSYS;
+}
+
+static inline int fs_read(file_t *f, void *buf, uint16_t len) {
+    (void)f; (void)buf; (void)len;
+    return -ENOSYS;
+}
+
+static inline int fs_list(char *buf, size_t len) {
+    (void)buf; (void)len;
+    return -ENOSYS;
+}
+
+static inline int fs_unlink(const char *name) {
+    (void)name;
+    return -ENOSYS;
+}
+
+#endif /* CONFIG_FS_ENABLED */
 
 #ifdef __cplusplus
 }

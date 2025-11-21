@@ -12,11 +12,6 @@
  *
  * Target: Mid-range MCUs (ATmega1284, ARM Cortex-M3)
  * Profile: PSE52 + VFS
- *
- * Memory Footprint:
- * - Flash: ~900 bytes (VFS + ROMFS + EEPFS + demo)
- * - RAM: ~180 bytes (VFS state + file descriptors + buffers)
- * - EEPROM: User data (via EEPFS)
  */
 
 #include "drivers/fs/vfs.h"
@@ -63,7 +58,7 @@ int main(void) {
     printf("Test 1: Reading from ROMFS (/rom/config.txt)\n");
     printf("---------------------------------------------\n");
 
-    int fd = vfs_open("/rom/config.txt", VFS_O_RDONLY);
+    int fd = vfs_open("/rom/config.txt", O_RDONLY);
     if (fd >= 0) {
         printf("  ✓ File opened (fd=%d)\n", fd);
 
@@ -87,7 +82,7 @@ int main(void) {
     printf("Test 2: Writing to EEPFS (/eeprom/data.bin)\n");
     printf("--------------------------------------------\n");
 
-    fd = vfs_open("/eeprom/data.bin", VFS_O_RDWR | VFS_O_CREAT);
+    fd = vfs_open("/eeprom/data.bin", O_RDWR | O_CREAT);
     if (fd >= 0) {
         printf("  ✓ File opened (fd=%d)\n", fd);
 
@@ -98,10 +93,10 @@ int main(void) {
         printf("  Wear-leveling: ACTIVE (10-100x life extension)\n");
 
         /* Verify by reading back */
-        vfs_lseek(fd, 0, VFS_SEEK_SET);  /* Rewind to start */
+        vfs_lseek(fd, 0, SEEK_SET);  /* Rewind to start */
 
         uint8_t verify_buf[64];
-        bytes_read = vfs_read(fd, verify_buf, sizeof(verify_buf));
+        int bytes_read = vfs_read(fd, verify_buf, sizeof(verify_buf));
         verify_buf[bytes_read] = '\0';
 
         if (strcmp((char *)verify_buf, data) == 0) {
@@ -135,7 +130,7 @@ int main(void) {
 
     for (size_t i = 0; i < sizeof(test_paths) / sizeof(test_paths[0]); i++) {
         printf("  Resolving: %s\n", test_paths[i]);
-        fd = vfs_open(test_paths[i], VFS_O_RDONLY);
+        fd = vfs_open(test_paths[i], O_RDONLY);
         if (fd >= 0) {
             printf("    ✓ Resolved (fd=%d)\n", fd);
             vfs_close(fd);
@@ -165,95 +160,3 @@ int main(void) {
     printf("\nPSE52 VFS demo complete.\n");
     return 0;
 }
-
-/**
- * PSE52 Virtual Filesystem:
- * ═════════════════════════
- *
- * **Architecture:**
- * ```
- *   Application
- *       ↓
- *   VFS Layer (dispatch)
- *     ↙   ↓   ↘
- * ROMFS EEPFS RAMFS (future)
- * ```
- *
- * **VFS Features:**
- * - Unified POSIX-like API (open, read, write, close, lseek)
- * - Multiple mount points (/rom, /eeprom, /ram)
- * - Function pointer dispatch (zero-overhead polymorphism)
- * - Longest-prefix path matching
- * - File descriptor abstraction
- * - Per-filesystem capabilities (read-only, read-write)
- *
- * **Dispatch Mechanism:**
- * ```c
- * typedef struct {
- *     const void *(*open)(const char *path);
- *     int (*read)(const void *f, uint16_t off, void *buf, uint16_t len);
- *     int (*write)(const void *f, uint16_t off, const void *buf, uint16_t len);
- *     uint16_t (*size)(const void *f);
- * } vfs_ops_t;
- * ```
- *
- * Each filesystem registers its ops table, VFS routes via function pointers.
- * No vtables, no inheritance, pure C function pointer dispatch.
- *
- * **Supported Filesystems:**
- *
- * | Filesystem | Type      | Location | Wear-Leveling | Max Size |
- * |------------|-----------|----------|---------------|----------|
- * | ROMFS      | Read-only | Flash    | N/A           | 64 KB    |
- * | EEPFS      | Read-write| EEPROM   | Yes           | 4 KB     |
- * | RAMFS      | Read-write| RAM      | N/A           | 2 KB     |
- * | FATFS      | Read-write| SD card  | N/A           | 32 GB    |
- *
- * **Path Resolution Algorithm:**
- * 1. Iterate through mount points
- * 2. Find longest prefix match
- * 3. Extract relative path (strip mount prefix)
- * 4. Dispatch to filesystem-specific open()
- *
- * Example:
- * - Path: "/eeprom/config/settings.dat"
- * - Mounts: ["/rom", "/eeprom", "/"]
- * - Match: "/eeprom" (longest)
- * - Relative: "config/settings.dat"
- * - Dispatch: eepfs_ops.open("config/settings.dat")
- *
- * **File Descriptor Table:**
- * ```c
- * typedef struct {
- *     const void     *file;     /* Filesystem-specific handle */
- *     const vfs_ops_t *ops;     /* Function pointer table */
- *     uint16_t        offset;   /* Current position */
- *     uint8_t         flags;    /* O_RDONLY, O_WRONLY, etc. */
- * } vfs_fd_t;
- * ```
- *
- * **Memory Overhead:**
- * - Mount table: 4 entries × 40 bytes = 160 bytes
- * - FD table: 8 entries × 16 bytes = 128 bytes
- * - Total RAM: ~288 bytes (configurable)
- *
- * **Performance:**
- * - Path lookup: O(m) where m = number of mounts
- * - Dispatch: O(1) function pointer call
- * - No dynamic allocation
- * - Zero-copy where possible
- *
- * **Use Cases:**
- * - Configuration files (/rom/config.ini)
- * - Persistent settings (/eeprom/settings.dat)
- * - Temporary data (/ram/temp.log)
- * - Log rotation across filesystems
- * - Resource files (images, fonts) in ROMFS
- *
- * **Future Extensions:**
- * - FATFS for SD card support
- * - RAMFS for temporary files
- * - Symlinks for indirection
- * - Directory operations (opendir, readdir)
- * - File metadata (stat, chmod)
- */

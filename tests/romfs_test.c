@@ -1,11 +1,13 @@
 #include "romfs.h"
 #include "eepfs.h"
+#include "avrix-config.h"
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
 
 int main(void)
 {
+#if CONFIG_FS_ROMFS_ENABLED
     const romfs_file_t *f = romfs_open("/etc/config/version.txt");
     assert(f);
     char buf[8] = {0};
@@ -23,13 +25,17 @@ int main(void)
     assert(nf1 == NULL);
     const romfs_file_t *nf2 = romfs_open("/no/such/file");
     assert(nf2 == NULL);
+#endif
 
+#if CONFIG_FS_EEPFS_ENABLED
     const eepfs_file_t *ef = eepfs_open("/sys/message.txt");
     assert(ef);
     char b2[12] = {0};
-    n = eepfs_read(ef, 0, b2, sizeof b2 - 1);
-    assert(n > 0);
+    int n2 = eepfs_read(ef, 0, b2, sizeof b2 - 1);
+    assert(n2 > 0);
     printf("eepfs:%s\n", b2);
+#endif
+
     puts("romfs/eepfs ok");
     return 0;
 }
