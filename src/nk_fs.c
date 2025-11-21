@@ -4,15 +4,12 @@
 
 /*───────────────────────── nk_fs.c ────────────────────────────
  * TinyLog-4  – 64-byte wear-levelled log for ATmega328P EEPROM.
- *   • 16 rows × 64 B  (1 k B total)
- *   • row header = {SEQ, TAG_ROW, CRC}
- *   • 15 data blocks / row
- *   • 3-byte “PUT / DEL” payload  + CRC-8(Maxi m/Dallas)
- *
- * Flash ≈ 1.05 kB  (avr-gcc-14  –std=c23 –Oz –flto)
- * SRAM  ≈  10 B    (row + index cursors)
  *──────────────────────────────────────────────────────────────*/
 #include "nk_fs.h"
+#include "avrix-config.h"
+
+#if CONFIG_FS_EEPFS_ENABLED && defined(__AVR__)
+
 #include <avr/eeprom.h>
 #include <avr/pgmspace.h>
 #include <stdbool.h>
@@ -199,3 +196,14 @@ bool nk_fs_get(uint16_t key, uint16_t *out) {
 
 /* Simple GC placeholder – not yet needed for 1 kB log */
 void nk_fs_gc(void) {}
+
+#else
+
+/* Stubs for non-AVR or disabled EEPFS */
+void nk_fs_init(void) {}
+bool nk_fs_put(uint16_t key, uint16_t val) { (void)key; (void)val; return false; }
+bool nk_fs_del(uint16_t key) { (void)key; return false; }
+bool nk_fs_get(uint16_t key, uint16_t *out) { (void)key; (void)out; return false; }
+void nk_fs_gc(void) {}
+
+#endif /* CONFIG_FS_EEPFS_ENABLED && __AVR__ */

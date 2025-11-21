@@ -1,50 +1,63 @@
 # ──────────────── demo executables ────────────────────────────────────
 
-fs_demo = executable(
-  'fs_demo',
-  'fs_demo.c',
-  include_directories : inc,
-  link_with           : [libavrix] + (meson.is_cross_build() ? [] : [nk_sim_io]),
-  c_args              : common_cflags,
-  install             : false
-)
+# Legacy demos (guarded by features)
+if get_option('fs_enabled')
+  fs_demo = executable(
+    'fs_demo',
+    'fs_demo.c',
+    include_directories : inc,
+    link_with           : [libavrix] + (meson.is_cross_build() ? [] : [nk_sim_io]),
+    c_args              : common_cflags,
+    install             : false
+  )
+endif
 
-romfs_demo = executable(
-  'romfs_demo',
-  'romfs_demo.c',
-  include_directories : inc,
-  link_with           : [libavrix] + (meson.is_cross_build() ? [] : [nk_sim_io]),
-  c_args              : common_cflags,
-  install             : false
-)
+if get_option('fs_romfs_enabled')
+  romfs_demo = executable(
+    'romfs_demo',
+    'romfs_demo.c',
+    include_directories : inc,
+    link_with           : [libavrix] + (meson.is_cross_build() ? [] : [nk_sim_io]),
+    c_args              : common_cflags,
+    install             : false
+  )
+endif
 
-slip_demo = executable(
-  'slip_demo',
-  'slip_demo.c',
-  include_directories : inc,
-  link_with           : [libavrix] + (meson.is_cross_build() ? [] : [nk_sim_io]),
-  c_args              : common_cflags,
-  install             : false
-)
+if get_option('net_slip_enabled')
+  slip_demo = executable(
+    'slip_demo',
+    'slip_demo.c',
+    include_directories : inc,
+    link_with           : [libavrix] + (meson.is_cross_build() ? [] : [nk_sim_io]),
+    c_args              : common_cflags,
+    install             : false
+  )
+endif
 
 # ────────── ELF → HEX conversion for simavr/avrdude ──────────────────
 objcopy = find_program('avr-objcopy', required : false)
 if objcopy.found()
-  custom_target('fs_demo_hex',
-    command : [objcopy, '-O', 'ihex', '@INPUT@', '@OUTPUT@'],
-    input   : fs_demo,
-    output  : 'fs_demo.hex'
-  )
-  custom_target('romfs_demo_hex',
-    command : [objcopy, '-O', 'ihex', '@INPUT@', '@OUTPUT@'],
-    input   : romfs_demo,
-    output  : 'romfs_demo.hex'
-  )
-  custom_target('slip_demo_hex',
-    command : [objcopy, '-O', 'ihex', '@INPUT@', '@OUTPUT@'],
-    input   : slip_demo,
-    output  : 'slip_demo.hex'
-  )
+  if get_option('fs_enabled')
+    custom_target('fs_demo_hex',
+      command : [objcopy, '-O', 'ihex', '@INPUT@', '@OUTPUT@'],
+      input   : fs_demo,
+      output  : 'fs_demo.hex'
+    )
+  endif
+  if get_option('fs_romfs_enabled')
+    custom_target('romfs_demo_hex',
+      command : [objcopy, '-O', 'ihex', '@INPUT@', '@OUTPUT@'],
+      input   : romfs_demo,
+      output  : 'romfs_demo.hex'
+    )
+  endif
+  if get_option('net_slip_enabled')
+    custom_target('slip_demo_hex',
+      command : [objcopy, '-O', 'ihex', '@INPUT@', '@OUTPUT@'],
+      input   : slip_demo,
+      output  : 'slip_demo.hex'
+    )
+  endif
 endif
 
 # ─────────────── optimisation flags (shared) ─────────────────────────
@@ -54,6 +67,7 @@ if host_machine.cpu_family() == 'avr'
 endif
 
 # ───────────── editor demos (ned / vini) ─────────────────────────────
+# Guards for editor demos? They might use FS
 ned = executable(
   'ned',
   ['ned.c', 'editor_common.c'],
@@ -97,20 +111,23 @@ endif
 # ═══════════════════════════════════════════════════════════════════
 # PHASE 7: POSIX PROFILE EXAMPLES (Tier-Based)
 # ═══════════════════════════════════════════════════════════════════
-#
-# PSE51 (low_tier):  Minimal POSIX for 8-16KB flash MCUs
-# PSE52 (mid_tier):  Multi-threaded POSIX for 128KB flash MCUs
-# PSE54 (high_tier): Full POSIX for ARM Cortex-A, RISC-V with MMU
-# ═══════════════════════════════════════════════════════════════════
 
 # ─────────────── PSE51: Low-Tier Examples (Minimal Profile) ──────────
-# Target: ATmega128, 8-16KB flash, 1-2KB RAM
-# Profile: Single-threaded, no IPC, basic I/O
-
 if not meson.is_cross_build()
-  # PSE51 examples require native/host build (stdio)
+  # Only include basic examples for Low Tier
+  low_examples = ['hello_pse51', 'scheduler_pse51']
 
-  foreach example : ['hello_pse51', 'romfs_pse51', 'eeprom_pse51', 'scheduler_pse51']
+  # eeprom_pse51 requires EEPFS
+  if get_option('fs_eepfs_enabled')
+    low_examples += ['eeprom_pse51']
+  endif
+
+  # romfs_pse51 requires ROMFS
+  if get_option('fs_romfs_enabled')
+    low_examples += ['romfs_pse51']
+  endif
+
+  foreach example : low_examples
     executable(
       example,
       'low_tier' / example + '.c',
@@ -124,11 +141,18 @@ if not meson.is_cross_build()
 endif
 
 # ─────────────── PSE52: Mid-Tier Examples (Multi-Threaded) ───────────
-# Target: ATmega1284, 128KB flash, 16KB RAM
-# Profile: pthread, networking, IPC
-
 if not meson.is_cross_build()
-  foreach example : ['threading_pse52', 'network_pse52', 'ipc_pse52', 'vfs_pse52']
+  mid_examples = ['threading_pse52', 'ipc_pse52']
+
+  if get_option('net_enabled')
+    mid_examples += ['network_pse52']
+  endif
+
+  if get_option('fs_enabled')
+    mid_examples += ['vfs_pse52']
+  endif
+
+  foreach example : mid_examples
     executable(
       example,
       'mid_tier' / example + '.c',
@@ -142,10 +166,10 @@ if not meson.is_cross_build()
 endif
 
 # ─────────────── PSE54: High-Tier Examples (Full POSIX) ──────────────
-# Target: ARM Cortex-A, RISC-V with MMU
-# Profile: Processes, signals, MMU, full IPC
-
+# Note: High tier examples assume High Profile features
 if not meson.is_cross_build()
+  # Build unconditionally as they use standard POSIX headers (host OS)
+  # but strict embedded logic might need checks.
   foreach example : ['signals_pse54', 'processes_pse54', 'mmu_pse54', 'full_posix_pse54']
     executable(
       example,
@@ -153,8 +177,7 @@ if not meson.is_cross_build()
       include_directories : inc,
       c_args              : common_cflags,
       native              : true,
-      install             : false,
-      # PSE54 examples use standard POSIX (no embedded-specific linking)
+      install             : false
     )
   endforeach
 endif

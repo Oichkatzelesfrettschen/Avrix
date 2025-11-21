@@ -14,6 +14,7 @@
 #include "drivers/fs/vfs.h"
 #include "drivers/fs/romfs.h"
 #include "drivers/fs/eepfs.h"
+#include "avrix-config.h"
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -30,6 +31,8 @@ static int tests_failed = 0;
         tests_failed++; \
     } \
 } while(0)
+
+#if CONFIG_FS_ENABLED
 
 /**
  * Test 1: Mount operations
@@ -71,20 +74,20 @@ static void test_vfs_path_resolution(void) {
     int fd;
 
     /* Try opening from different mount points */
-    fd = vfs_open("/rom/config.txt", VFS_O_RDONLY);
+    fd = vfs_open("/rom/config.txt", O_RDONLY);
     TEST_ASSERT(fd >= 0 || fd == -2, "Path /rom/config.txt resolved");
     if (fd >= 0) vfs_close(fd);
 
-    fd = vfs_open("/eeprom/data.bin", VFS_O_RDWR);
+    fd = vfs_open("/eeprom/data.bin", O_RDWR);
     TEST_ASSERT(fd >= 0 || fd == -2, "Path /eeprom/data.bin resolved");
     if (fd >= 0) vfs_close(fd);
 
     /* Test invalid path (no mount) */
-    fd = vfs_open("/invalid/file.txt", VFS_O_RDONLY);
+    fd = vfs_open("/invalid/file.txt", O_RDONLY);
     TEST_ASSERT(fd < 0, "Invalid path rejected");
 
     /* Test nested path */
-    fd = vfs_open("/rom/sub/dir/file.txt", VFS_O_RDONLY);
+    fd = vfs_open("/rom/sub/dir/file.txt", O_RDONLY);
     TEST_ASSERT(fd >= 0 || fd == -2, "Nested path resolved");
     if (fd >= 0) vfs_close(fd);
 }
@@ -101,7 +104,7 @@ static void test_vfs_fd_management(void) {
 
     /* Open multiple files */
     for (int i = 0; i < 8; i++) {
-        fds[i] = vfs_open("/rom/test.txt", VFS_O_RDONLY);
+        fds[i] = vfs_open("/rom/test.txt", O_RDONLY);
         if (fds[i] >= 0) {
             count++;
         }
@@ -115,7 +118,7 @@ static void test_vfs_fd_management(void) {
     }
 
     /* Verify FDs are reusable */
-    int fd = vfs_open("/rom/test.txt", VFS_O_RDONLY);
+    int fd = vfs_open("/rom/test.txt", O_RDONLY);
     TEST_ASSERT(fd >= 0 || fd == -2, "FD reused after close");
     if (fd >= 0) vfs_close(fd);
 }
@@ -132,13 +135,13 @@ static void test_vfs_read_write(void) {
     int fd, ret;
 
     /* Write test (EEPFS) */
-    fd = vfs_open("/eeprom/test.dat", VFS_O_RDWR | VFS_O_CREAT);
+    fd = vfs_open("/eeprom/test.dat", O_RDWR | O_CREAT);
     if (fd >= 0) {
         ret = vfs_write(fd, write_buf, sizeof(write_buf));
         TEST_ASSERT(ret > 0, "Write to EEPFS");
 
         /* Seek back to start */
-        ret = vfs_lseek(fd, 0, VFS_SEEK_SET);
+        ret = vfs_lseek(fd, 0, SEEK_SET);
         TEST_ASSERT(ret == 0, "Seek to start");
 
         /* Read back */
@@ -155,7 +158,7 @@ static void test_vfs_read_write(void) {
     }
 
     /* Read-only test (ROMFS) */
-    fd = vfs_open("/rom/readonly.txt", VFS_O_RDONLY);
+    fd = vfs_open("/rom/readonly.txt", O_RDONLY);
     if (fd >= 0) {
         ret = vfs_write(fd, write_buf, sizeof(write_buf));
         TEST_ASSERT(ret < 0, "Write to read-only filesystem rejected");
@@ -172,7 +175,7 @@ static void test_vfs_seek(void) {
     printf("\nTest 5: Seek Operations\n");
     printf("------------------------\n");
 
-    int fd = vfs_open("/rom/test.txt", VFS_O_RDONLY);
+    int fd = vfs_open("/rom/test.txt", O_RDONLY);
     if (fd < 0) {
         printf("  ⊘ Seek tests skipped (file not found)\n");
         return;
@@ -181,25 +184,28 @@ static void test_vfs_seek(void) {
     int ret;
 
     /* SEEK_SET */
-    ret = vfs_lseek(fd, 10, VFS_SEEK_SET);
+    ret = vfs_lseek(fd, 10, SEEK_SET);
     TEST_ASSERT(ret >= 0, "SEEK_SET to offset 10");
 
     /* SEEK_CUR */
-    ret = vfs_lseek(fd, 5, VFS_SEEK_CUR);
+    ret = vfs_lseek(fd, 5, SEEK_CUR);
     TEST_ASSERT(ret >= 0, "SEEK_CUR forward 5");
 
     /* SEEK_END */
-    ret = vfs_lseek(fd, 0, VFS_SEEK_END);
+    ret = vfs_lseek(fd, 0, SEEK_END);
     TEST_ASSERT(ret >= 0, "SEEK_END to end of file");
 
     vfs_close(fd);
 }
+
+#endif /* CONFIG_FS_ENABLED */
 
 /**
  * Main test runner
  */
 int main(void) {
     printf("=== VFS Unit Tests ===\n");
+#if CONFIG_FS_ENABLED
     printf("Testing Phase 5 Virtual Filesystem implementation\n");
 
     /* Run tests */
@@ -208,6 +214,9 @@ int main(void) {
     test_vfs_fd_management();
     test_vfs_read_write();
     test_vfs_seek();
+#else
+    printf("Skipping tests: FS disabled in config\n");
+#endif
 
     /* Summary */
     printf("\n=== Test Summary ===\n");

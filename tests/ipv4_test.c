@@ -3,17 +3,12 @@
 /**
  * @file ipv4_test.c
  * @brief Unit tests for IPv4 protocol implementation
- *
- * Tests Phase 5 IPv4 improvements:
- * - RFC 1071 compliant checksum (fixed carry propagation)
- * - Header validation
- * - Endianness conversions
- * - Packet transmission/reception
  */
 
 #include "drivers/net/ipv4.h"
 #include "drivers/net/slip.h"
 #include "drivers/tty/tty.h"
+#include "avrix-config.h"
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -30,6 +25,8 @@ static int tests_failed = 0;
         tests_failed++; \
     } \
 } while(0)
+
+#if CONFIG_NET_IPV4_ENABLED
 
 /**
  * Test 1: RFC 1071 Checksum Implementation
@@ -75,6 +72,9 @@ static void test_ipv4_header_init(void) {
     printf("------------------------------\n");
 
     ipv4_hdr_t hdr;
+    /* Initialize to avoid uninitialized warnings in case stub does nothing */
+    memset(&hdr, 0, sizeof(hdr));
+
     uint32_t src_ip = 0x0A000001;  /* 10.0.0.1 */
     uint32_t dst_ip = 0x0A000002;  /* 10.0.0.2 */
     uint16_t payload_len = 100;
@@ -108,6 +108,7 @@ static void test_ipv4_header_validation(void) {
     printf("-------------------------\n");
 
     ipv4_hdr_t hdr;
+    memset(&hdr, 0, sizeof(hdr));
 
     /* Valid header */
     ipv4_init_header(&hdr, 0x0A000001, 0x0A000002, IPV4_PROTO_ICMP, 50);
@@ -179,6 +180,11 @@ static void test_ipv4_protocols(void) {
     TEST_ASSERT(IPV4_PROTO_UDP == 17, "UDP protocol number is 17");
 }
 
+/* Mock TTY (no actual transmission) */
+static uint8_t tx_count = 0;
+static void mock_putc(uint8_t c) { (void)c; tx_count++; }
+static int mock_getc(void) { return -1; }
+
 /**
  * Test 6: Transmission (with mock TTY)
  */
@@ -186,17 +192,13 @@ static void test_ipv4_transmission(void) {
     printf("\nTest 6: Packet Transmission\n");
     printf("----------------------------\n");
 
-    /* Mock TTY (no actual transmission) */
-    static uint8_t tx_count = 0;
-    static void mock_putc(uint8_t c) { (void)c; tx_count++; }
-    static int mock_getc(void) { return -1; }
-
     uint8_t rx_buf[64], tx_buf[64];
     tty_t tty;
     tty_init(&tty, rx_buf, tx_buf, 64, mock_putc, mock_getc);
 
     /* Send a packet */
     ipv4_hdr_t hdr;
+    memset(&hdr, 0, sizeof(hdr));
     ipv4_init_header(&hdr, 0x0A000001, 0x0A000002, IPV4_PROTO_UDP, 10);
 
     uint8_t payload[10] = "TEST DATA";
@@ -209,11 +211,14 @@ static void test_ipv4_transmission(void) {
     printf("  → Bytes transmitted: %u (includes SLIP framing)\n", tx_count);
 }
 
+#endif /* CONFIG_NET_IPV4_ENABLED */
+
 /**
  * Main test runner
  */
 int main(void) {
     printf("=== IPv4 Unit Tests ===\n");
+#if CONFIG_NET_IPV4_ENABLED
     printf("Testing Phase 5 IPv4 improvements (RFC 1071 + validation)\n");
 
     /* Run tests */
@@ -223,6 +228,9 @@ int main(void) {
     test_ipv4_endianness();
     test_ipv4_protocols();
     test_ipv4_transmission();
+#else
+    printf("Skipping tests: IPv4 disabled in config\n");
+#endif
 
     /* Summary */
     printf("\n=== Test Summary ===\n");

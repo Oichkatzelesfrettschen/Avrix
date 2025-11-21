@@ -55,10 +55,11 @@ run_command(
 )
 
 # ── 5 · include-path selection ────────────────────────────────────────
+# Add build root to includes for avrix-config.h
 if meson.is_cross_build() or host_machine.cpu_family() == 'avr'
-  inc = include_directories('include')
+  inc = include_directories('include', '.', 'config')
 else
-  inc = include_directories('include', 'compat')
+  inc = include_directories('include', 'compat', '.', 'config')
 endif
 
 # ── 6 · optional on-device GDB stub -----------------------------------
@@ -66,7 +67,10 @@ if get_option('debug_gdb')
   add_project_arguments('-DDEBUG_GDB', language : 'c')
 endif
 
-# ── 7 · sub-projects ---------------------------------------------------
+# ── 7 · configuration -------------------------------------------------
+subdir('config')    # Generates avrix-config.h
+
+# ── 8 · sub-projects ---------------------------------------------------
 subdir('kernel')    # Portable kernel subsystems (Phase 4)
 subdir('drivers')   # Device drivers (Phase 5)
 subdir('src')       # Legacy sources (being phased out)
@@ -132,10 +136,22 @@ else
   gate_cmd = ['true']
 endif
 
+# Collect targets for size gate dynamically
+gate_inputs = [ned, vini]
+
+if is_variable('fs_demo')
+  gate_inputs += [fs_demo]
+endif
+if is_variable('romfs_demo')
+  gate_inputs += [romfs_demo]
+endif
+if is_variable('slip_demo')
+  gate_inputs += [slip_demo]
+endif
+
 size_gate = custom_target(
   'size-gate',
-  input   : [fs_demo, romfs_demo, slip_demo, ned, vini,
-             files('scripts/size_gate.py')],
+  input   : gate_inputs + [files('scripts/size_gate.py')],
   output  : 'size-gate.stamp',
   command : gate_cmd,
   console : true,

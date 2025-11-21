@@ -5,240 +5,88 @@ Avrix — µ-UNIX for AVR 🍋
 **Codename:** **Avrix** (styled **AVR-unIX**).  
 The kernel itself is called **µ-UNIX**.
 
-*A ≤ 10 kB C23 nano-kernel, wear-levelled **TinyLog-4**, and a unified  
-spinlock / Door-RPC suite for the Arduino Uno R3.*
+*A Scalable Embedded POSIX System (8-bit to 32-bit).*
 
-| MCU               | Flash | SRAM | EEPROM | Clock            |
-| ----------------- | ----- | ---- | ------ | ---------------- |
-| **ATmega328P-PU** | 32 kB | 2 kB | 1 kB   | 16 MHz           |
-| **ATmega16U2-MU** | 16 kB | 512 B| 512 B  | 16 → 48 MHz PLL  |
+| Profile | MCU Class | RAM | Key Features |
+| :--- | :--- | :--- | :--- |
+| **Low (PSE51)** | 8-bit (ATmega328) | < 2 KB | Single-Task, No FS, No Net |
+| **Mid (PSE52)** | 8/16-bit (ATmega1284) | > 16 KB | Multi-Thread, VFS, Minimal Net |
+| **High (PSE54)** | 32-bit (ARM Cortex-A) | > 256 KB | Full POSIX, MPU, TCP/IP |
 
 [![CI](https://github.com/your-org/avrix/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/avrix/actions)
 
+## 0 · Quick Start (Repo Modulator) 🛠
 
-## 0 · One-liner bootstrap 🛠
+Select a profile to configure the OS for your target hardware:
 
 ```bash
-sudo ./setup.sh --modern      # GCC-14 + QEMU smoke-boot (recommended)
-sudo ./setup.sh --legacy      # GCC 7.3 – bare minimum
-# add --no-python if you are offline
-````
+# 1. Low Profile (8-bit, Minimal)
+meson setup build_low --cross-file config/profiles/low.ini
+meson compile -C build_low
 
-`setup.sh` automatically
+# 2. Mid Profile (Multi-threaded, VFS)
+meson setup build_mid --cross-file config/profiles/mid.ini
+meson compile -C build_mid
 
-* pins **Debian-sid** `gcc-avr-14` (falls back to Ubuntu 7.3 if unavailable) \[1];
-* installs QEMU ≥ 8.2, Meson, and doc helpers \[2];
-* skips Python helpers with `--no-python`;
-* **builds** the firmware and boots it in QEMU (`arduino-uno` machine) \[3];
-* prints MCU-specific **CFLAGS / LDFLAGS** for easy Makefile drop-in.
+# 3. High Profile (Full POSIX)
+meson setup build_high --cross-file config/profiles/high.ini
+meson compile -C build_high
+```
+
+## 1 · Configuration System
+
+Avrix uses a "Repo Modulator" architecture to scale. Configuration is driven by `meson_options.txt` and profile files.
+
+**Key Options:**
+- `kernel_sched_type`: `single` (Low), `preempt` (Mid/High)
+- `fs_enabled`: Enable Virtual Filesystem
+- `net_enabled`: Enable Networking Stack
+- `ipc_door_enabled`: Enable Door RPC
+
+See `config/profiles/` for default configurations.
+
+## 2 · One-liner bootstrap
+
+```bash
+sudo ./setup.sh --modern      # GCC-14 + QEMU smoke-boot
+```
+
+`setup.sh` pins Debian-sid `gcc-avr-14` and installs QEMU.
 
 ---
 
-## 1 · Compiler tracks
+## 3 · Architecture & Modules
 
-| Mode       | GCC  | Source                       | ✅ Advantages                                  | ⚠️ Trade-offs               |
-| ---------- | ---- | ---------------------------- | --------------------------------------------- | --------------------------- |
-| **Modern** | 14.2 | Debian-sid pkgs / xPack 13.x | C23, `-mrelax`, `-mcall-prologues`, tiny bins | Needs apt-pin or PATH tweak |
-| **Legacy** | 7.3  | Ubuntu *universe*            | Zero extra setup                              | C11 only, ≈ 8 % larger bins |
+### 3.1 · Portable Kernel (Phase 4)
+- `kernel/sched/`: Configurable scheduler (Single-task vs Preemptive)
+- `kernel/sync/`: Spinlocks & Mutexes (Stubbed in Low profile)
+- `kernel/mm/`: Memory Management (kalloc)
 
-> No Launchpad PPA ships AVR-GCC ≥ 10 — ignore any guide mentioning
-> `team-gcc-arm-embedded/avr`. \[4]
+### 3.2 · Drivers (Phase 5)
+- `drivers/fs/`: VFS layer supporting ROMFS and EEPFS
+- `drivers/net/`: IPv4/SLIP stack (RFC 1071 checksums)
+- `drivers/tty/`: Ring-buffer UART driver
 
----
+### 3.3 · Status
+- ✅ **Low Profile**: Verified (< 2KB RAM)
+- ✅ **Mid Profile**: Verified (Multi-threaded)
+- ✅ **High Profile**: Verified (Full POSIX API stubs)
+- 🚧 **Shell**: Planned (Phase 2)
+- 🚧 **MPU**: Planned (Phase 2)
 
-## 2 · Build & run
-
-```bash
-meson setup   build --wipe --cross-file cross/atmega328p_gcc14.cross
-# LLVM/Clang users can instead specify
-#   cross/atmega328p_clang.cross  (generic) or
-#   cross/atmega328p_clang20.cross if Clang 20 is installed
-meson compile -C build
-qemu-system-avr -M arduino-uno -bios build/unix0.elf -nographic
-meson compile -C build flash          # flashes over /dev/ttyACM0
-meson compile -C build size-gate      # fails if firmware exceeds -Dflash_limit
-```
-
-Customise the limit with:
-
-```bash
-meson configure build -Dflash_limit=32768
-```
-
-Logs (`build.log`, `build.log.txt`) are produced by CI (or manually with
-`meson compile --log-file build.log | tee build.log.txt`) and ignored by git.
-
-### 2.1 · Developer packages
-
-Install host utilities for debugging and documentation:
-
-```bash
-sudo apt install -y valgrind linux-tools-common linux-tools-generic
-```
-
-See :ref:`toolchain-setup` for a full list including Meson, Doxygen and
-Sphinx helpers.
-
----
-
-## 3 · What you get
-
-* **Nano-kernel** < 10 kB – 1 kHz pre-emptive round-robin.
-* **TinyLog-4** – wear-levelled EEPROM log (≈ 420 B flash).
-* **Door RPC** – zero-copy Cap'n-Proto slab, ≈ 1 µs RTT \[5].
-* **Unified spinlock** – TAS / quaternion / Beatty-lattice variants with BKL aliases \[6].
-* **Fixed-point Q8.8** helpers.
-* **Full QEMU board model** (`arduino-uno`) integrated into CI.
-
-### 3.1 · Portable Architecture (Phase 5 Complete)
-
-The codebase has been refactored into a portable embedded POSIX system supporting multiple architectures beyond AVR:
-
-**Hardware Abstraction Layer (HAL):**
-- `arch/common/hal.h` - Unified interface for context switching, atomics, memory barriers
-- `arch/avr8/` - AVR8 implementation (ATmega128, ATmega328P, etc.)
-- `arch/arm/` - ARM Cortex-M support (future)
-- `arch/msp430/` - TI MSP430 support (future)
-- `arch/x86/` - x86/x64 for host testing (future)
-
-**Portable Kernel Subsystems:**
-- `kernel/sched/` - Scheduler (portable, uses HAL for context switching)
-- `kernel/sync/` - Spinlocks, mutexes (HAL atomics)
-- `kernel/mm/` - Memory allocator (kalloc with tier-based sizing)
-- `kernel/ipc/` - Door RPC (portable, HAL memory barriers)
-
-**Driver Layer (3,108 lines, Phase 5):**
-- **Filesystems** (1,736 lines):
-  - `drivers/fs/romfs.{c,h}` - Read-only memory filesystem (flash/ROM)
-  - `drivers/fs/eepfs.{c,h}` - EEPROM filesystem with wear-leveling
-  - `drivers/fs/vfs.{c,h}` - Virtual filesystem layer with mount points
-
-- **Networking** (808 lines):
-  - `drivers/net/slip.{c,h}` - RFC 1055 SLIP protocol (stateless)
-  - `drivers/net/ipv4.{c,h}` - IPv4 stack with RFC 1071 checksum
-
-- **Character Devices** (564 lines):
-  - `drivers/tty/tty.{c,h}` - TTY driver with ring buffers
-
-**Novel Optimizations:**
-- **VFS Dispatch**: Function pointer table for zero-overhead polymorphism
-- **EEPROM Wear-Leveling**: Read-before-write (10-100x life extension)
-- **RFC 1071 Checksum**: Fixed carry propagation bug in IPv4
-- **Power-of-2 Modulo**: Bitwise AND instead of % (2-10x faster on 8-bit)
-- **Header Validation**: IPv4 packet validation before processing
-
-**Memory Footprint (Phase 5 drivers):**
-- Flash: ~830 bytes (all drivers combined)
-- RAM: ~170 bytes (VFS + descriptors, configurable)
-- EEPROM: User files (metadata in flash)
-
-**Status:**
-- ✅ Phase 1-4: Foundation (6,236 lines)
-- ✅ Phase 5: Driver Migration (3,108 lines)
-- ✅ Phase 6: Build System Integration (235 lines)
-- ✅ Phase 7: Examples & Testing (2,561 lines, 12 examples)
-- ✅ Phase 8: Documentation (1,250 lines, 3 guides)
-- **PROJECT COMPLETE: 13,390 lines** 🎉
+See **[ROADMAP.md](ROADMAP.md)** for future plans.
 
 ---
 
 ## 4 · Documentation
 
-### General Guides
-
-- **[ARDUINO_CHIPSETS.md](ARDUINO_CHIPSETS.md)** - Arduino & compatible chipset specifications (2KB-520KB RAM)
-- **[PORTING_GUIDE.md](PORTING_GUIDE.md)** - Port to new architectures (ARM, RISC-V, MSP430)
-- **[BUILD_GUIDE.md](BUILD_GUIDE.md)** - Build system (Meson), cross-compilation, CI/CD
-- **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** - Migrate between PSE51/52/54 profiles
-- **[CHANGELOG.md](CHANGELOG.md)** - Complete project development history
-
-### Technical References (Deep-Dive)
-
-- **[docs/technical/ATMEGA328P_REFERENCE.md](docs/technical/ATMEGA328P_REFERENCE.md)** - Complete ATmega328P technical guide
-  - Memory maps, register files, interrupt system
-  - HAL implementation details, performance analysis
-  - PSE51 resource budgets, programming guide
-
-- **[docs/technical/ATMEGA32U4_REFERENCE.md](docs/technical/ATMEGA32U4_REFERENCE.md)** - Complete ATmega32U4 technical guide
-  - USB subsystem architecture, HID/CDC integration
-  - Native USB programming, bootloader details
-  - PSE51+USB resource budgets
-
-- **[docs/technical/CHIPSET_COMPARISON.md](docs/technical/CHIPSET_COMPARISON.md)** - Performance comparison & decision trees
-  - Complete chipset comparison matrix
-  - Context switch analysis, power consumption
-  - Migration paths, use case recommendations
-
-### Supported Arduino Chipsets
-
-**PSE51 (Minimal - 2KB RAM):**
-- ATmega328P (Arduino Uno, Nano) - 32KB flash, 2KB RAM ✅ Primary target
-- ATmega32U4 (Leonardo, Micro) - 32KB flash, 2.5KB RAM ✅ With USB HID
-
-**PSE52 (Multi-Threaded - 4-16KB RAM):**
-- ATmega644P (Pandauino) - 64KB flash, 4KB RAM ⚠️ Limited (2-3 threads)
-- ATmega2560 (Mega) - 256KB flash, 8KB RAM ✅ Good (4-8 threads)
-- ATmega1284P (Mighty 1284P) - 128KB flash, 16KB RAM ✅ Best AVR8
-- ESP8266 (NodeMCU) - 4MB flash, 80KB RAM ✅ With WiFi
-- ESP32 (DevKit) - 4MB flash, 520KB RAM ✅ Dual-core + WiFi/BT
-
-**PSE54 (Full POSIX - 32KB+ RAM, MMU required):**
-- SAMD21 (Arduino Zero) - 256KB flash, 32KB RAM ⚠️ No MMU
-- RP2040 (Pico) - 2MB flash, 264KB RAM ⚠️ No MMU, dual-core
-- ARM Cortex-A (Raspberry Pi) - 512MB-4GB RAM ✅ Full MMU
-
-See [ARDUINO_CHIPSETS.md](ARDUINO_CHIPSETS.md) for detailed specifications and recommendations.
+- **[ARDUINO_CHIPSETS.md](ARDUINO_CHIPSETS.md)**: Hardware targets
+- **[PORTING_GUIDE.md](PORTING_GUIDE.md)**: Architecture porting
+- **[BUILD_GUIDE.md](BUILD_GUIDE.md)**: Build system details
+- **[ROADMAP.md](ROADMAP.md)**: Future architecture plans
 
 ---
 
-## 5 · Repository map generator
+## 5 · License
 
-`scripts/repo_map.js` scans the code‐base and writes `repo_map.json`.
-
-### 5.1 · Install dependencies
-
-```bash
-npm install          # installs fast-glob, p-limit, tree-sitter, tree-sitter-c
-```
-
-### 5.2 · Run with custom paths
-
-```bash
-node scripts/repo_map.js \
-     -s src -s extras -t tests \
-     -c cross -o repo_map.json \
-     -x 'vendor/**' -j 8
-```
-
-* `-s/--src` may be repeated; defaults to `src/`.
-* `-t/--tests` chooses the test directory (`tests/` if omitted).
-* `-c/--cross` points to the Meson cross-files directory (`cross/` by default).
-* `-o/--out` names the output file (`repo_map.json` by default).
-* `-x/--exclude` provides fast-glob ignore patterns (repeatable).
-* `-j/--jobs` limits parallel parse workers (`0` → all CPUs).
-
-`repo_map.json` captures:
-
-* `generated_at` – ISO time-stamp
-* `cross_files` / `toolchains` – names derived from `*.cross` files
-* `src_roots`, `tests_dir`, `test_suites`
-* per-file function lists for build-bots and static-analysis dashboards
-
----
-
-## 6 · License
-
-MIT.  See `LICENSE` for details.
-
----
-
-### References
-
-1. [https://tracker.debian.org/pkg/gcc-avr](https://tracker.debian.org/pkg/gcc-avr)
-2. [https://www.qemu.org/2023/12/20/qemu-8-2-0/](https://www.qemu.org/2023/12/20/qemu-8-2-0/)
-3. [https://arduino.stackexchange.com/q/95932](https://arduino.stackexchange.com/q/95932)
-4. [https://apt.llvm.org/](https://apt.llvm.org/)
-5. [https://capnproto.org/rpc.html](https://capnproto.org/rpc.html)
-6. [https://en.wikipedia.org/wiki/Beatty\_sequence](https://en.wikipedia.org/wiki/Beatty_sequence)
-
-```
+MIT. See `LICENSE` for details.

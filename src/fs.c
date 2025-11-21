@@ -3,6 +3,10 @@
  */
 
 #include "fs.h"
+#include "avrix-config.h"
+
+#if CONFIG_FS_ENABLED
+
 #include <errno.h>
 #include <string.h>
 
@@ -269,3 +273,5 @@ int fs_unlink(const char *name) {
 
     return -1;
 }
+
+#endif /* CONFIG_FS_ENABLED */
