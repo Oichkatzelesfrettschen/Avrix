@@ -207,17 +207,22 @@ fi
 
 # Coverage score (40 points max)
 if [ -n "${COVERAGE_LINES:-}" ]; then
-    COVERAGE_INT=$(echo "${COVERAGE_LINES}" | cut -d. -f1)
-    if [ "${COVERAGE_INT}" -ge 80 ]; then
-        COV_SCORE=40
-    elif [ "${COVERAGE_INT}" -ge 60 ]; then
-        COV_SCORE=30
-    elif [ "${COVERAGE_INT}" -ge 40 ]; then
-        COV_SCORE=20
-    else
-        COV_SCORE=10
+    # Validate that COVERAGE_LINES looks like a numeric percentage (e.g. 85, 85.5, 85%)
+    if [[ "${COVERAGE_LINES}" =~ ^[0-9]+(\.[0-9]+)?%?$ ]]; then
+        # Strip optional trailing '%' and take integer part before any decimal point
+        _coverage_normalized="${COVERAGE_LINES%%%}"
+        COVERAGE_INT="${_coverage_normalized%%.*}"
+        if [ "${COVERAGE_INT}" -ge 80 ]; then
+            COV_SCORE=40
+        elif [ "${COVERAGE_INT}" -ge 60 ]; then
+            COV_SCORE=30
+        elif [ "${COVERAGE_INT}" -ge 40 ]; then
+            COV_SCORE=20
+        else
+            COV_SCORE=10
+        fi
+        QUALITY_SCORE=$((QUALITY_SCORE + COV_SCORE))
     fi
-    QUALITY_SCORE=$((QUALITY_SCORE + COV_SCORE))
 fi
 
 # Documentation score (20 points max) - always award this
