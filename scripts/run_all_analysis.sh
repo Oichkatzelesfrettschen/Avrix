@@ -101,8 +101,8 @@ if [ -x "${SCRIPT_DIR}/coverage_analysis.sh" ]; then
         # Extract coverage summary (capture once, parse twice)
         if [ -f "${REPORT_DIR}/coverage/coverage_filtered.info" ]; then
             COVERAGE_SUMMARY=$(lcov --summary "${REPORT_DIR}/coverage/coverage_filtered.info" 2>&1)
-            COVERAGE_LINES=$(echo "$COVERAGE_SUMMARY" | grep "lines" | grep -oP '\d+\.\d+(?=%)')
-            COVERAGE_FUNCS=$(echo "$COVERAGE_SUMMARY" | grep "functions" | grep -oP '\d+\.\d+(?=%)')
+            COVERAGE_LINES=$(echo "$COVERAGE_SUMMARY" | awk '/lines/ { for (i = 1; i <= NF; i++) if ($i ~ /^[0-9.]+%$/) { gsub("%", "", $i); print $i; exit } }')
+            COVERAGE_FUNCS=$(echo "$COVERAGE_SUMMARY" | awk '/functions/ { for (i = 1; i <= NF; i++) if ($i ~ /^[0-9.]+%$/) { gsub("%", "", $i); print $i; exit } }')
             
             cat >> "${MASTER_REPORT}" << EOF
 ### Coverage Analysis Results
