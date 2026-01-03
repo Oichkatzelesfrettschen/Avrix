@@ -55,9 +55,13 @@ if command -v cppcheck &> /dev/null; then
         echo -e "${GREEN}✓ Cppcheck HTML report: ${REPORT_DIR}/cppcheck_html/index.html${NC}"
     fi
     
-    # Count issues
-    CPPCHECK_ISSUES=$(grep -c "<error" "${REPORT_DIR}/cppcheck_report.xml" || echo "0")
-    echo -e "${GREEN}✓ Cppcheck complete: ${CPPCHECK_ISSUES} issues found${NC}"
+    # Count issues (check file exists first)
+    if [ -f "${REPORT_DIR}/cppcheck_report.xml" ]; then
+        CPPCHECK_ISSUES=$(grep -c "<error" "${REPORT_DIR}/cppcheck_report.xml" || echo "0")
+        echo -e "${GREEN}✓ Cppcheck complete: ${CPPCHECK_ISSUES} issues found${NC}"
+    else
+        echo -e "${YELLOW}⚠ Cppcheck report not generated${NC}"
+    fi
 else
     echo -e "${RED}✗ cppcheck not found${NC}"
 fi

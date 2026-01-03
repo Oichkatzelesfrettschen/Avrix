@@ -75,9 +75,13 @@ for binary in $TEST_BINARIES; do
     echo "  Profiling ${test_name}..."
     
     # Check if we can run perf record (requires privileges)
-    if perf record -o "${REPORT_DIR}/${test_name}.perf.data" -g "$binary" 2>&1 | grep -q "Permission denied"; then
-        echo -e "${YELLOW}  ⚠ perf requires root privileges, using alternative profiling${NC}"
-        # Use gprof or other method
+    if ! perf record -o "${REPORT_DIR}/${test_name}.perf.data" -g "$binary" 2>&1; then
+        PERF_EXIT=$?
+        if [ $PERF_EXIT -eq 1 ]; then
+            echo -e "${YELLOW}  ⚠ perf requires root privileges or binary crashed${NC}"
+        else
+            echo -e "${YELLOW}  ⚠ perf failed with exit code $PERF_EXIT${NC}"
+        fi
         continue
     fi
     

@@ -44,7 +44,6 @@ cd "${PROJECT_ROOT}"
 
 # Host build with coverage enabled
 meson setup "${BUILD_DIR}" \
-    -Dcov=true \
     -Db_coverage=true \
     -Dbuildtype=debug \
     -Doptimization=0 \
