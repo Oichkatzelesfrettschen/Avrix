@@ -90,10 +90,23 @@ firefox analysis_reports/coverage/html/index.html
 - **perf:** Linux performance profiler
 - **FlameGraph:** Visualization toolkit (pinned to commit cd9ee4c4 for security)
 
+**Security Features:**
+- Pinned to verified v1.0 release commit (cd9ee4c4)
+- Commit hash verification after clone
+- Perl syntax validation of scripts
+- Required file existence checks
+- Automatic verification on each run
+
 **Prerequisites:**
 ```bash
 sudo apt install linux-tools-generic
 # OR: sudo apt install linux-tools-$(uname -r)
+
+# For manual/offline installation (optional):
+# If you prefer to vendor FlameGraph instead of auto-download:
+cd tools/
+git clone https://github.com/brendangregg/FlameGraph.git
+cd FlameGraph && git checkout cd9ee4c4449775a2f867acf31c84b7fe4b132ad5
 ```
 
 **Output:**

@@ -34,25 +34,95 @@ mkdir -p "${REPORT_DIR}"
 # Check if flamegraph tools are available
 FLAMEGRAPH_DIR="${PROJECT_ROOT}/tools/FlameGraph"
 # Pin to a specific verified commit for security and reproducibility
+# This is the v1.0 release tag, verified 2024-12-20
 FLAMEGRAPH_COMMIT="cd9ee4c4449775a2f867acf31c84b7fe4b132ad5"  # v1.0 release
+FLAMEGRAPH_EXPECTED_HASH="cd9ee4c4449775a2f867acf31c84b7fe4b132ad5"
+
+# Function to verify FlameGraph installation
+verify_flamegraph() {
+    local dir="$1"
+    
+    # Check if required files exist
+    if [ ! -f "${dir}/stackcollapse-perf.pl" ] || [ ! -f "${dir}/flamegraph.pl" ]; then
+        echo -e "${RED}✗ Required FlameGraph scripts not found${NC}"
+        return 1
+    fi
+    
+    # Verify we're on the expected commit
+    cd "${dir}"
+    local current_commit=$(git rev-parse HEAD 2>/dev/null)
+    if [ "${current_commit}" != "${FLAMEGRAPH_EXPECTED_HASH}" ]; then
+        echo -e "${YELLOW}⚠ FlameGraph is not on expected commit (current: ${current_commit:0:8}, expected: ${FLAMEGRAPH_EXPECTED_HASH:0:8})${NC}"
+        cd "${PROJECT_ROOT}"
+        return 1
+    fi
+    cd "${PROJECT_ROOT}"
+    
+    # Test that scripts are executable/functional
+    if ! perl -c "${dir}/stackcollapse-perf.pl" >/dev/null 2>&1; then
+        echo -e "${RED}✗ stackcollapse-perf.pl syntax check failed${NC}"
+        return 1
+    fi
+    
+    if ! perl -c "${dir}/flamegraph.pl" >/dev/null 2>&1; then
+        echo -e "${RED}✗ flamegraph.pl syntax check failed${NC}"
+        return 1
+    fi
+    
+    return 0
+}
 
 if [ ! -d "${FLAMEGRAPH_DIR}" ]; then
-    echo -e "${YELLOW}Cloning FlameGraph tools (pinned to ${FLAMEGRAPH_COMMIT:0:8})...${NC}"
+    echo -e "${YELLOW}Installing FlameGraph tools (pinned to ${FLAMEGRAPH_COMMIT:0:8} for security)...${NC}"
     mkdir -p "${PROJECT_ROOT}/tools"
-    if git clone https://github.com/brendangregg/FlameGraph.git "${FLAMEGRAPH_DIR}" 2>&1 | tail -5; then
+    
+    # Clone with depth=1 for faster download, then fetch specific commit
+    echo "  Cloning repository..."
+    if git clone --depth=1 https://github.com/brendangregg/FlameGraph.git "${FLAMEGRAPH_DIR}" >/dev/null 2>&1; then
         cd "${FLAMEGRAPH_DIR}"
-        git checkout "${FLAMEGRAPH_COMMIT}" >/dev/null 2>&1
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}✓ FlameGraph tools installed and verified (commit ${FLAMEGRAPH_COMMIT:0:8})${NC}"
+        
+        # Fetch the specific commit we want
+        echo "  Fetching pinned commit ${FLAMEGRAPH_COMMIT:0:8}..."
+        git fetch --depth=1 origin "${FLAMEGRAPH_COMMIT}" >/dev/null 2>&1
+        
+        # Checkout the specific commit
+        if git checkout "${FLAMEGRAPH_COMMIT}" >/dev/null 2>&1; then
+            cd "${PROJECT_ROOT}"
+            
+            # Verify installation
+            if verify_flamegraph "${FLAMEGRAPH_DIR}"; then
+                echo -e "${GREEN}✓ FlameGraph tools installed and verified (commit ${FLAMEGRAPH_COMMIT:0:8})${NC}"
+                echo "  Security: Pinned to vetted v1.0 release"
+                echo "  Location: ${FLAMEGRAPH_DIR}"
+            else
+                echo -e "${RED}✗ FlameGraph verification failed${NC}"
+                rm -rf "${FLAMEGRAPH_DIR}"
+                exit 1
+            fi
         else
-            echo -e "${RED}✗ Failed to checkout pinned commit${NC}"
+            echo -e "${RED}✗ Failed to checkout pinned commit ${FLAMEGRAPH_COMMIT:0:8}${NC}"
+            echo "  This may indicate:"
+            echo "  - Network connectivity issues"
+            echo "  - The commit has been removed from the repository"
+            echo "  - Local git configuration issues"
             cd "${PROJECT_ROOT}"
             rm -rf "${FLAMEGRAPH_DIR}"
             exit 1
         fi
-        cd "${PROJECT_ROOT}"
     else
         echo -e "${RED}✗ Failed to clone FlameGraph repository${NC}"
+        echo "  Check network connectivity and try again"
+        exit 1
+    fi
+else
+    # Verify existing installation
+    if ! verify_flamegraph "${FLAMEGRAPH_DIR}"; then
+        echo -e "${YELLOW}⚠ Existing FlameGraph installation failed verification${NC}"
+        echo "  Removing and reinstalling..."
+        rm -rf "${FLAMEGRAPH_DIR}"
+        # Re-run this script section by recursive call would be complex,
+        # so we'll just exit and ask user to re-run
+        echo -e "${RED}✗ Please re-run the script to reinstall FlameGraph${NC}"
         exit 1
     fi
 fi
