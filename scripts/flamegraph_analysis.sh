@@ -75,12 +75,14 @@ for binary in $TEST_BINARIES; do
     echo "  Profiling ${test_name}..."
     
     # Check if we can run perf record (requires privileges)
-    if ! perf record -o "${REPORT_DIR}/${test_name}.perf.data" -g "$binary" 2>&1; then
-        PERF_EXIT=$?
-        if [ $PERF_EXIT -eq 1 ]; then
-            echo -e "${YELLOW}  ⚠ perf requires root privileges or binary crashed${NC}"
+    PERF_OUTPUT=$(perf record -o "${REPORT_DIR}/${test_name}.perf.data" -g "$binary" 2>&1)
+    PERF_EXIT=$?
+    if [ "$PERF_EXIT" -ne 0 ]; then
+        if printf '%s\n' "$PERF_OUTPUT" | grep -qiE 'permission denied|are you root|you may not have permission to collect stats'; then
+            echo -e "${YELLOW}  ⚠ perf failed due to insufficient privileges (try running with sudo or adjusting perf_event_paranoid)${NC}"
         else
             echo -e "${YELLOW}  ⚠ perf failed with exit code $PERF_EXIT${NC}"
+            printf '%s\n' "$PERF_OUTPUT"
         fi
         continue
     fi
