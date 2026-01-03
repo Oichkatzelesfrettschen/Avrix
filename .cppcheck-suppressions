@@ -1,0 +1,12 @@
+# Cppcheck suppressions for Avrix
+# Format: [error id]:[filename]:[line]
+# Use * for wildcards
+
+# Suppress specific warnings for embedded code
+unusedFunction:tests/*
+missingIncludeSystem
+unmatchedSuppression
+
+# Suppress false positives for HAL macros
+preprocessorErrorDirective:arch/avr8/*
+ConfigurationNotChecked
