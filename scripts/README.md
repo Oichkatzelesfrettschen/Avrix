@@ -88,7 +88,7 @@ firefox analysis_reports/coverage/html/index.html
 
 **Tools Used:**
 - **perf:** Linux performance profiler
-- **FlameGraph:** Visualization toolkit (auto-downloaded)
+- **FlameGraph:** Visualization toolkit (pinned to commit cd9ee4c4 for security)
 
 **Prerequisites:**
 ```bash

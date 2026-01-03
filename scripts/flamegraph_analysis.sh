@@ -33,26 +33,59 @@ mkdir -p "${REPORT_DIR}"
 
 # Check if flamegraph tools are available
 FLAMEGRAPH_DIR="${PROJECT_ROOT}/tools/FlameGraph"
+# Pin to a specific verified commit for security and reproducibility
+FLAMEGRAPH_COMMIT="cd9ee4c4449775a2f867acf31c84b7fe4b132ad5"  # v1.0 release
+
 if [ ! -d "${FLAMEGRAPH_DIR}" ]; then
-    echo -e "${YELLOW}Cloning FlameGraph tools...${NC}"
+    echo -e "${YELLOW}Cloning FlameGraph tools (pinned to ${FLAMEGRAPH_COMMIT:0:8})...${NC}"
     mkdir -p "${PROJECT_ROOT}/tools"
-    git clone https://github.com/brendangregg/FlameGraph.git "${FLAMEGRAPH_DIR}" 2>&1 | tail -5
-    echo -e "${GREEN}✓ FlameGraph tools installed${NC}"
+    if git clone https://github.com/brendangregg/FlameGraph.git "${FLAMEGRAPH_DIR}" 2>&1 | tail -5; then
+        cd "${FLAMEGRAPH_DIR}"
+        git checkout "${FLAMEGRAPH_COMMIT}" >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            echo -e "${GREEN}✓ FlameGraph tools installed and verified (commit ${FLAMEGRAPH_COMMIT:0:8})${NC}"
+        else
+            echo -e "${RED}✗ Failed to checkout pinned commit${NC}"
+            cd "${PROJECT_ROOT}"
+            rm -rf "${FLAMEGRAPH_DIR}"
+            exit 1
+        fi
+        cd "${PROJECT_ROOT}"
+    else
+        echo -e "${RED}✗ Failed to clone FlameGraph repository${NC}"
+        exit 1
+    fi
 fi
 
 # Build for profiling
 echo -e "${YELLOW}[1/4] Building for profiling...${NC}"
 cd "${PROJECT_ROOT}"
 
+# Create log file for full build output
+BUILD_LOG="${REPORT_DIR}/build_profiling.log"
+
 if [ ! -d "${BUILD_DIR}" ]; then
-    meson setup "${BUILD_DIR}" \
+    echo "  Configuring build (full output logged to ${BUILD_LOG})..."
+    if meson setup "${BUILD_DIR}" \
         -Dbuildtype=debug \
         -Doptimization=2 \
-        --wipe 2>&1 | head -20
+        --wipe > "${BUILD_LOG}" 2>&1; then
+        echo -e "${GREEN}  ✓ Configuration complete${NC}"
+    else
+        echo -e "${RED}  ✗ Configuration failed. Check ${BUILD_LOG} for details${NC}"
+        tail -20 "${BUILD_LOG}"
+        exit 1
+    fi
 fi
 
-meson compile -C "${BUILD_DIR}" 2>&1 | tail -10
-echo -e "${GREEN}✓ Build complete${NC}"
+echo "  Compiling (full output logged to ${BUILD_LOG})..."
+if meson compile -C "${BUILD_DIR}" >> "${BUILD_LOG}" 2>&1; then
+    echo -e "${GREEN}✓ Build complete${NC}"
+else
+    echo -e "${RED}✗ Build failed. Last 20 lines of output:${NC}"
+    tail -20 "${BUILD_LOG}"
+    exit 1
+fi
 echo
 
 # Find test executables
@@ -87,12 +120,21 @@ for binary in $TEST_BINARIES; do
         continue
     fi
     
-    # Generate flamegraph
-    if [ -f "${REPORT_DIR}/${test_name}.perf.data" ]; then
-        perf script -i "${REPORT_DIR}/${test_name}.perf.data" > "${REPORT_DIR}/${test_name}.perf.script"
-        "${FLAMEGRAPH_DIR}/stackcollapse-perf.pl" "${REPORT_DIR}/${test_name}.perf.script" > "${REPORT_DIR}/${test_name}.folded"
-        "${FLAMEGRAPH_DIR}/flamegraph.pl" "${REPORT_DIR}/${test_name}.folded" > "${REPORT_DIR}/${test_name}_flamegraph.svg"
-        echo -e "${GREEN}  ✓ Generated flamegraph: ${test_name}_flamegraph.svg${NC}"
+    # Generate flamegraph only if perf.data was successfully created
+    if [ -f "${REPORT_DIR}/${test_name}.perf.data" ] && [ -s "${REPORT_DIR}/${test_name}.perf.data" ]; then
+        if perf script -i "${REPORT_DIR}/${test_name}.perf.data" > "${REPORT_DIR}/${test_name}.perf.script" 2>/dev/null; then
+            if [ -s "${REPORT_DIR}/${test_name}.perf.script" ]; then
+                "${FLAMEGRAPH_DIR}/stackcollapse-perf.pl" "${REPORT_DIR}/${test_name}.perf.script" > "${REPORT_DIR}/${test_name}.folded"
+                "${FLAMEGRAPH_DIR}/flamegraph.pl" "${REPORT_DIR}/${test_name}.folded" > "${REPORT_DIR}/${test_name}_flamegraph.svg"
+                echo -e "${GREEN}  ✓ Generated flamegraph: ${test_name}_flamegraph.svg${NC}"
+            else
+                echo -e "${YELLOW}  ⚠ perf script produced no output${NC}"
+            fi
+        else
+            echo -e "${YELLOW}  ⚠ Failed to process perf data${NC}"
+        fi
+    elif [ -f "${REPORT_DIR}/${test_name}.perf.data" ]; then
+        echo -e "${YELLOW}  ⚠ perf.data file is empty, skipping flamegraph generation${NC}"
     fi
 done
 
