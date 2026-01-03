@@ -78,7 +78,7 @@ lcov --capture \
 # Filter out system headers and test files
 lcov --remove "${REPORT_DIR}/coverage.info" \
     '/usr/*' \
-    '*/tests/*' \
+    "${PROJECT_ROOT}/tests/*" \
     '*/build*/*' \
     --output-file "${REPORT_DIR}/coverage_filtered.info" \
     --rc lcov_branch_coverage=1 \
