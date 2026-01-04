@@ -10,3 +10,12 @@ __pycache__/
 build.log
 build.log.txt
 *.deb
+
+# Analysis reports (generated)
+analysis_reports/
+tools/FlameGraph/
+
+# IDE files
+compile_commands.json
+.clangd/
+.cache/
