@@ -170,29 +170,31 @@ AVRIX CODE METRICS REPORT
 EOF
 
 # Lines of code by directory
-echo "Lines of Code by Component:" >> "${REPORT_DIR}/code_metrics.txt"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >> "${REPORT_DIR}/code_metrics.txt"
-for dir in src kernel drivers arch lib examples tests; do
-    if [ -d "${PROJECT_ROOT}/${dir}" ]; then
-        LOC=$(find "${PROJECT_ROOT}/${dir}" -type f -name "*.c" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
-        HEADERS=$(find "${PROJECT_ROOT}/${dir}" -type f -name "*.h" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
-        printf "  %-15s %8s lines (C)  %8s lines (H)\n" "${dir}/" "${LOC}" "${HEADERS}" >> "${REPORT_DIR}/code_metrics.txt"
-    fi
-done
-
-echo "" >> "${REPORT_DIR}/code_metrics.txt"
-echo "File Count by Type:" >> "${REPORT_DIR}/code_metrics.txt"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >> "${REPORT_DIR}/code_metrics.txt"
-printf "  C source files:    %5d\n" "$(find "${PROJECT_ROOT}" -name "*.c" ! -path "*/build*/*" | wc -l)" >> "${REPORT_DIR}/code_metrics.txt"
-printf "  Header files:      %5d\n" "$(find "${PROJECT_ROOT}" -name "*.h" ! -path "*/build*/*" | wc -l)" >> "${REPORT_DIR}/code_metrics.txt"
-printf "  Assembly files:    %5d\n" "$(find "${PROJECT_ROOT}" -name "*.S" -o -name "*.s" ! -path "*/build*/*" | wc -l)" >> "${REPORT_DIR}/code_metrics.txt"
-printf "  Meson files:       %5d\n" "$(find "${PROJECT_ROOT}" -name "meson.build" | wc -l)" >> "${REPORT_DIR}/code_metrics.txt"
-
-echo "" >> "${REPORT_DIR}/code_metrics.txt"
-echo "Documentation:" >> "${REPORT_DIR}/code_metrics.txt"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >> "${REPORT_DIR}/code_metrics.txt"
-printf "  Markdown files:    %5d\n" "$(find "${PROJECT_ROOT}" -name "*.md" | wc -l)" >> "${REPORT_DIR}/code_metrics.txt"
-printf "  Documentation LOC: %5d\n" "$(find "${PROJECT_ROOT}" -name "*.md" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")" >> "${REPORT_DIR}/code_metrics.txt"
+{
+    echo "Lines of Code by Component:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    for dir in src kernel drivers arch lib examples tests; do
+        if [ -d "${PROJECT_ROOT}/${dir}" ]; then
+            LOC=$(find "${PROJECT_ROOT}/${dir}" -type f -name "*.c" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
+            HEADERS=$(find "${PROJECT_ROOT}/${dir}" -type f -name "*.h" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
+            printf "  %-15s %8s lines (C)  %8s lines (H)\n" "${dir}/" "${LOC}" "${HEADERS}"
+        fi
+    done
+    
+    echo ""
+    echo "File Count by Type:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    printf "  C source files:    %5d\n" "$(find "${PROJECT_ROOT}" -name "*.c" ! -path "*/build*/*" | wc -l)"
+    printf "  Header files:      %5d\n" "$(find "${PROJECT_ROOT}" -name "*.h" ! -path "*/build*/*" | wc -l)"
+    printf "  Assembly files:    %5d\n" "$(find "${PROJECT_ROOT}" \( -name "*.S" -o -name "*.s" \) ! -path "*/build*/*" | wc -l)"
+    printf "  Meson files:       %5d\n" "$(find "${PROJECT_ROOT}" -name "meson.build" | wc -l)"
+    
+    echo ""
+    echo "Documentation:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    printf "  Markdown files:    %5d\n" "$(find "${PROJECT_ROOT}" -name "*.md" | wc -l)"
+    printf "  Documentation LOC: %5d\n" "$(find "${PROJECT_ROOT}" -name "*.md" -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")"
+} > "${REPORT_DIR}/code_metrics.txt"
 
 cat "${REPORT_DIR}/code_metrics.txt"
 echo -e "${GREEN}✓ Code metrics generated${NC}"
@@ -206,7 +208,9 @@ echo -e "${BLUE}  Analysis Complete${NC}"
 echo -e "${BLUE}════════════════════════════════════════════════════════════${NC}"
 echo
 echo -e "${GREEN}Reports generated in: ${REPORT_DIR}/${NC}"
-ls -lh "${REPORT_DIR}/" | tail -n +2 | awk '{print "  " $9 " (" $5 ")"}'
+find "${REPORT_DIR}/" -maxdepth 1 -type f -printf "%f\n" 2>/dev/null | while IFS= read -r file; do
+    echo "  $file"
+done
 echo
 echo -e "${YELLOW}Next steps:${NC}"
 echo "  1. Review reports in ${REPORT_DIR}/"

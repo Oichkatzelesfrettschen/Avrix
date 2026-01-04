@@ -50,7 +50,8 @@ verify_flamegraph() {
     
     # Verify we're on the expected commit
     cd "${dir}"
-    local current_commit=$(git rev-parse HEAD 2>/dev/null)
+    local current_commit
+    current_commit=$(git rev-parse HEAD 2>/dev/null)
     if [ "${current_commit}" != "${FLAMEGRAPH_EXPECTED_HASH}" ]; then
         echo -e "${YELLOW}⚠ FlameGraph is not on expected commit (current: ${current_commit:0:8}, expected: ${FLAMEGRAPH_EXPECTED_HASH:0:8})${NC}"
         cd "${PROJECT_ROOT}"
@@ -168,7 +169,9 @@ if [ -z "$TEST_BINARIES" ]; then
 fi
 
 echo "Found test binaries:"
-echo "$TEST_BINARIES" | sed 's/^/  /'
+while IFS= read -r binary; do
+    echo "  $binary"
+done <<< "$TEST_BINARIES"
 echo
 
 # Profile each test binary
@@ -217,13 +220,13 @@ ninja -t clean 2>/dev/null || true
 time ninja -j1 > "${REPORT_DIR}/build_log.txt" 2>&1 || true
 
 # Extract build statistics
-echo "Build Statistics:" > "${REPORT_DIR}/build_stats.txt"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >> "${REPORT_DIR}/build_stats.txt"
-echo "" >> "${REPORT_DIR}/build_stats.txt"
-
-# Count compilation units
-echo "Compilation Units:" >> "${REPORT_DIR}/build_stats.txt"
-grep -c "\[.*\].*\.c$" "${REPORT_DIR}/build_log.txt" >> "${REPORT_DIR}/build_stats.txt" || echo "0" >> "${REPORT_DIR}/build_stats.txt"
+{
+    echo "Build Statistics:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "Compilation Units:"
+    grep -c "\[.*\].*\.c$" "${REPORT_DIR}/build_log.txt" || echo "0"
+} > "${REPORT_DIR}/build_stats.txt"
 
 cat "${REPORT_DIR}/build_stats.txt"
 echo -e "${GREEN}✓ Build profiling complete${NC}"
@@ -235,7 +238,9 @@ echo -e "${BLUE}  Profiling Complete${NC}"
 echo -e "${BLUE}════════════════════════════════════════════════════════════${NC}"
 echo
 echo -e "${GREEN}Reports generated in: ${REPORT_DIR}/${NC}"
-ls -lh "${REPORT_DIR}/" 2>/dev/null | tail -n +2 | awk '{print "  " $9 " (" $5 ")"}' || echo "  (No files generated)"
+find "${REPORT_DIR}/" -maxdepth 1 -type f -printf "%f (%s bytes)\n" 2>/dev/null | while IFS= read -r line; do
+    echo "  $line"
+done || echo "  (No files generated)"
 echo
 echo -e "${YELLOW}View flamegraphs:${NC}"
 find "${REPORT_DIR}" -name "*.svg" 2>/dev/null | sed 's/^/  /' || echo "  No SVG files generated"
